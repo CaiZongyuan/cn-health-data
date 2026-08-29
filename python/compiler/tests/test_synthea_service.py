@@ -155,6 +155,9 @@ def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
     assert "HEALTHCHECK" in dockerfile
     assert "COPY LICENSE /opt/licenses/CN-HEALTH-DATA-LICENSE" in dockerfile
     assert "COPY DATA-NOTICE.md /opt/licenses/CN-HEALTH-DATA-NOTICE" in dockerfile
+    assert "pip wheel --no-deps" in dockerfile
+    assert '"pydantic>=2.11,<3"' in dockerfile
+    assert '"rfc8785>=0.1.4,<1"' in dockerfile
     assert "COPY dist" not in dockerfile
     assert "COPY tmp" not in dockerfile
     assert "dist/" in dockerignore

@@ -7,7 +7,10 @@ WORKDIR /src
 
 COPY python/compiler/pyproject.toml ./pyproject.toml
 COPY python/compiler/src ./src
-RUN python -m pip wheel --wheel-dir /wheels .
+RUN python -m pip wheel --no-deps --wheel-dir /wheels . \
+  && python -m pip download --dest /wheels \
+    "pydantic>=2.11,<3" \
+    "rfc8785>=0.1.4,<1"
 
 FROM python:3.12.11-slim-bookworm AS runtime
 
@@ -21,7 +24,9 @@ RUN groupadd --gid 10001 cn-health \
   && mkdir -p /opt/licenses \
   && chown -R 10001:10001 /opt/cn-health /opt/licenses
 COPY --from=build /wheels /wheels
-RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels cn-health-compiler \
+RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels pydantic rfc8785 \
+  && python -m pip install --no-cache-dir --no-deps --no-index \
+    /wheels/cn_health_compiler-0.1.0-py3-none-any.whl \
   && rm -rf /wheels
 COPY LICENSE /opt/licenses/CN-HEALTH-DATA-LICENSE
 COPY DATA-NOTICE.md /opt/licenses/CN-HEALTH-DATA-NOTICE
