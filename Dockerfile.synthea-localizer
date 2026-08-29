@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+
+FROM python:3.12.11-slim-bookworm AS build
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /src
+
+COPY python/compiler/pyproject.toml ./pyproject.toml
+COPY python/compiler/src ./src
+RUN python -m pip wheel --wheel-dir /wheels .
+
+FROM python:3.12.11-slim-bookworm AS runtime
+
+ENV CN_HEALTH_LOCALIZER_HOST=0.0.0.0
+ENV CN_HEALTH_LOCALIZER_PORT=51879
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /opt/cn-health
+
+RUN groupadd --gid 10001 cn-health \
+  && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent cn-health \
+  && mkdir -p /opt/licenses \
+  && chown -R 10001:10001 /opt/cn-health /opt/licenses
+COPY --from=build /wheels /wheels
+RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels cn-health-compiler \
+  && rm -rf /wheels
+COPY LICENSE /opt/licenses/CN-HEALTH-DATA-LICENSE
+COPY DATA-NOTICE.md /opt/licenses/CN-HEALTH-DATA-NOTICE
+
+USER 10001:10001
+EXPOSE 51879
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
+  CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['CN_HEALTH_LOCALIZER_PORT']+'/health', timeout=2).read()"]
+ENTRYPOINT ["cn-health-synthea-service"]

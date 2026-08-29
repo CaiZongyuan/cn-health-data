@@ -112,6 +112,8 @@ def _load_profile(profile_dir: Path) -> _ProfileManifest:
         raise SyntheaLocalizationError("Synthea profile Manifest is invalid") from error
     if manifest.schema_version != 1:
         raise SyntheaLocalizationError("Synthea profile schema is unsupported")
+    if manifest.projection_policy.get("identityAlgorithm") != "synthetic-identity-v1":
+        raise SyntheaLocalizationError("Synthea profile identity algorithm is unsupported")
     for entry in manifest.files:
         relative_path = _safe_profile_path(entry.path)
         try:
@@ -264,6 +266,111 @@ def _related_identity(
     ]
 
 
+class SyntheaBundleLocalizer:
+    """Validate immutable profile inputs once, then localize independent Bundles."""
+
+    def __init__(
+        self,
+        *,
+        profile_dir: Path,
+        names_release_dir: Path,
+        geography_release_dir: Path,
+        population_release_dir: Path,
+    ) -> None:
+        self._manifest = _load_profile(profile_dir)
+        self._names = load_dataset_release_reference(
+            names_release_dir, expected_dataset_id="names-cn"
+        )
+        self._geography = load_dataset_release_reference(
+            geography_release_dir, expected_dataset_id="geography-cn"
+        )
+        self._population = load_dataset_release_reference(
+            population_release_dir, expected_dataset_id="population-cn"
+        )
+        references = {
+            "geography-cn": self._geography,
+            "names-cn": self._names,
+            "population-cn": self._population,
+        }
+        _release_dependencies(self._manifest, references)
+        self._provenance: dict[str, object] = {
+            "dependencies": [
+                dependency.model_dump(by_alias=True)
+                for dependency in self._manifest.dependencies
+            ],
+            "identityAlgorithm": "synthetic-identity-v1",
+            "profileContentHash": self._manifest.content_hash,
+            "profileId": self._manifest.profile_id,
+            "syntheaCommit": self._manifest.supported_synthea_commit,
+        }
+
+    @property
+    def provenance(self) -> dict[str, object]:
+        return copy.deepcopy(self._provenance)
+
+    def localize(self, raw_bundle: dict[str, Any], *, seed: str) -> LocalizedSyntheaBundle:
+        try:
+            _BundleShape.model_validate(raw_bundle)
+        except ValidationError as error:
+            raise SyntheaLocalizationError("Synthea source Bundle is invalid") from error
+
+        bundle = copy.deepcopy(raw_bundle)
+        resources = [entry["resource"] for entry in bundle["entry"]]
+        patients = [resource for resource in resources if resource.get("resourceType") == "Patient"]
+        if len(patients) != 1:
+            raise SyntheaLocalizationError("Synthea Bundle must contain exactly one Patient")
+        patient = patients[0]
+        patient_id = patient.get("id")
+        birth_date = patient.get("birthDate")
+        gender = patient.get("gender")
+        if (
+            not isinstance(patient_id, str)
+            or not isinstance(birth_date, str)
+            or gender not in {"female", "male", "other", "unknown"}
+        ):
+            raise SyntheaLocalizationError("Synthea Patient identity fields are invalid")
+        identity_seed = f"{self._manifest.content_hash}:{patient_id}:{seed}"
+        patient_identity = generate_synthetic_identity(
+            names_release=self._names,
+            geography_release=self._geography,
+            seed=identity_seed,
+            birth_date=birth_date,
+            gender=gender,
+        )
+        _patient_identity(patient, patient_identity)
+        for resource in resources:
+            resource_type = resource.get("resourceType")
+            if resource_type not in {"Practitioner", "Organization"}:
+                continue
+            related_identity = generate_synthetic_identity(
+                names_release=self._names,
+                geography_release=self._geography,
+                seed=f"{identity_seed}:{resource_type}:{resource['id']}",
+                birth_date="1980-01-01",
+                gender="unknown",
+            )
+            _related_identity(resource, related_identity, resource_type)
+        meta = bundle.setdefault("meta", {})
+        tags = [
+            tag
+            for tag in meta.get("tag", [])
+            if tag.get("system") != "urn:cn-health-data:synthea-profile"
+        ]
+        tags.append(
+            {
+                "system": "urn:cn-health-data:synthea-profile",
+                "code": self._manifest.profile_id,
+                "display": self._manifest.content_hash,
+            }
+        )
+        meta["tag"] = tags
+        return LocalizedSyntheaBundle(
+            bundle=bundle,
+            profile_id=self._manifest.profile_id,
+            profile_content_hash=self._manifest.content_hash,
+        )
+
+
 def localize_synthea_bundle(
     raw_bundle: dict[str, Any],
     *,
@@ -273,79 +380,9 @@ def localize_synthea_bundle(
     population_release_dir: Path,
     seed: str,
 ) -> LocalizedSyntheaBundle:
-    try:
-        _BundleShape.model_validate(raw_bundle)
-    except ValidationError as error:
-        raise SyntheaLocalizationError("Synthea source Bundle is invalid") from error
-    manifest = _load_profile(profile_dir)
-    names = load_dataset_release_reference(names_release_dir, expected_dataset_id="names-cn")
-    geography = load_dataset_release_reference(
-        geography_release_dir, expected_dataset_id="geography-cn"
-    )
-    population = load_dataset_release_reference(
-        population_release_dir, expected_dataset_id="population-cn"
-    )
-    references = {"geography-cn": geography, "names-cn": names, "population-cn": population}
-    _release_dependencies(manifest, references)
-
-    bundle = copy.deepcopy(raw_bundle)
-    resources = [entry["resource"] for entry in bundle["entry"]]
-    patients = [resource for resource in resources if resource.get("resourceType") == "Patient"]
-    if len(patients) != 1:
-        raise SyntheaLocalizationError("Synthea Bundle must contain exactly one Patient")
-    patient = patients[0]
-    patient_id = patient.get("id")
-    birth_date = patient.get("birthDate")
-    gender = patient.get("gender")
-    if (
-        not isinstance(patient_id, str)
-        or not isinstance(birth_date, str)
-        or gender
-        not in {
-            "female",
-            "male",
-            "other",
-            "unknown",
-        }
-    ):
-        raise SyntheaLocalizationError("Synthea Patient identity fields are invalid")
-    identity_seed = f"{manifest.content_hash}:{patient_id}:{seed}"
-    patient_identity = generate_synthetic_identity(
-        names_release=names,
-        geography_release=geography,
-        seed=identity_seed,
-        birth_date=birth_date,
-        gender=gender,
-    )
-    _patient_identity(patient, patient_identity)
-    for resource in resources:
-        resource_type = resource.get("resourceType")
-        if resource_type not in {"Practitioner", "Organization"}:
-            continue
-        related_identity = generate_synthetic_identity(
-            names_release=names,
-            geography_release=geography,
-            seed=f"{identity_seed}:{resource_type}:{resource['id']}",
-            birth_date="1980-01-01",
-            gender="unknown",
-        )
-        _related_identity(resource, related_identity, resource_type)
-    meta = bundle.setdefault("meta", {})
-    tags = [
-        tag
-        for tag in meta.get("tag", [])
-        if tag.get("system") != "urn:cn-health-data:synthea-profile"
-    ]
-    tags.append(
-        {
-            "system": "urn:cn-health-data:synthea-profile",
-            "code": manifest.profile_id,
-            "display": manifest.content_hash,
-        }
-    )
-    meta["tag"] = tags
-    return LocalizedSyntheaBundle(
-        bundle=bundle,
-        profile_id=manifest.profile_id,
-        profile_content_hash=manifest.content_hash,
-    )
+    return SyntheaBundleLocalizer(
+        profile_dir=profile_dir,
+        names_release_dir=names_release_dir,
+        geography_release_dir=geography_release_dir,
+        population_release_dir=population_release_dir,
+    ).localize(raw_bundle, seed=seed)

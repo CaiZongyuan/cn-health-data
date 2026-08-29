@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 cn-health-build = "cn_health_compiler.cli:app"
+cn-health-synthea-service = "cn_health_compiler.synthetic.synthea_service:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cn_health_compiler"]
