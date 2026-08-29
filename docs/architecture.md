@@ -4,7 +4,7 @@ The build-time path is:
 
 ```text
 Declared Source -> Snapshot -> Inspect -> Extract -> Normalize -> Validate
-                -> Diff -> SQLite -> Package -> Rights Gate -> Release
+                -> Diff -> SQLite -> Package -> Distribution Gate -> Release
 ```
 
 Python owns acquisition and compilation. SQLite is the canonical runtime

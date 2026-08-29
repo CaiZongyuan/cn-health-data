@@ -22,6 +22,9 @@ patient data, or provide a production clinical system.
 |---|---|---:|---:|
 | `nhsa-drugs` | Import, validation, packaging, and search for the drug classification/code workbook `总表` | `2026-01-09.r3` | 269,110 |
 | `nhc-icd10-clinical` | Import, validation, packaging, and search for Clinical Diagnosis Classification 2.0 (2022) | `2022.r3` | 37,294 |
+| `geography-cn` | Versioned administrative divisions, populated places, and postal areas | `2026-08-29.r1` | 24,731 |
+| `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r1` | 530 |
+| `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r1` | 3,171 |
 | `loinc-zh-cn` | ZIP/CSV adapter and Rust queries tested with synthetic fixtures | None | None |
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
@@ -40,6 +43,10 @@ Implemented infrastructure includes:
   bounded decompression, and SQLite integrity checks;
 - installed-version listing, activation, and rollback;
 - exact and literal search commands for drugs, diagnoses, and LOINC;
+- deterministic Chinese synthetic names, addresses, `100` phones, and `990000`
+  simulated resident IDs;
+- a fixed-commit Synthea profile projection, FHIR R4 identity localizer, and
+  bounded internal HTTP service;
 - Ed25519-signed Registry generation and verified remote installation; and
 - an npm wrapper that delegates all behavior to the native binary.
 
@@ -58,7 +65,7 @@ Snapshot -> Inspect -> Extract -> Normalize -> Validate -> Diff
                          Manifest <- Package <- SQLite + Parquet
                               |
                               v
-                    Rights Gate -> Release/Registry
+               Distribution policy -> Release/Registry
                                       |
                                       v
                                Rust local runtime
@@ -139,10 +146,10 @@ or website. Pass the exact source path on every build.
 
 The currently declared real inputs are:
 
-| Dataset | Local file | Worksheet | Expected SHA256 |
+| Dataset | Input contract | Worksheet | Expected SHA256 |
 |---|---|---|---|
-| `nhsa-drugs` | `tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
-| `nhc-icd10-clinical` | `tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
+| `nhsa-drugs` | Drug classification/code workbook supplied through `DRUG_SOURCE` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
+| `nhc-icd10-clinical` | Clinical Diagnosis Classification workbook supplied through `DIAGNOSIS_SOURCE` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
 
 The drug compiler reads only the declared workbook's `总表`. The downloaded drug
 PDF in `tmp/` is not part of this build. The local procedure workbook is also not
@@ -151,9 +158,11 @@ consumed because procedure implementation is deferred.
 You can verify inputs before building:
 
 ```bash
+export DRUG_SOURCE=/absolute/path/to/drug-classification.xlsx
+export DIAGNOSIS_SOURCE=/absolute/path/to/clinical-diagnosis-2022.xlsx
 sha256sum \
-  'tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx' \
-  'tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx'
+  "$DRUG_SOURCE" \
+  "$DIAGNOSIS_SOURCE"
 ```
 
 During a build, the compiler verifies the declared SHA256, size, worksheet,
@@ -171,12 +180,12 @@ The examples below assume a fresh `dist/` directory and create revision 1:
 
 ```bash
 uv run cn-health-build build nhsa-drugs \
-  --source 'tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx' \
+  --source "$DRUG_SOURCE" \
   --build-revision 1 \
   --sequence 1
 
 uv run cn-health-build build nhc-icd10-clinical \
-  --source 'tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx' \
+  --source "$DIAGNOSIS_SOURCE" \
   --build-revision 1 \
   --sequence 1
 ```
@@ -210,6 +219,56 @@ This produces `nhc-icd10-clinical@2022.r2`, records `2022.r1` as its
 predecessor, and calculates `diff.json` from the base SQLite database. Source
 Version, Build Revision, release sequence, compiler version, Dataset Schema
 Version, and Manifest Schema Version are intentionally separate dimensions.
+
+## Chinese Demographics and Synthea
+
+`geography-cn`, `names-cn`, and `population-cn` are general-purpose Datasets.
+The Synthea profile is a versioned consumer projection rather than a canonical
+data model. The verified combination is:
+
+```text
+geography-cn@2026-08-29.r1
+names-cn@40.37.0.r1
+population-cn@WPP2024.r1
+synthea-cn@2026-08-29.r3
+Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
+```
+
+Build the profile from three Candidate Releases:
+
+```bash
+uv run cn-health-build synthea profile \
+  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
+  --names-release dist/names-cn/releases/40.37.0.r1 \
+  --population-release dist/population-cn/releases/WPP2024.r1 \
+  --output-root dist/synthea-cn-profile/releases \
+  --profile-version 2026-08-29 \
+  --build-revision 3 \
+  --reference-year 2026 \
+  --synthea-commit d9d07a6eef91ee5144293b42ab64224d84d124f8
+```
+
+Localize one self-contained Synthea FHIR R4 collection Bundle:
+
+```bash
+uv run cn-health-build synthea localize \
+  --input /path/to/raw-bundle.json \
+  --output .work/localized-bundle.json \
+  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
+  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
+  --names-release dist/names-cn/releases/40.37.0.r1 \
+  --population-release dist/population-cn/releases/WPP2024.r1 \
+  --seed patient-1
+```
+
+Long-running consumers can build `Dockerfile.synthea-localizer` or run
+`cn-health-synthea-service`. The service verifies the profile content, files,
+and three Candidate dependencies at startup and returns the same provenance on
+every response. The localizer changes only Patient, Practitioner, and
+Organization identity presentation while preserving clinical IDs, codings,
+dates, values, units, and reference closure. See
+[`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md) for the full contract and
+Docker acceptance criteria.
 
 ## Install and Query Locally
 
@@ -267,11 +326,11 @@ directory for the `org.cn-health.cn-health` project identity.
 
 ## Signed Registry and Remote Installation
 
-The Registry tooling is implemented. Current local Manifests set
-`releaseEligible: false`, which keeps the default workflow focused on local
-builds and installation. The Registry builder accepts only Manifests explicitly
-configured for distribution. This repository does not provide a public Registry,
-production signing key, or hosting endpoint.
+The Registry tooling is implemented. Local Candidates can be built and installed
+directly. A remote Registry is a separate optional distribution channel and
+accepts only Releases whose Manifests explicitly set `releaseEligible: true`.
+This repository does not provide a public Registry, production signing key, or
+hosting endpoint.
 
 When an operator has prepared distribution metadata consistent with the terms
 applicable to the source and intended use, they can generate a raw Ed25519
@@ -395,5 +454,5 @@ publishing any dataset.
 - [`docs/architecture.md`](docs/architecture.md): concise component architecture
 - [`docs/dataset-format.md`](docs/dataset-format.md): Dataset Contract layout
 - [`docs/source-inventory.md`](docs/source-inventory.md): source inventory and status
-- [`docs/data-rights.md`](docs/data-rights.md): Rights Gate and release policy
+- [`docs/data-rights.md`](docs/data-rights.md): sources, license scope, and distribution metadata
 - [`DATA-NOTICE.md`](DATA-NOTICE.md): bilingual data ownership and license notice

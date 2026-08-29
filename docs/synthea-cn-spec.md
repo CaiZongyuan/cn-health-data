@@ -1,6 +1,6 @@
 # Synthea 中国本地化与消费者接入 Spec
 
-状态：实施中
+状态：已实现；真实 `loinc-zh-cn` Candidate 取决于调用方提供的官方来源包
 
 ## 1. 目标
 
@@ -24,16 +24,16 @@
 d9d07a6eef91ee5144293b42ab64224d84d124f8
 ```
 
-对 ClinMesh 当前 Docker Provider 使用 `populationSeed=4242`、`clinicalSeed=7331` 生成
-一名患者时，原始 Patient 包含：
+固定 Synthea 在身份本地化前生成的原始 Patient 包含：
 
 - Massachusetts 地址和 `country=US`；
 - `555-*` 电话；
 - `us-ssn`、美国驾照和美国护照标识；
 - 英文姓名、英文称谓以及西式姓名顺序。
 
-ClinMesh 当前编译阶段会丢弃这些身份字段，再从少量硬编码姓名、地址、固定区划码和
-手机前缀重建身份。该行为可复现，但没有 Dataset Release、来源版本或分布模型支撑。
+当前 Provider 使用 profile classpath 和“中国”地域生成，再由 cn-health localizer 删除
+美国身份语义并写入 profile tag。ClinMesh 只在响应 metadata、Bundle tag、Candidate
+依赖和 synthetic identity 规则一致时复用来源身份；兼容 fallback 使用明显虚构的字段。
 
 ## 3. 所有权边界
 
@@ -320,7 +320,7 @@ hypertension
 
 ### 9.5 ClinMesh 验收
 
-- 全量药品、诊断、LOINC Candidate 可导入独立 reference SQLite；
+- 全量药品、诊断以及调用方提供的 LOINC Candidate 可导入独立 reference SQLite；
 - 三个病种关键映射目标实际存在于导入 Release；
 - Synthetic Patient Profile 不再依赖姓名、地址或手机号常量；
 - 安装后的 Scenario Package 在 Synthea、`cn-health-data` 和外网离线时可运行和 reset；

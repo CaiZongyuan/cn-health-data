@@ -5,14 +5,14 @@ License. Source-data rights are independent: the project does not own or claim
 ownership of third-party healthcare data, and the MIT License does not apply to
 raw data or generated record-level data artifacts by default.
 
-Public data artifacts are fail-closed: a dataset may be built locally while its
-rights state is `review-required`, but it cannot enter the public registry until
-the Rights Gate records legal basis, evidence, attribution, reviewed-by/date,
-and allowed artifact types.
+Local builds and public distribution are separate workflows. A Dataset Contract
+can describe a local Candidate with `review-required`; the signed Registry accepts
+only Releases whose metadata records the applicable basis, evidence, attribution,
+reviewed-by/date, allowed artifact types, and `releaseEligible: true`.
 
-Supported redistribution states are `public`, `normalized-only`,
-`metadata-only`, `private`, and `review-required`. A takedown policy is not a
-substitute for permission.
+Supported distribution states are `public`, `normalized-only`, `metadata-only`,
+`private`, and `review-required`. These values describe artifact handling; they
+do not change the source terms or grant additional rights.
 
 Every releasable artifact must identify its source, legal basis, attribution,
 and allowed artifact type. A code license cannot be used as evidence that a

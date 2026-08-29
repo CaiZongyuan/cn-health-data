@@ -7,8 +7,8 @@ License 仅授权项目贡献者自行创作的软件代码和原创项目文档
 
 MIT License 默认不适用于原始来源数据、从第三方数据生成的规范化逐条数据、SQLite、
 Parquet、Mapping 数据产物，也不适用于第三方名称、标识或商标。项目不能授予自己并不
-拥有的权利。每个 Dataset 必须根据其来源条款和 Rights Gate 单独确定可使用、修改和
-再分发的范围。
+拥有的权利。每个 Dataset 的 Contract 与 Manifest 单独记录来源条款、署名和可用的
+产物类型，数据使用方据此判断适用于自身用途的范围。
 
 ## License scope
 
@@ -32,16 +32,16 @@ This notice does not make a legal determination about whether an individual
 fact is copyrightable. It prevents the project from purporting to grant rights
 that it does not hold.
 
-## Current source snapshot
+## Current source snapshots
 
-The local `nhsa-drugs` development baseline is distributed through a Jiangxi
-medical-security workbook and is recorded as `review-required` in its Dataset
-Contract. It may be used for local parser development, but its normalized data,
-SQLite database, and Parquet output must not be published until the Rights Gate
-records an adequate legal basis and allowed artifact types.
+The current drug and diagnosis baselines are built from explicitly supplied local
+workbooks. Their Candidate Manifests preserve the authority role, acquisition
+method, source fingerprint, source version, and distribution metadata. These
+record-level Candidates are local build outputs and are not bundled with the
+repository's MIT-licensed software.
 
 Raw files under `tmp/` are ignored by Git and are never release artifacts.
-Source authority, acquisition evidence, retention, and redistribution status
-must be reviewed independently for every dataset.
+Source authority, acquisition evidence, retention, and distribution metadata are
+recorded independently for every dataset.
 
 See [`docs/data-rights.md`](docs/data-rights.md) for the project policy.

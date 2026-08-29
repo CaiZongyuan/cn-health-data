@@ -19,6 +19,9 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 |---|---|---:|---:|
 | `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r3` | 269,110 |
 | `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r3` | 37,294 |
+| `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r1` | 24,731 |
+| `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 |
+| `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 |
 | `loinc-zh-cn` | ZIP/CSV 适配器与 Rust 查询已通过合成数据测试 | 暂无 | 暂无 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
@@ -35,6 +38,8 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 - 本地安装时校验压缩前后 SHA256、限制解压大小，并执行 SQLite 完整性检查；
 - 已安装版本的查看、切换与回退；
 - 药品、疾病和 LOINC 的精确查询与文本搜索命令；
+- 中国合成姓名、地址、`100` 电话和 `990000` 模拟居民号码的确定性生成；
+- 固定 Synthea commit 的 profile 投影、FHIR R4 身份本地化和内部 HTTP 服务；
 - Ed25519 签名 Registry 的生成与远程安装验证；
 - 只负责调用原生二进制文件的 npm 启动器。
 
@@ -53,7 +58,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
                   Manifest <- 打包 <- SQLite + Parquet
                        |
                        v
-                 Rights Gate -> Release/Registry
+                 分发策略 -> Release/Registry
                                        |
                                        v
                                 Rust 本地运行时
@@ -129,10 +134,10 @@ target/debug/cn-health --version
 
 当前声明的真实输入如下：
 
-| Dataset | 本地文件 | 工作表 | 预期 SHA256 |
+| Dataset | 输入约束 | 工作表 | 预期 SHA256 |
 |---|---|---|---|
-| `nhsa-drugs` | `tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
-| `nhc-icd10-clinical` | `tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
+| `nhsa-drugs` | 由 `DRUG_SOURCE` 指定的药品分类与代码工作簿 | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
+| `nhc-icd10-clinical` | 由 `DIAGNOSIS_SOURCE` 指定的疾病分类国家临床版工作簿 | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
 
 药品编译器只读取声明的工作簿 `总表`。`tmp/` 中下载的药品 PDF 不参与构建。手术操作
 工作簿也不会被读取，因为手术分类开发已经暂缓。
@@ -140,9 +145,11 @@ target/debug/cn-health --version
 构建前可以检查输入文件：
 
 ```bash
+export DRUG_SOURCE=/absolute/path/to/drug-classification.xlsx
+export DIAGNOSIS_SOURCE=/absolute/path/to/clinical-diagnosis-2022.xlsx
 sha256sum \
-  'tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx' \
-  'tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx'
+  "$DRUG_SOURCE" \
+  "$DIAGNOSIS_SOURCE"
 ```
 
 构建期间，编译器会校验声明的 SHA256、文件大小、工作表、表头、XLSX 容器指纹和公式
@@ -158,12 +165,12 @@ Candidate 的 Provenance 会记录当前 Git 提交以及编译器输入，因�
 
 ```bash
 uv run cn-health-build build nhsa-drugs \
-  --source 'tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx' \
+  --source "$DRUG_SOURCE" \
   --build-revision 1 \
   --sequence 1
 
 uv run cn-health-build build nhc-icd10-clinical \
-  --source 'tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx' \
+  --source "$DIAGNOSIS_SOURCE" \
   --build-revision 1 \
   --sequence 1
 ```
@@ -194,6 +201,63 @@ uv run cn-health-build build nhc-icd10-clinical \
 该命令生成 `nhc-icd10-clinical@2022.r2`，将 `2022.r1` 记录为前序版本，并根据基础
 SQLite 生成 `diff.json`。Source Version、Build Revision、Release Sequence、Compiler
 Version、Dataset Schema Version 与 Manifest Schema Version 是相互独立的版本维度。
+
+## 中国人口数据与 Synthea
+
+`geography-cn`、`names-cn` 和 `population-cn` 是通用 Dataset；Synthea profile 是消费这些
+Release 的版本化投影，不是 canonical 数据模型。当前已验证组合为：
+
+```text
+geography-cn@2026-08-29.r1
+names-cn@40.37.0.r1
+population-cn@WPP2024.r1
+synthea-cn@2026-08-29.r3
+Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
+```
+
+从三个 Candidate 构建 profile：
+
+```bash
+uv run cn-health-build synthea profile \
+  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
+  --names-release dist/names-cn/releases/40.37.0.r1 \
+  --population-release dist/population-cn/releases/WPP2024.r1 \
+  --output-root dist/synthea-cn-profile/releases \
+  --profile-version 2026-08-29 \
+  --build-revision 3 \
+  --reference-year 2026 \
+  --synthea-commit d9d07a6eef91ee5144293b42ab64224d84d124f8
+```
+
+本地化一个自包含 Synthea FHIR R4 collection Bundle：
+
+```bash
+uv run cn-health-build synthea localize \
+  --input /path/to/raw-bundle.json \
+  --output .work/localized-bundle.json \
+  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
+  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
+  --names-release dist/names-cn/releases/40.37.0.r1 \
+  --population-release dist/population-cn/releases/WPP2024.r1 \
+  --seed patient-1
+```
+
+长驻消费者可以构建非 root localizer 镜像，或直接启动内部服务。服务启动时一次验证
+profile 内容哈希、文件和三个 Candidate，之后每个响应返回相同 provenance：
+
+```bash
+docker build -f Dockerfile.synthea-localizer -t cn-health-synthea-localizer .
+
+CN_HEALTH_SYNTHEA_PROFILE_PATH="$PWD/dist/synthea-cn-profile/releases/2026-08-29.r3" \
+CN_HEALTH_GEOGRAPHY_RELEASE_PATH="$PWD/dist/geography-cn/releases/2026-08-29.r1" \
+CN_HEALTH_NAMES_RELEASE_PATH="$PWD/dist/names-cn/releases/40.37.0.r1" \
+CN_HEALTH_POPULATION_RELEASE_PATH="$PWD/dist/population-cn/releases/WPP2024.r1" \
+uv run cn-health-synthea-service --host 127.0.0.1
+```
+
+本地化器只替换 Patient、Practitioner 和 Organization 的身份展示，保留临床资源 ID、
+编码、日期、数值、单位与引用闭包。完整合同与 Docker 验收见
+[`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)。
 
 ## 本地安装与查询
 
@@ -247,8 +311,8 @@ target/debug/cn-health --data-dir .work/runtime dataset use \
 
 ## 签名 Registry 与远程安装
 
-Registry 工具已经实现。当前本地 Manifest 的 `releaseEligible` 为 `false`，因此默认
-流程聚焦于本地构建和安装；Registry 构建器只接受显式配置为可分发的 Manifest。本仓库
+Registry 工具已经实现。本地 Candidate 可以直接构建和安装；远程 Registry 是独立的
+可选分发通道，只接收 Manifest 中显式设置 `releaseEligible: true` 的 Release。本仓库
 目前不提供公共 Registry、生产签名密钥或托管地址。
 
 当运维方已经根据相应来源条款和预期用途准备好分发元数据后，可以生成 Ed25519 原始
@@ -359,5 +423,5 @@ MIT **不会**自动覆盖：
 - [`docs/architecture.md`](docs/architecture.md)：组件架构概览
 - [`docs/dataset-format.md`](docs/dataset-format.md)：Dataset Contract 结构
 - [`docs/source-inventory.md`](docs/source-inventory.md)：数据来源清单与状态
-- [`docs/data-rights.md`](docs/data-rights.md)：Rights Gate 和发布策略
+- [`docs/data-rights.md`](docs/data-rights.md)：数据来源、许可证范围与分发元数据
 - [`DATA-NOTICE.md`](DATA-NOTICE.md)：中英双语的数据权属与许可证声明

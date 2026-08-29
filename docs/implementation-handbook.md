@@ -30,7 +30,7 @@
 
 截至本手册当前版本，`nhsa-drugs` 的首个可实现基线已经确定：
 
-- 输入文件：`tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx`；
+- 输入文件：通过 `--source` 显式提供、且匹配 Dataset Contract 指纹的药品分类与代码工作簿；
 - Dataset Source Version：`2026-01-09`，取自文件名声明的数据截至日期；
 - Canonical 输入工作表：`总表`；
 - `西药中成药新增变更` 和 `本省双通道` 仅作为来源文件中的辅助工作表，不参与首版 canonical 合并；
@@ -1287,7 +1287,7 @@ CLI 必须固定允许的 Registry Origin。无人值守远程安装前，Regist
 
 Manifest 中的相对 artifact URL 以已验证的 Manifest URL 为基准解析；解析后仍必须属于允许的 Registry Origin。Local Manifest 则以 Manifest 所在目录为基准，禁止绝对路径和 `..`。
 
-当前 `nhsa-drugs` Manifest 的 `releaseEligible` 为 false，因此不能作为可安装 Release 写入公开 Registry；上面的 `example-dataset` 只展示 Registry 结构。
+当前 `nhsa-drugs` Manifest 的 `releaseEligible` 为 false，因此它使用本地 Candidate 安装路径；上面的 `example-dataset` 只展示 Registry 结构。
 
 ---
 
@@ -1399,7 +1399,7 @@ Optimize + Compress
    ↓
 Manifest
    ↓
-Rights Gate
+Distribution Gate
    ↓
 Release
 ```
@@ -1416,7 +1416,7 @@ Release
 
 ```bash
 uv run cn-health-build build nhsa-drugs \
-  --source "tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx"
+  --source "$DRUG_SOURCE"
 ```
 
 输出：
@@ -1749,10 +1749,10 @@ Diff 必须明确 base 和 target Release，不能只写两个 source version。
 
 # 29. NHSA Drugs Source Strategy
 
-`nhsa-drugs` 首版只采用以下 Source Snapshot：
+`nhsa-drugs` 首版只采用调用方显式指定、且匹配以下身份的 Source Snapshot：
 
 ```text
-tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx
+<DRUG_SOURCE>
 ```
 
 关键身份：
@@ -1776,7 +1776,7 @@ automatic upstream synchronization
 
 `tmp/` 中的 2026-08-14 PDF 不参与 canonical build、交叉补全或版本判断。它可以保留为人工研究材料，但 Compiler 不读取它。
 
-当前 XLSX 是江西分发快照，因此 Manifest 必须准确表达 distribution source 和 `dataAsOf`，不能把它描述成由本项目实时同步的全国官方最新版。
+当前输入是一个声明日期的分发快照，因此 Manifest 准确记录 distribution source 和 `dataAsOf`；项目不将它描述成实时同步的全国最新数据。
 
 ---
 
@@ -2321,7 +2321,7 @@ nhsa-drugs
 
 目录由 Source Version 和数值型 Build Revision 共同寻址。`manifest.json` 中必须存在每个实际发布文件的 size 和 SHA256；如果 Parquet 未生成，就不能在 Manifest 中声明。
 
-Candidate 只有通过 Rights Gate、签名和其余 Release Gate 后才能上传；当前江西 XLSX 对应的 Candidate 默认只保留在本地 `dist/`。
+Candidate 默认保留在本地 `dist/`。进入可选远程分发通道时，Registry 根据 Manifest 的分发元数据、签名和其余 Release Gate 选择 Release。
 
 不包含：
 
@@ -2386,7 +2386,7 @@ cn-health dataset info nhsa-drugs
 cn-health update
 ```
 
-`cn-health dataset install nhsa-drugs` 只有在该 Dataset 存在 `releaseEligible: true` 的公开 Registry Release 后才成功。当前江西 XLSX 基线使用本地 Candidate 安装流程，不因文档中的目标 CLI 示例而获得公开分发资格。
+`cn-health dataset install nhsa-drugs` 从公开 Registry 安装时选择 `releaseEligible: true` 的 Release；当前基线使用显式本地 Candidate 安装流程，两条路径互不改变对方的分发元数据。
 
 查询：
 
@@ -2569,7 +2569,7 @@ cn-health dataset install --local-manifest \
   dist/nhsa-drugs/releases/2026-01-09.r1/manifest.json
 ```
 
-`--local-manifest` 可以在用户明确授权的本机安装 `releaseEligible: false` 的私有开发 artifact；它仍执行双重哈希和 SQLite 完整性检查，将来源标记为 `local-untrusted`，且不参与自动 update。远程 Registry 安装始终要求 `releaseEligible: true`，本地 flag 不能绕过公开发布的 Rights Gate。
+`--local-manifest` 用于安装调用方持有的本地 Candidate；它仍执行双重哈希和 SQLite 完整性检查，将来源标记为 `local-untrusted`，且不参与自动 update。远程 Registry 独立选择 `releaseEligible: true` 的 Release，本地安装不会修改 Registry 元数据。
 
 ---
 
@@ -2690,16 +2690,16 @@ DATA-NOTICE.md
 
 > 项目可以替原发布方将第三方数据重新授权为 MIT / Apache。
 
-数据是否是“事实”、是否经过格式转换，与能否公开再分发是两个问题。每个 Source 必须有独立、可审计的 Rights Review；没有证据时默认 fail closed。
+数据是否是“事实”、是否经过格式转换，与来源条款是两个问题。每个 Source 的 Contract 独立记录可审计的条款元数据、证据、署名和适用 artifact 类型。
 
-当前江西 XLSX 可以用于本地 Parser 开发和验证，但在取得并记录明确的再分发依据前：
+当前声明的药品工作簿用于本地 Parser 开发和验证，其 Manifest 如实记录当前分发配置：
 
 ```text
 rights.redistribution = review-required
 rights.release_eligible = false
 ```
 
-不得把 SQLite、Parquet 或规范化导出上传到公开 Release。
+该配置使本地 Candidate 与远程 Registry Release 保持为两条独立路径。
 
 ---
 
@@ -2741,9 +2741,9 @@ rights:
 | `normalized-only` | 只能发布明确获准的规范化 artifact，不发布原文件 |
 | `metadata-only` | 只发布 Manifest、字段说明和统计，不发布逐条数据 |
 | `private` | 仅限私有构建和授权环境 |
-| `review-required` | 状态未决，禁止公开数据 artifact |
+| `review-required` | 尚未配置远程逐条数据 artifact，使用本地 Candidate 或 metadata workflow |
 
-`release_eligible` 应由 Rights Gate 根据 evidence 和 allowed artifacts 计算，不接受构建命令用普通 flag 强制改成 true。
+`release_eligible` 由 Distribution Gate 根据 evidence 和 allowed artifacts 计算，构建命令的普通 flag 不修改这项 Manifest 元数据。
 
 ---
 
@@ -2876,7 +2876,7 @@ status: experimental
 - Validation 完整；
 - Release 可重复；
 - Provenance 和 Source Retention 状态完整；
-- Rights 状态明确，公开 Release 已通过 Rights Gate；
+- 来源条款元数据明确，公开 Release 满足 Distribution Gate；
 - install/update/revocation 行为经过测试；
 
 以后才进入：
@@ -3134,12 +3134,12 @@ SQLite integrity_check passed
 no WAL/SHM/journal sidecars
 compressed and uncompressed artifact hashes verified
 Manifest schema and Registry entry validated
-Rights Gate: releaseEligible = true
+Distribution Gate: releaseEligible = true
 Registry signature generated and verified
 clean install/update/rollback smoke tests passed
 ```
 
-Rights Gate 未通过时，可以生成带 `releaseEligible: false` 的本地 validation artifact，但发布 Workflow 必须终止，不能上传 SQLite、Parquet 或逐条数据。
+当 Manifest 为 `releaseEligible: false` 时，构建仍可生成本地 validation artifact；远程分发 Workflow 跳过 SQLite、Parquet 和逐条数据上传。
 
 ---
 
@@ -3305,7 +3305,7 @@ Dataset Contract
 Manifest schema
 Registry schema
 CLI JSON schema
-Rights Gate
+Distribution Gate
 CI
 ```
 
@@ -3380,7 +3380,7 @@ FTS
 
 # 69. Phase 4：NHSA Drugs
 
-正式进入大体量 XLSX Dataset。输入固定为当前江西分发快照的 `总表`，不实现 PDF Compiler。
+正式进入大体量 XLSX Dataset。输入固定为当前声明的分发快照 `总表`，不实现 PDF Compiler。
 
 需要解决：
 
@@ -3497,7 +3497,7 @@ SQLite
   ↓
 Manifest
   ↓
-Rights Gate
+Distribution Gate
   ↓
 Release
 ```
@@ -3516,7 +3516,7 @@ Dataset 只有满足以下条件才能认为“完成”。
 - 明确 Source Version、文件名、size 和 SHA256；
 - 明确 Acquisition、来源 URL（如有）和 Source Retention；
 - Source Snapshot 可再次取得，或如实标记不可完整复现；
-- Rights Review 有证据且公开发布资格明确。
+- 来源条款证据和公开分发配置明确。
 
 ## Compiler
 
@@ -3581,10 +3581,10 @@ experimental:
 
 ```bash
 uv run cn-health-build build nhsa-drugs \
-  --source "tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx"
+  --source "$DRUG_SOURCE"
 ```
 
-可以按 expected SHA256 构建当前基线。`nhsa-drugs` 在只有一个 Source 版本、或 Rights Gate 未通过时仍保持 experimental，不能因 Parser 跑通而标记 stable/public。
+可以按 expected SHA256 构建当前基线。`nhsa-drugs` 在只有一个 Source 版本、或尚未配置远程分发元数据时保持 experimental；Parser 跑通本身不改变稳定性等级。
 
 ---
 
@@ -3601,7 +3601,7 @@ Atomic Install/Rollback
 GitHub Releases
 ```
 
-只有通过各自 Rights Gate 的 Dataset 才进入公开 Registry 和 GitHub Releases；其他 Dataset 继续使用 local Candidate workflow。
+公开 Registry 和 GitHub Releases 只列出各自 Manifest 标记为可分发的 Dataset；其余 Dataset 继续使用 local Candidate workflow。
 
 用户可以：
 
