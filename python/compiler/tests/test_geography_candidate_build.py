@@ -208,6 +208,24 @@ def test_build_geography_candidate_packages_three_sources(tmp_path: Path) -> Non
     finally:
         connection.close()
 
+    revision = build_geography_candidate(
+        repo_root=tmp_path,
+        gazetteer_path=gazetteer,
+        division_path=divisions,
+        postal_path=postal,
+        output_root=tmp_path / "dist",
+        build_revision=2,
+        sequence=2,
+        base_release_dir=release,
+        git_commit="d" * 40,
+        created_at=datetime(2026, 8, 30, tzinfo=UTC),
+    )
+    revision_manifest = json.loads(revision.manifest_path.read_text(encoding="utf-8"))
+    revision_diff = json.loads((revision.release_dir / "diff.json").read_text(encoding="utf-8"))
+    assert revision_manifest["release"]["supersedes"] == "geography-cn@2026-08-29.r1"
+    assert revision_diff["unchanged"] == 5
+    assert revision_diff["added"] == revision_diff["removed"] == 0
+
 
 def test_build_command_accepts_all_geography_sources(tmp_path: Path) -> None:
     gazetteer, divisions, postal = _fixture_repository(tmp_path)

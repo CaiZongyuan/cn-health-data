@@ -1,6 +1,7 @@
 """End-to-end local Candidate build for Chinese geography data."""
 
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -17,6 +18,7 @@ from cn_health_compiler.core.candidate import (
     write_parquet,
 )
 from cn_health_compiler.core.dataset import load_yaml_mapping
+from cn_health_compiler.core.diff import compare_sqlite_tables
 from cn_health_compiler.core.manifest import validate_manifest, write_json_atomic
 from cn_health_compiler.core.source import SourceSnapshot, hash_file, snapshot_local_source
 from cn_health_compiler.sources.geography.records import (
@@ -32,6 +34,7 @@ _TABLE_ARTIFACTS = (
     ("place", "places.parquet"),
     ("postal_area", "postal-areas.parquet"),
 )
+_DIFF_EXCLUDED_FIELDS = ("source_row", "source_version", "source_sha256")
 
 
 def _source_config(contract: dict[str, Any], role: str) -> dict[str, Any]:
@@ -105,6 +108,96 @@ def _canonical_identity(database_path: Path) -> tuple[str, int, list[dict[str, s
     return digest, total_count, tables
 
 
+def _source_set_sha256(source_hashes: dict[str, str]) -> str:
+    return hashlib.sha256(rfc8785.dumps(source_hashes)).hexdigest()
+
+
+def _manifest_source_set_sha256(manifest: dict[str, Any]) -> str:
+    sources = cast(list[dict[str, Any]], manifest["sources"])
+    source_hashes = {str(source["role"]): str(source["sha256"]) for source in sources}
+    expected_roles = {"administrative-divisions", "gazetteer", "postal-areas"}
+    if set(source_hashes) != expected_roles:
+        raise ValueError("base geography Manifest has an unexpected source set")
+    return _source_set_sha256(source_hashes)
+
+
+def _build_diff(
+    *,
+    database_path: Path,
+    release_id: str,
+    source_set_sha256: str,
+    base_release_dir: Path | None,
+) -> tuple[dict[str, object], str | None]:
+    if base_release_dir is None:
+        record_count = sum(
+            canonical_table_hash(database_path, table)[1] for table, _ in _TABLE_ARTIFACTS
+        )
+        return (
+            {
+                "schemaVersion": 1,
+                "baseRelease": None,
+                "targetRelease": release_id,
+                "baseSourceSha256": None,
+                "targetSourceSha256": source_set_sha256,
+                "added": record_count,
+                "removed": 0,
+                "modified": 0,
+                "unchanged": 0,
+                "modifiedFields": {},
+            },
+            None,
+        )
+
+    base_release_dir = base_release_dir.resolve(strict=True)
+    base_manifest = cast(
+        dict[str, Any],
+        json.loads((base_release_dir / "manifest.json").read_text(encoding="utf-8")),
+    )
+    if cast(dict[str, Any], base_manifest["dataset"])["id"] != "geography-cn":
+        raise ValueError("base Release belongs to a different Dataset")
+    artifacts = cast(list[dict[str, Any]], base_manifest["artifacts"])
+    base_artifact = next(
+        (artifact for artifact in artifacts if artifact["name"] == "data.sqlite"), None
+    )
+    if base_artifact is None:
+        raise ValueError("base geography Manifest has no SQLite artifact")
+    base_database = base_release_dir / "data.sqlite"
+    base_sha256, _ = hash_file(base_database)
+    if base_sha256 != base_artifact["sha256"]:
+        raise ValueError("base Release SQLite SHA256 does not match its Manifest")
+
+    totals = {"added": 0, "removed": 0, "modified": 0, "unchanged": 0}
+    modified_fields: dict[str, int] = {}
+    for table, _ in _TABLE_ARTIFACTS:
+        report = compare_sqlite_tables(
+            base_database,
+            database_path,
+            table,
+            excluded_fields=_DIFF_EXCLUDED_FIELDS,
+        )
+        totals["added"] += report.added
+        totals["removed"] += report.removed
+        totals["modified"] += report.modified
+        totals["unchanged"] += report.unchanged
+        modified_fields.update(
+            {f"{table}.{field}": count for field, count in report.modified_fields}
+        )
+    release = cast(dict[str, Any], base_manifest["release"])
+    base_release_id = str(release["id"])
+    return (
+        {
+            "schemaVersion": 1,
+            "baseRelease": base_release_id,
+            "targetRelease": release_id,
+            "baseSourceSha256": _manifest_source_set_sha256(base_manifest),
+            "targetSourceSha256": source_set_sha256,
+            **totals,
+            "modifiedFields": modified_fields,
+        },
+        base_release_id,
+    )
+
+
 def build_geography_candidate(
     repo_root: Path,
     gazetteer_path: Path,
@@ -116,6 +209,7 @@ def build_geography_candidate(
     sequence: int = 1,
     git_commit: str | None = None,
     created_at: datetime | None = None,
+    base_release_dir: Path | None = None,
 ) -> CandidateBuild:
     repo_root = repo_root.resolve(strict=True)
     dataset_dir = repo_root / "datasets/geography-cn"
@@ -197,29 +291,22 @@ def build_geography_candidate(
                 **sqlite_artifact.validation.model_dump(mode="json", by_alias=True),
             },
         )
-        source_set_sha256 = hashlib.sha256(
-            rfc8785.dumps(
-                {
-                    "administrative-divisions": division_snapshot.sha256,
-                    "gazetteer": gazetteer_snapshot.sha256,
-                    "postal-areas": postal_snapshot.sha256,
-                }
-            )
-        ).hexdigest()
+        source_set_sha256 = _source_set_sha256(
+            {
+                "administrative-divisions": division_snapshot.sha256,
+                "gazetteer": gazetteer_snapshot.sha256,
+                "postal-areas": postal_snapshot.sha256,
+            }
+        )
+        diff_payload, supersedes = _build_diff(
+            database_path=sqlite_artifact.path,
+            release_id=release_id,
+            source_set_sha256=source_set_sha256,
+            base_release_dir=base_release_dir,
+        )
         diff_sha256, _ = write_json_atomic(
             temporary_dir / "diff.json",
-            {
-                "schemaVersion": 1,
-                "baseRelease": None,
-                "targetRelease": release_id,
-                "baseSourceSha256": None,
-                "targetSourceSha256": source_set_sha256,
-                "added": canonical_count,
-                "removed": 0,
-                "modified": 0,
-                "unchanged": 0,
-                "modifiedFields": {},
-            },
+            diff_payload,
         )
         contract_sha256, _ = hash_file(contract_path)
         layout_sha256, _ = hash_file(layout_path)
@@ -277,7 +364,7 @@ def build_geography_candidate(
                 "storageKey": storage_key,
                 "buildRevision": build_revision,
                 "createdAt": created_at_text,
-                "supersedes": None,
+                "supersedes": supersedes,
                 "revoked": False,
             },
             "dataset": {

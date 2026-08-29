@@ -100,6 +100,7 @@ def build_dataset(
             output_root=target_output_root,
             build_revision=build_revision,
             sequence=sequence,
+            base_release_dir=base_release,
         )
         typer.echo(result.release_dir)
         typer.echo(result.manifest_path)
