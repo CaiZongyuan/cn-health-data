@@ -50,6 +50,28 @@ def build_sqlite_artifact[RecordT, ReportT: RecordCountReport](
     post_insert_sql: Sequence[str],
 ) -> SQLiteArtifact[ReportT]:
     """Validate, sort, optimize, and atomically publish one SQLite artifact."""
+
+    def populate(connection: sqlite3.Connection) -> ReportT:
+        return _populate_table(
+            connection,
+            records,
+            validator,
+            row_values,
+            columns,
+            table,
+            staging_table,
+            post_insert_sql,
+        )
+
+    return build_sqlite_database(schema_path, output_path, populate)
+
+
+def build_sqlite_database[ReportT: RecordCountReport](
+    schema_path: Path,
+    output_path: Path,
+    populate: Callable[[sqlite3.Connection], ReportT],
+) -> SQLiteArtifact[ReportT]:
+    """Populate and atomically publish a deterministic SQLite database."""
     if output_path.exists():
         raise FileExistsError(f"refusing to overwrite SQLite artifact: {output_path}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,17 +83,30 @@ def build_sqlite_artifact[RecordT, ReportT: RecordCountReport](
     ) as temporary:
         temporary_path = Path(temporary.name)
     try:
-        validation = _populate_database(
-            temporary_path,
-            schema_path,
-            records,
-            validator,
-            row_values,
-            columns,
-            table,
-            staging_table,
-            post_insert_sql,
-        )
+        connection = sqlite3.connect(temporary_path)
+        try:
+            connection.execute("PRAGMA page_size = 4096")
+            connection.execute(f"PRAGMA application_id = {_APPLICATION_ID}")
+            connection.execute("PRAGMA user_version = 1")
+            connection.execute("PRAGMA journal_mode = DELETE")
+            connection.execute("PRAGMA synchronous = FULL")
+            connection.execute("PRAGMA temp_store = FILE")
+            apply_schema(connection, schema_path)
+            connection.execute("BEGIN IMMEDIATE")
+            validation = populate(connection)
+            connection.commit()
+            connection.execute("ANALYZE")
+            connection.execute("PRAGMA optimize")
+            connection.commit()
+            connection.execute("VACUUM")
+            integrity_rows = connection.execute("PRAGMA integrity_check").fetchall()
+            if integrity_rows != [("ok",)]:
+                raise RuntimeError(f"SQLite integrity_check failed: {integrity_rows!r}")
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
         _sync_file(temporary_path)
         os.replace(temporary_path, output_path)
         digest, size = hash_file(output_path)
@@ -80,9 +115,8 @@ def build_sqlite_artifact[RecordT, ReportT: RecordCountReport](
         _remove_database_files(temporary_path)
 
 
-def _populate_database[RecordT, ReportT: RecordCountReport](
-    database_path: Path,
-    schema_path: Path,
+def _populate_table[RecordT, ReportT: RecordCountReport](
+    connection: sqlite3.Connection,
     records: Iterable[RecordT],
     validator: StreamingValidator[RecordT, ReportT],
     row_values: Callable[[RecordT], tuple[object, ...]],
@@ -94,48 +128,25 @@ def _populate_database[RecordT, ReportT: RecordCountReport](
     column_list = ", ".join(columns)
     placeholders = ", ".join("?" for _ in columns)
     staging_insert = f"INSERT INTO {staging_table} ({column_list}) VALUES ({placeholders})"
-    connection = sqlite3.connect(database_path)
-    try:
-        connection.execute("PRAGMA page_size = 4096")
-        connection.execute(f"PRAGMA application_id = {_APPLICATION_ID}")
-        connection.execute("PRAGMA user_version = 1")
-        connection.execute("PRAGMA journal_mode = DELETE")
-        connection.execute("PRAGMA synchronous = FULL")
-        connection.execute("PRAGMA temp_store = FILE")
-        apply_schema(connection, schema_path)
-        connection.execute(f"CREATE TABLE {staging_table} AS SELECT * FROM {table} WHERE 0")
-        batch: list[tuple[object, ...]] = []
-        connection.execute("BEGIN IMMEDIATE")
-        for record in records:
-            validator.consume(record)
-            batch.append(row_values(record))
-            if len(batch) == _BATCH_SIZE:
-                connection.executemany(staging_insert, batch)
-                batch.clear()
-        if batch:
+    connection.execute(f"CREATE TABLE {staging_table} AS SELECT * FROM {table} WHERE 0")
+    batch: list[tuple[object, ...]] = []
+    for record in records:
+        validator.consume(record)
+        batch.append(row_values(record))
+        if len(batch) == _BATCH_SIZE:
             connection.executemany(staging_insert, batch)
-        validation = validator.finish()
-        connection.execute(
-            f"INSERT INTO {table} ({column_list}) "
-            f"SELECT {column_list} FROM {staging_table} ORDER BY code"
-        )
-        connection.execute(f"DROP TABLE {staging_table}")
-        for statement in post_insert_sql:
-            connection.execute(statement)
-        connection.commit()
-        connection.execute("ANALYZE")
-        connection.execute("PRAGMA optimize")
-        connection.commit()
-        connection.execute("VACUUM")
-        integrity_rows = connection.execute("PRAGMA integrity_check").fetchall()
-        if integrity_rows != [("ok",)]:
-            raise RuntimeError(f"SQLite integrity_check failed: {integrity_rows!r}")
-        return validation
-    except Exception:
-        connection.rollback()
-        raise
-    finally:
-        connection.close()
+            batch.clear()
+    if batch:
+        connection.executemany(staging_insert, batch)
+    validation = validator.finish()
+    connection.execute(
+        f"INSERT INTO {table} ({column_list}) "
+        f"SELECT {column_list} FROM {staging_table} ORDER BY code"
+    )
+    connection.execute(f"DROP TABLE {staging_table}")
+    for statement in post_insert_sql:
+        connection.execute(statement)
+    return validation
 
 
 def _sync_file(path: Path) -> None:
