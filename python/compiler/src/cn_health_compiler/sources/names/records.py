@@ -4,7 +4,9 @@ import ast
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
+
+type NameGender = Literal["female", "male"]
 
 
 class FakerNamesFormatError(ValueError):
@@ -135,10 +137,11 @@ def parse_faker_name_components(
             source_version=source_version,
             source_sha256=source_sha256,
         )
-    for gender, names in cast(
-        tuple[tuple[Literal["female", "male"], list[tuple[str, int]]], ...],
-        (("male", male_names), ("female", female_names)),
-    ):
+    name_groups: tuple[tuple[NameGender, list[tuple[str, int]]], ...] = (
+        ("male", male_names),
+        ("female", female_names),
+    )
+    for gender, names in name_groups:
         for name, source_line in names:
             ordinal += 1
             yield NameComponentRecord(
