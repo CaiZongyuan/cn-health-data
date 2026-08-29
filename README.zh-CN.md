@@ -9,21 +9,22 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 项目目前可以从用户明确提供的 XLSX 快照构建真实的药品分类与疾病分类数据。项目
 不会自行下载所谓“最新版”数据，不保存患者数据，也不是生产级临床业务系统。
 
-> **数据声明：** MIT License 只覆盖项目自行创作的软件代码和原创文档。本项目不拥有、
-> 也不主张拥有第三方医疗健康数据。原始输入与生成的逐条数据产物有各自独立的权利要求，
+> **数据与许可证：** MIT License 只覆盖项目自行创作的软件代码和原创文档。来源数据
+> 继续适用其自身条款；本项目不拥有这些数据，也不会通过项目许可证重新授权这些数据。
 > 详见[数据权利与许可证](#数据权利与许可证)。
 
 ## 当前状态
 
-| Dataset | 实现状态 | 已验证的本地 Candidate | 记录数 | 公开发布状态 |
-|---|---|---:|---:|---|
-| `nhsa-drugs` | 已实现江西 XLSX `总表`真实数据编译 | `2026-01-09.r3` | 269,110 | 等待数据权利审查，禁止发布 |
-| `nhc-icd10-clinical` | 已实现国家卫健委 2022 XLSX 真实数据编译 | `2022.r3` | 37,294 | 等待数据权利审查，禁止发布 |
-| `loinc-zh-cn` | ZIP/CSV 适配器和 Rust 查询已通过合成数据测试 | 无 | 无 | 缺少已授权源包与再分发依据 |
-| `nhc-procedure-clinical` | 仅有 Contract 与 Schema 占位 | 无 | 无 | 按当前计划暂缓开发 |
+| Dataset | 当前实现 | 已验证的本地构建 | 记录数 |
+|---|---|---:|---:|
+| `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r3` | 269,110 |
+| `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r3` | 37,294 |
+| `loinc-zh-cn` | ZIP/CSV 适配器与 Rust 查询已通过合成数据测试 | 暂无 | 暂无 |
+| `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
-表中的 Candidate 标识来自已经验证的本地开发构建。`tmp/`、`.work/` 和 `dist/` 均被
-Git 忽略，因此克隆仓库不会得到原始数据或生成后的数据集。
+表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时和
+合成测试 Fixture；`tmp/`、`.work/` 和 `dist/` 均被 Git 忽略，因此克隆仓库不会附带
+来源工作簿或逐条数据构建产物。
 
 当前已经实现的基础设施包括：
 
@@ -133,8 +134,8 @@ target/debug/cn-health --version
 | `nhsa-drugs` | `tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
 | `nhc-icd10-clinical` | `tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
 
-药品编译器只读取工作簿中的 `总表`。`tmp/` 中下载的药品 PDF 不参与构建。手术操作
-工作簿也不会被消费，因为手术分类开发已经暂缓。
+药品编译器只读取声明的工作簿 `总表`。`tmp/` 中下载的药品 PDF 不参与构建。手术操作
+工作簿也不会被读取，因为手术分类开发已经暂缓。
 
 构建前可以检查输入文件：
 
@@ -145,8 +146,8 @@ sha256sum \
 ```
 
 构建期间，编译器会校验声明的 SHA256、文件大小、工作表、表头、XLSX 容器指纹和公式
-预期。匹配的输入会复制到 `.work/sources/<sha256>/source.xlsx`，形成私有的内容寻址
-快照。来源文件和快照都不能提交或作为 Release 发布。
+预期。匹配的输入会复制到 `.work/sources/<sha256>/source.xlsx`，形成本地的内容寻址
+快照。原文件和快照均由 Git 忽略，编译器也不会将它们打包为 Release 产物。
 
 Candidate 的 Provenance 会记录当前 Git 提交以及编译器输入，因此正常 CLI 构建会拒绝
 存在未提交改动的 Git 工作区。
@@ -246,13 +247,13 @@ target/debug/cn-health --data-dir .work/runtime dataset use \
 
 ## 签名 Registry 与远程安装
 
-Registry 工具已经实现，但当前真实数据的 Manifest 均为 `releaseEligible: false`。
-在来源权利证据通过 Rights Gate 且明确允许相应产物类型之前，它们不能进入公开
-Registry。仓库也不包含生产签名私钥或托管地址。
+Registry 工具已经实现。当前本地 Manifest 的 `releaseEligible` 为 `false`，因此默认
+流程聚焦于本地构建和安装；Registry 构建器只接受显式配置为可分发的 Manifest。本仓库
+目前不提供公共 Registry、生产签名密钥或托管地址。
 
-对于已经通过权利审核的 Manifest，运维方可以生成 Ed25519 原始密钥并构建签名
-Registry。以下示例将开发密钥和产物放在 Git 忽略的 `.work/` 目录中；请替换大写的
-路径占位符：
+当运维方已经根据相应来源条款和预期用途准备好分发元数据后，可以生成 Ed25519 原始
+密钥并构建签名 Registry。以下示例将开发密钥和产物放在 Git 忽略的 `.work/` 目录中；
+请替换大写的路径占位符：
 
 ```bash
 uv run cn-health-build registry keygen \
@@ -317,8 +318,8 @@ cargo test --workspace
 pnpm --filter cn-health test
 ```
 
-Dataset 解析器和构建测试使用合成 Fixture，禁止将真实来源数据复制到测试中。修改来源
-适配器时，应同步更新 Contract、结构指纹、校验基线、Provenance、权利记录与测试。
+Dataset 解析器和构建测试只使用合成 Fixture，不将真实来源记录纳入测试。修改来源
+适配器时，应同步更新 Contract、结构指纹、校验基线、Provenance、分发信息与测试。
 贡献规则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ## 数据权利与许可证
@@ -333,9 +334,9 @@ MIT **不会**自动覆盖：
 - 生成的 SQLite、Parquet、Mapping 或类似数据产物；
 - 第三方名称、标识及其他受保护材料。
 
-每个 Dataset Contract 和 Release Manifest 都有独立的再分发状态。只有记录了法律
-依据、证据、署名、审核信息和允许的产物类型，公开发布流程才会放行。请勿发布当前的
-真实数据 Candidate。
+第三方数据继续适用其来源条款；仓库的 MIT License 不会改变这些条款，也不会额外授予
+数据使用或分发权限。Dataset Contract 和 Release Manifest 提供了记录 Provenance、
+署名与分发信息的字段。分发数据产物的一方应自行确认并遵守适用于相应来源的条款。
 
 获取、分享或发布任何数据集之前，请先阅读 [`DATA-NOTICE.md`](DATA-NOTICE.md) 和
 [`docs/data-rights.md`](docs/data-rights.md)。
@@ -343,17 +344,17 @@ MIT **不会**自动覆盖：
 ## 范围与已知限制
 
 - 本项目提供参考数据工具，不构成医疗建议，也不是生产级临床决策系统。
-- 项目只处理参考数据，禁止保存真实患者数据。
-- 药品分类固定使用声明的江西 XLSX `总表`，未实现 PDF 同步链路。
+- 项目只处理参考数据，不处理或保存真实患者数据。
+- 药品分类使用声明的工作簿 `总表`，未实现 PDF 同步链路。
 - 即使本地存在工作簿，手术操作分类仍按当前计划暂缓开发。
-- LOINC 目前只有适配器和运行时测试；真实 Candidate 仍需已授权源包、明确的成员布局
-  与版本，以及再分发证据。
-- 当前没有任何真实 Candidate 获准公开分发。
+- LOINC 目前只有适配器和运行时测试；真实 Candidate 仍需配置来源包，并确认成员布局
+  与版本。
+- 本仓库目前不托管公共数据集或公共 Registry。
 - 生产签名密钥保管、产物托管和软件包发布仍由运维方负责。
 
 ## 文档索引
 
-- [`docs/implementation-status.md`](docs/implementation-status.md)：已实现、暂缓与阻塞项
+- [`docs/implementation-status.md`](docs/implementation-status.md)：实现边界与待完成项
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md)：规范性实施手册
 - [`docs/architecture.md`](docs/architecture.md)：组件架构概览
 - [`docs/dataset-format.md`](docs/dataset-format.md)：Dataset Contract 结构

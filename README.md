@@ -11,23 +11,24 @@ The project currently builds real drug and diagnosis datasets from explicitly
 provided XLSX snapshots. It does not download a presumed latest source, store
 patient data, or provide a production clinical system.
 
-> **Data notice:** The MIT License covers repository-owned software and original
-> project documentation only. The project does not own or claim ownership of
-> third-party healthcare data. Raw inputs and generated record-level artifacts
-> have independent rights requirements; see [Data rights](#data-rights-and-license).
+> **Data and license:** The MIT License covers repository-owned software and
+> original project documentation. Source datasets retain their own terms; this
+> project neither owns nor relicenses them. See
+> [Data rights](#data-rights-and-license).
 
 ## Current Status
 
-| Dataset | Implementation | Verified local Candidate | Records | Public release |
-|---|---|---:|---:|---|
-| `nhsa-drugs` | Real Jiangxi XLSX `总表` compiler | `2026-01-09.r3` | 269,110 | Blocked pending rights review |
-| `nhc-icd10-clinical` | Real NHC 2022 XLSX compiler | `2022.r3` | 37,294 | Blocked pending rights review |
-| `loinc-zh-cn` | ZIP/CSV adapter and Rust queries tested with synthetic fixtures | None | None | Blocked on a licensed source package and redistribution evidence |
-| `nhc-procedure-clinical` | Contract and schema placeholders only | None | None | Deliberately deferred |
+| Dataset | Current implementation | Verified local build | Records |
+|---|---|---:|---:|
+| `nhsa-drugs` | Import, validation, packaging, and search for the drug classification/code workbook `总表` | `2026-01-09.r3` | 269,110 |
+| `nhc-icd10-clinical` | Import, validation, packaging, and search for Clinical Diagnosis Classification 2.0 (2022) | `2022.r3` | 37,294 |
+| `loinc-zh-cn` | ZIP/CSV adapter and Rust queries tested with synthetic fixtures | None | None |
+| `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
-The Candidate identifiers above describe locally verified development builds.
-`tmp/`, `.work/`, and `dist/` are ignored by Git, so neither the source files nor
-the generated datasets are included in a clone.
+The build identifiers above describe Candidates verified in the current
+development workspace. This repository distributes the compiler, runtime, and
+synthetic test fixtures. `tmp/`, `.work/`, and `dist/` are ignored by Git, so
+source workbooks and record-level build outputs are not included in a clone.
 
 Implemented infrastructure includes:
 
@@ -143,8 +144,8 @@ The currently declared real inputs are:
 | `nhsa-drugs` | `tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
 | `nhc-icd10-clinical` | `tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
 
-The drug compiler reads only the workbook's `总表`. The downloaded drug PDF in
-`tmp/` is not part of this build. The local procedure workbook is also not
+The drug compiler reads only the declared workbook's `总表`. The downloaded drug
+PDF in `tmp/` is not part of this build. The local procedure workbook is also not
 consumed because procedure implementation is deferred.
 
 You can verify inputs before building:
@@ -158,7 +159,8 @@ sha256sum \
 During a build, the compiler verifies the declared SHA256, size, worksheet,
 headers, XLSX container fingerprint, and formula expectations. A matching input
 is copied to `.work/sources/<sha256>/source.xlsx` as a private content-addressed
-snapshot. Source files and snapshots must remain outside commits and releases.
+snapshot. Git ignores both the original files and these snapshots, and the
+compiler does not package either one as a release artifact.
 
 Candidate provenance records the current Git commit and compiler inputs. Normal
 CLI builds therefore refuse a dirty Git worktree.
@@ -265,14 +267,17 @@ directory for the `org.cn-health.cn-health` project identity.
 
 ## Signed Registry and Remote Installation
 
-The Registry tooling is implemented, but the current real Manifests have
-`releaseEligible: false`. They cannot be added to a public Registry until source
-rights evidence and the Rights Gate permit the relevant artifact types. There is
-also no production signing key or hosting endpoint in this repository.
+The Registry tooling is implemented. Current local Manifests set
+`releaseEligible: false`, which keeps the default workflow focused on local
+builds and installation. The Registry builder accepts only Manifests explicitly
+configured for distribution. This repository does not provide a public Registry,
+production signing key, or hosting endpoint.
 
-For a rights-approved Manifest, an operator can generate a raw Ed25519 keypair
-and build a signed Registry. The example keeps its development keys and output
-under the Git-ignored `.work/` directory; replace the uppercase path placeholders:
+When an operator has prepared distribution metadata consistent with the terms
+applicable to the source and intended use, they can generate a raw Ed25519
+keypair and build a signed Registry. The example keeps its development keys and
+output under the Git-ignored `.work/` directory; replace the uppercase path
+placeholders:
 
 ```bash
 uv run cn-health-build registry keygen \
@@ -340,10 +345,10 @@ cargo test --workspace
 pnpm --filter cn-health test
 ```
 
-Dataset parser and build tests use synthetic fixtures. Real source data must not
-be copied into tests. When changing a source adapter, update its contract,
-fingerprint, validation baseline, provenance, rights record, and tests together.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Dataset parser and build tests use only synthetic fixtures; they do not
+incorporate records from the source workbooks. When changing a source adapter,
+update its contract, fingerprint, validation baseline, provenance, distribution
+metadata, and tests together. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Data Rights and License
 
@@ -357,10 +362,11 @@ MIT does **not** automatically apply to:
 - generated SQLite, Parquet, mapping, or similar data artifacts; or
 - third-party names, marks, and other protected material.
 
-Every Dataset Contract and Release Manifest carries its own redistribution state.
-The public release path fails closed unless legal basis, evidence, attribution,
-review information, and allowed artifact types are recorded. Do not publish the
-current real Candidates.
+Third-party data remains governed by its source terms. The repository's MIT
+License neither changes those terms nor grants additional permission. Dataset
+Contracts and Release Manifests provide fields for recording provenance,
+attribution, and distribution metadata. Anyone distributing a data artifact is
+responsible for confirming and following the terms that apply to that source.
 
 Read [`DATA-NOTICE.md`](DATA-NOTICE.md) and
 [`docs/data-rights.md`](docs/data-rights.md) before acquiring, sharing, or
@@ -370,21 +376,21 @@ publishing any dataset.
 
 - This project provides reference-data tooling, not medical advice or a
   production clinical decision system.
-- It stores reference datasets only and must not contain real patient data.
-- Drug compilation intentionally uses the declared Jiangxi XLSX `总表`; no PDF
-  synchronization path is implemented.
+- It processes reference datasets and does not store real patient data.
+- Drug compilation uses the declared workbook's `总表`; no PDF synchronization
+  path is implemented.
 - Procedure classification is explicitly deferred even if a local workbook is
   present.
-- LOINC has adapter and runtime coverage only; a real Candidate awaits a licensed
-  package, confirmed member layout and version, and redistribution evidence.
-- No current real Candidate is approved for public distribution.
+- LOINC has adapter and runtime coverage only; a real Candidate still needs a
+  configured source package with a confirmed member layout and version.
+- The repository does not currently host public datasets or a public Registry.
 - Production signing-key custody, artifact hosting, and package publishing remain
   operator responsibilities.
 
 ## Documentation
 
-- [`docs/implementation-status.md`](docs/implementation-status.md): implemented,
-  deferred, and blocked surfaces
+- [`docs/implementation-status.md`](docs/implementation-status.md): implementation
+  boundaries and current gaps
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md): normative
   implementation handbook
 - [`docs/architecture.md`](docs/architecture.md): concise component architecture
