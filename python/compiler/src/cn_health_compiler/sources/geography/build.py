@@ -11,6 +11,7 @@ import rfc8785
 from cn_health_compiler import __version__
 from cn_health_compiler.core.candidate import (
     CandidateBuild,
+    build_candidate_manifest,
     candidate_staging_directory,
     canonical_table_hash,
     compress_sqlite,
@@ -324,8 +325,6 @@ def build_geography_candidate(
                 }
             )
         ).hexdigest()
-        rights = cast(dict[str, Any], contract["rights"])
-        runtime = cast(dict[str, Any], contract["runtime"])
         sources = [
             _source_manifest(
                 role="administrative-divisions",
@@ -352,82 +351,62 @@ def build_geography_candidate(
                 record_count=sqlite_artifact.validation.postal_count,
             ),
         ]
-        created_at_text = (
-            timestamp.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-        )
-        manifest = {
-            "schemaVersion": 1,
-            "release": {
-                "id": release_id,
-                "sequence": sequence,
-                "storageKey": storage_key,
-                "buildRevision": build_revision,
-                "createdAt": created_at_text,
-                "supersedes": supersedes,
-                "revoked": False,
-            },
-            "dataset": {
-                "id": "geography-cn",
-                "sourceVersion": source_version,
-                "datasetSchemaVersion": 1,
-                "status": str(contract["status"]),
-            },
-            "sources": sources,
-            "compiler": {
-                "name": "cn-health-compiler",
-                "version": __version__,
-                "adapter": "geography-cn",
-                "adapterVersion": 1,
-                "gitCommit": resolved_commit,
-                "lockSha256": lock_sha256,
-                "configSha256": layout_sha256,
-                "datasetContractSha256": contract_sha256,
-                "datasetSchemaSha256": schema_sha256,
-                "buildInputSha256": build_input_sha256,
-            },
-            "canonical": {
-                "serialization": "canonical-table-hashes-v1",
-                "recordCount": canonical_count,
-                "sha256": canonical_sha256,
-                "tables": canonical_tables,
-            },
-            "artifacts": [
-                _artifact(
-                    "data.sqlite",
-                    "application/vnd.sqlite3",
-                    sqlite_artifact.sha256,
-                    sqlite_artifact.size_bytes,
-                ),
-                {
-                    **_artifact(
-                        "data.sqlite.zst",
-                        "application/zstd",
-                        compressed_sha256,
-                        compressed_size,
-                    ),
-                    "compression": "zstd",
-                    "uncompressedName": "data.sqlite",
-                    "uncompressedSha256": sqlite_artifact.sha256,
-                    "uncompressedSizeBytes": sqlite_artifact.size_bytes,
-                },
-                *parquet_artifacts,
-            ],
-            "validation": {
-                "passed": True,
-                "report": "validation.json",
-                "sha256": validation_sha256,
-            },
-            "diff": {"report": "diff.json", "sha256": diff_sha256},
-            "rights": {
-                "redistribution": str(rights["redistribution"]),
-                "releaseEligible": bool(rights["release_eligible"]),
-                "evidence": None,
-            },
-            "runtime": {
-                "minimumCliVersion": "0.2.0",
-                "minimumSQLiteVersion": str(runtime["minimum_sqlite_version"]),
-            },
+        compiler: dict[str, object] = {
+            "name": "cn-health-compiler",
+            "version": __version__,
+            "adapter": "geography-cn",
+            "adapterVersion": 1,
+            "gitCommit": resolved_commit,
+            "lockSha256": lock_sha256,
+            "configSha256": layout_sha256,
+            "datasetContractSha256": contract_sha256,
+            "datasetSchemaSha256": schema_sha256,
+            "buildInputSha256": build_input_sha256,
         }
+        canonical: dict[str, object] = {
+            "serialization": "canonical-table-hashes-v1",
+            "recordCount": canonical_count,
+            "sha256": canonical_sha256,
+            "tables": canonical_tables,
+        }
+        artifacts: list[dict[str, object]] = [
+            _artifact(
+                "data.sqlite",
+                "application/vnd.sqlite3",
+                sqlite_artifact.sha256,
+                sqlite_artifact.size_bytes,
+            ),
+            {
+                **_artifact(
+                    "data.sqlite.zst",
+                    "application/zstd",
+                    compressed_sha256,
+                    compressed_size,
+                ),
+                "compression": "zstd",
+                "uncompressedName": "data.sqlite",
+                "uncompressedSha256": sqlite_artifact.sha256,
+                "uncompressedSizeBytes": sqlite_artifact.size_bytes,
+            },
+            *parquet_artifacts,
+        ]
+        manifest = build_candidate_manifest(
+            contract=contract,
+            dataset_id="geography-cn",
+            source_version=source_version,
+            release_id=release_id,
+            storage_key=storage_key,
+            build_revision=build_revision,
+            sequence=sequence,
+            created_at=timestamp,
+            supersedes=supersedes,
+            sources=sources,
+            compiler=compiler,
+            canonical=canonical,
+            artifacts=artifacts,
+            validation_sha256=validation_sha256,
+            diff_sha256=diff_sha256,
+        )
         validate_manifest(manifest, repo_root / "schemas/manifest.schema.json")
         write_json_atomic(temporary_dir / "manifest.json", manifest)
         return CandidateBuild(release_dir, release_dir / "manifest.json")

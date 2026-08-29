@@ -383,6 +383,68 @@ def _build_diff(
     )
 
 
+def build_candidate_manifest(
+    *,
+    contract: dict[str, Any],
+    dataset_id: str,
+    source_version: str,
+    release_id: str,
+    storage_key: str,
+    build_revision: int,
+    sequence: int,
+    created_at: datetime,
+    supersedes: str | None,
+    sources: list[dict[str, object]],
+    compiler: dict[str, object],
+    canonical: dict[str, object],
+    artifacts: list[dict[str, object]],
+    validation_sha256: str,
+    diff_sha256: str,
+) -> dict[str, Any]:
+    rights = cast(dict[str, Any], contract["rights"])
+    runtime = cast(dict[str, Any], contract["runtime"])
+    created_at_text = (
+        created_at.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    )
+    return {
+        "schemaVersion": 1,
+        "release": {
+            "id": release_id,
+            "sequence": sequence,
+            "storageKey": storage_key,
+            "buildRevision": build_revision,
+            "createdAt": created_at_text,
+            "supersedes": supersedes,
+            "revoked": False,
+        },
+        "dataset": {
+            "id": dataset_id,
+            "sourceVersion": source_version,
+            "datasetSchemaVersion": 1,
+            "status": str(contract["status"]),
+        },
+        "sources": sources,
+        "compiler": compiler,
+        "canonical": canonical,
+        "artifacts": artifacts,
+        "validation": {
+            "passed": True,
+            "report": "validation.json",
+            "sha256": validation_sha256,
+        },
+        "diff": {"report": "diff.json", "sha256": diff_sha256},
+        "rights": {
+            "redistribution": str(rights["redistribution"]),
+            "releaseEligible": bool(rights["release_eligible"]),
+            "evidence": None,
+        },
+        "runtime": {
+            "minimumCliVersion": "0.2.0",
+            "minimumSQLiteVersion": str(runtime["minimum_sqlite_version"]),
+        },
+    }
+
+
 def build_xlsx_manifest[ReportT: RecordCountReport](
     *,
     contract: dict[str, Any],
@@ -415,8 +477,6 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
     lock_sha256, _ = hash_file(lock_path)
     authority = cast(dict[str, Any], contract["authority"])
     source = cast(dict[str, Any], contract["source"])
-    rights = cast(dict[str, Any], contract["rights"])
-    runtime = cast(dict[str, Any], contract["runtime"])
     build_input_sha256 = hashlib.sha256(
         rfc8785.dumps(
             {
@@ -430,119 +490,100 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
             }
         )
     ).hexdigest()
-    created_at_text = (
-        created_at.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    )
     authority_verification = str(authority["verification"])
-    return {
-        "schemaVersion": 1,
-        "release": {
-            "id": release_id,
-            "sequence": sequence,
-            "storageKey": storage_key,
-            "buildRevision": build_revision,
-            "createdAt": created_at_text,
-            "supersedes": supersedes,
-            "revoked": False,
-        },
-        "dataset": {
-            "id": str(contract["id"]),
-            "sourceVersion": source_version,
-            "datasetSchemaVersion": 1,
-            "status": str(contract["status"]),
-        },
-        "sources": [
-            {
-                "authority": str(authority["name"]),
-                "authorityRole": str(authority["role"]),
-                "authorityVerified": not authority_verification.startswith("pending"),
-                "format": str(source["type"]),
-                "acquisition": str(source["acquisition"]),
-                "originalFilename": inspection.snapshot.original_filename,
-                "sourceUrl": None,
-                "acquiredAt": None,
-                "publishedAt": None,
-                "dataAsOf": source_version,
-                "sha256": inspection.snapshot.sha256,
-                "sizeBytes": inspection.snapshot.size_bytes,
-                "worksheet": workbook_config.workbook.canonical_sheet,
-                "recordCount": inspection.data_rows,
-                "columnCount": len(inspection.headers),
-                "containerMetadata": {
-                    "zipEntryCount": workbook_config.container.expected_zip_entries,
-                    "uncompressedSizeBytes": (
-                        workbook_config.container.expected_uncompressed_size_bytes
-                    ),
-                },
-                "retention": "private-content-addressed",
-                "sourceReacquirable": False,
-                "reproducibleFromSource": True,
-            }
-        ],
-        "compiler": {
-            "name": "cn-health-compiler",
-            "version": __version__,
-            "adapter": str(contract["id"]),
-            "adapterVersion": workbook_config.version,
-            "gitCommit": git_commit,
-            "lockSha256": lock_sha256,
-            "configSha256": config_sha256,
-            "datasetContractSha256": contract_sha256,
-            "datasetSchemaSha256": schema_sha256,
-            "buildInputSha256": build_input_sha256,
-            "pythonVersion": platform.python_version(),
-            "sqliteVersion": sqlite3.sqlite_version,
-            "zstandardVersion": zstandard.__version__,
-            "polarsVersion": pl.__version__,
-        },
-        "canonical": {
-            "serialization": "canonical-ndjson-v1",
-            "recordCount": sqlite_artifact.validation.record_count,
-            "sha256": canonical_sha256,
-        },
-        "artifacts": [
-            {
-                "name": "data.sqlite",
-                "url": "data.sqlite",
-                "mediaType": "application/vnd.sqlite3",
-                "sha256": sqlite_artifact.sha256,
-                "sizeBytes": sqlite_artifact.size_bytes,
+    sources: list[dict[str, object]] = [
+        {
+            "authority": str(authority["name"]),
+            "authorityRole": str(authority["role"]),
+            "authorityVerified": not authority_verification.startswith("pending"),
+            "format": str(source["type"]),
+            "acquisition": str(source["acquisition"]),
+            "originalFilename": inspection.snapshot.original_filename,
+            "sourceUrl": None,
+            "acquiredAt": None,
+            "publishedAt": None,
+            "dataAsOf": source_version,
+            "sha256": inspection.snapshot.sha256,
+            "sizeBytes": inspection.snapshot.size_bytes,
+            "worksheet": workbook_config.workbook.canonical_sheet,
+            "recordCount": inspection.data_rows,
+            "columnCount": len(inspection.headers),
+            "containerMetadata": {
+                "zipEntryCount": workbook_config.container.expected_zip_entries,
+                "uncompressedSizeBytes": (
+                    workbook_config.container.expected_uncompressed_size_bytes
+                ),
             },
-            {
-                "name": "data.sqlite.zst",
-                "url": "data.sqlite.zst",
-                "mediaType": "application/zstd",
-                "compression": "zstd",
-                "sha256": compressed_sha256,
-                "sizeBytes": compressed_size,
-                "uncompressedName": "data.sqlite",
-                "uncompressedSha256": sqlite_artifact.sha256,
-                "uncompressedSizeBytes": sqlite_artifact.size_bytes,
-            },
-            {
-                "name": "data.parquet",
-                "url": "data.parquet",
-                "mediaType": "application/vnd.apache.parquet",
-                "sha256": parquet_sha256,
-                "sizeBytes": parquet_size,
-            },
-        ],
-        "validation": {
-            "passed": True,
-            "report": "validation.json",
-            "sha256": validation_sha256,
-        },
-        "diff": {"report": "diff.json", "sha256": diff_sha256},
-        "rights": {
-            "redistribution": str(rights["redistribution"]),
-            "releaseEligible": bool(rights["release_eligible"]),
-            "evidence": None,
-        },
-        "runtime": {
-            "minimumCliVersion": "0.2.0",
-            "minimumSQLiteVersion": str(runtime["minimum_sqlite_version"]),
-        },
+            "retention": "private-content-addressed",
+            "sourceReacquirable": False,
+            "reproducibleFromSource": True,
+        }
+    ]
+    compiler: dict[str, object] = {
+        "name": "cn-health-compiler",
+        "version": __version__,
+        "adapter": str(contract["id"]),
+        "adapterVersion": workbook_config.version,
+        "gitCommit": git_commit,
+        "lockSha256": lock_sha256,
+        "configSha256": config_sha256,
+        "datasetContractSha256": contract_sha256,
+        "datasetSchemaSha256": schema_sha256,
+        "buildInputSha256": build_input_sha256,
+        "pythonVersion": platform.python_version(),
+        "sqliteVersion": sqlite3.sqlite_version,
+        "zstandardVersion": zstandard.__version__,
+        "polarsVersion": pl.__version__,
     }
+    canonical: dict[str, object] = {
+        "serialization": "canonical-ndjson-v1",
+        "recordCount": sqlite_artifact.validation.record_count,
+        "sha256": canonical_sha256,
+    }
+    artifacts: list[dict[str, object]] = [
+        {
+            "name": "data.sqlite",
+            "url": "data.sqlite",
+            "mediaType": "application/vnd.sqlite3",
+            "sha256": sqlite_artifact.sha256,
+            "sizeBytes": sqlite_artifact.size_bytes,
+        },
+        {
+            "name": "data.sqlite.zst",
+            "url": "data.sqlite.zst",
+            "mediaType": "application/zstd",
+            "compression": "zstd",
+            "sha256": compressed_sha256,
+            "sizeBytes": compressed_size,
+            "uncompressedName": "data.sqlite",
+            "uncompressedSha256": sqlite_artifact.sha256,
+            "uncompressedSizeBytes": sqlite_artifact.size_bytes,
+        },
+        {
+            "name": "data.parquet",
+            "url": "data.parquet",
+            "mediaType": "application/vnd.apache.parquet",
+            "sha256": parquet_sha256,
+            "sizeBytes": parquet_size,
+        },
+    ]
+    return build_candidate_manifest(
+        contract=contract,
+        dataset_id=str(contract["id"]),
+        source_version=source_version,
+        release_id=release_id,
+        storage_key=storage_key,
+        build_revision=build_revision,
+        sequence=sequence,
+        created_at=created_at,
+        supersedes=supersedes,
+        sources=sources,
+        compiler=compiler,
+        canonical=canonical,
+        artifacts=artifacts,
+        validation_sha256=validation_sha256,
+        diff_sha256=diff_sha256,
+    )
 
 
 def build_file_manifest[RecordT, RulesT, ReportT: RecordCountReport](
@@ -592,106 +633,85 @@ def build_file_manifest[RecordT, RulesT, ReportT: RecordCountReport](
     ).hexdigest()
     authority = cast(dict[str, Any], contract["authority"])
     source = cast(dict[str, Any], contract["source"])
-    rights = cast(dict[str, Any], contract["rights"])
-    runtime = cast(dict[str, Any], contract["runtime"])
-    created_at_text = (
-        created_at.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    )
-    return {
-        "schemaVersion": 1,
-        "release": {
-            "id": release_id,
-            "sequence": sequence,
-            "storageKey": storage_key,
-            "buildRevision": build_revision,
-            "createdAt": created_at_text,
-            "supersedes": supersedes,
-            "revoked": False,
-        },
-        "dataset": {
-            "id": adapter.dataset_id,
-            "sourceVersion": source_version,
-            "datasetSchemaVersion": 1,
-            "status": str(contract["status"]),
-        },
-        "sources": [
-            {
-                "authority": str(authority["name"]),
-                "authorityRole": str(authority["role"]),
-                "authorityVerified": not str(authority["verification"]).startswith("pending"),
-                "format": str(source["type"]),
-                "acquisition": str(source["acquisition"]),
-                "originalFilename": snapshot.original_filename,
-                "sourceUrl": source.get("source_url"),
-                "dataAsOf": source_version,
-                "upstreamCommit": source.get("upstream_commit"),
-                "sha256": snapshot.sha256,
-                "sizeBytes": snapshot.size_bytes,
-                "recordCount": sqlite_artifact.validation.record_count,
-                "retention": "private-content-addressed",
-                "reproducibleFromSource": True,
-            }
-        ],
-        "compiler": {
-            "name": "cn-health-compiler",
-            "version": __version__,
-            "adapter": adapter.dataset_id,
-            "adapterVersion": adapter_version,
-            "gitCommit": git_commit,
-            "lockSha256": lock_sha256,
-            "configSha256": config_sha256,
-            "datasetContractSha256": contract_sha256,
-            "datasetSchemaSha256": schema_sha256,
-            "buildInputSha256": build_input_sha256,
-        },
-        "canonical": {
-            "serialization": "canonical-ndjson-v1",
+    sources: list[dict[str, object]] = [
+        {
+            "authority": str(authority["name"]),
+            "authorityRole": str(authority["role"]),
+            "authorityVerified": not str(authority["verification"]).startswith("pending"),
+            "format": str(source["type"]),
+            "acquisition": str(source["acquisition"]),
+            "originalFilename": snapshot.original_filename,
+            "sourceUrl": source.get("source_url"),
+            "dataAsOf": source_version,
+            "upstreamCommit": source.get("upstream_commit"),
+            "sha256": snapshot.sha256,
+            "sizeBytes": snapshot.size_bytes,
             "recordCount": sqlite_artifact.validation.record_count,
-            "sha256": canonical_sha256,
-        },
-        "artifacts": [
-            {
-                "name": "data.sqlite",
-                "url": "data.sqlite",
-                "mediaType": "application/vnd.sqlite3",
-                "sha256": sqlite_artifact.sha256,
-                "sizeBytes": sqlite_artifact.size_bytes,
-            },
-            {
-                "name": "data.sqlite.zst",
-                "url": "data.sqlite.zst",
-                "mediaType": "application/zstd",
-                "compression": "zstd",
-                "sha256": compressed_sha256,
-                "sizeBytes": compressed_size,
-                "uncompressedName": "data.sqlite",
-                "uncompressedSha256": sqlite_artifact.sha256,
-                "uncompressedSizeBytes": sqlite_artifact.size_bytes,
-            },
-            {
-                "name": "data.parquet",
-                "url": "data.parquet",
-                "mediaType": "application/vnd.apache.parquet",
-                "sha256": parquet_sha256,
-                "sizeBytes": parquet_size,
-            },
-        ],
-        "validation": {
-            "passed": True,
-            "report": "validation.json",
-            "sha256": validation_sha256,
-        },
-        "diff": {"report": "diff.json", "sha256": diff_sha256},
-        "rights": {
-            "redistribution": str(rights["redistribution"]),
-            "releaseEligible": bool(rights["release_eligible"]),
-            "evidence": None,
-        },
-        "runtime": {
-            "minimumCliVersion": "0.2.0",
-            "minimumSQLiteVersion": str(runtime["minimum_sqlite_version"]),
-        },
+            "retention": "private-content-addressed",
+            "reproducibleFromSource": True,
+        }
+    ]
+    compiler: dict[str, object] = {
+        "name": "cn-health-compiler",
+        "version": __version__,
+        "adapter": adapter.dataset_id,
+        "adapterVersion": adapter_version,
+        "gitCommit": git_commit,
+        "lockSha256": lock_sha256,
+        "configSha256": config_sha256,
+        "datasetContractSha256": contract_sha256,
+        "datasetSchemaSha256": schema_sha256,
+        "buildInputSha256": build_input_sha256,
     }
+    canonical: dict[str, object] = {
+        "serialization": "canonical-ndjson-v1",
+        "recordCount": sqlite_artifact.validation.record_count,
+        "sha256": canonical_sha256,
+    }
+    artifacts: list[dict[str, object]] = [
+        {
+            "name": "data.sqlite",
+            "url": "data.sqlite",
+            "mediaType": "application/vnd.sqlite3",
+            "sha256": sqlite_artifact.sha256,
+            "sizeBytes": sqlite_artifact.size_bytes,
+        },
+        {
+            "name": "data.sqlite.zst",
+            "url": "data.sqlite.zst",
+            "mediaType": "application/zstd",
+            "compression": "zstd",
+            "sha256": compressed_sha256,
+            "sizeBytes": compressed_size,
+            "uncompressedName": "data.sqlite",
+            "uncompressedSha256": sqlite_artifact.sha256,
+            "uncompressedSizeBytes": sqlite_artifact.size_bytes,
+        },
+        {
+            "name": "data.parquet",
+            "url": "data.parquet",
+            "mediaType": "application/vnd.apache.parquet",
+            "sha256": parquet_sha256,
+            "sizeBytes": parquet_size,
+        },
+    ]
+    return build_candidate_manifest(
+        contract=contract,
+        dataset_id=adapter.dataset_id,
+        source_version=source_version,
+        release_id=release_id,
+        storage_key=storage_key,
+        build_revision=build_revision,
+        sequence=sequence,
+        created_at=created_at,
+        supersedes=supersedes,
+        sources=sources,
+        compiler=compiler,
+        canonical=canonical,
+        artifacts=artifacts,
+        validation_sha256=validation_sha256,
+        diff_sha256=diff_sha256,
+    )
 
 
 def canonical_table_hash(database_path: Path, table: str) -> tuple[str, int]:
