@@ -39,7 +39,6 @@ class DirtyRepositoryError(RuntimeError):
 class CandidateBuild:
     release_dir: Path
     manifest_path: Path
-    manifest: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +108,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
         canonical_sha256, canonical_count = canonical_table_hash(
             sqlite_artifact.path, adapter.table
         )
-        if canonical_count != sqlite_artifact.record_count:
+        if canonical_count != sqlite_artifact.validation.record_count:
             raise RuntimeError("canonical hash row count differs from SQLite validation")
         compressed_sha256, compressed_size = compress_sqlite(
             sqlite_artifact.path, temporary_dir / "data.sqlite.zst"
@@ -129,7 +128,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
             adapter,
             contract,
             sqlite_artifact.path,
-            sqlite_artifact.record_count,
+            sqlite_artifact.validation.record_count,
             release_id,
             snapshot.sha256,
             base_release_dir,
@@ -165,7 +164,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
         sync_directory(temporary_dir)
         os.replace(temporary_dir, release_dir)
         sync_directory(releases_dir)
-        return CandidateBuild(release_dir, release_dir / "manifest.json", manifest)
+        return CandidateBuild(release_dir, release_dir / "manifest.json")
     finally:
         if temporary_dir.exists():
             shutil.rmtree(temporary_dir)
@@ -354,7 +353,7 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
         },
         "canonical": {
             "serialization": "canonical-ndjson-v1",
-            "recordCount": sqlite_artifact.record_count,
+            "recordCount": sqlite_artifact.validation.record_count,
             "sha256": canonical_sha256,
         },
         "artifacts": [

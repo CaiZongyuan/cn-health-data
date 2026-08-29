@@ -1,6 +1,6 @@
 # Remove inactive v1 surfaces until they have consumers
 
-- Status: proposed
+- Status: implemented
 - Class: simplification
 - Date: 2026-08-29
 
@@ -67,3 +67,14 @@ its first external consumer.
   source mutation during copy and supplies reproducible provenance.
 - Do not remove SQLite staging or sorted final insertion. They isolate invalid
   records and produce byte-identical artifacts independent of source row order.
+
+## Resolution
+
+Implemented on 2026-08-29 before any public release:
+
+- drug, diagnosis, and LOINC bigram tables now have build-time producers and
+  Rust runtime consumers;
+- relative record-count limits are enforced whenever a base Release is supplied;
+- `DiffSummary` was replaced by the production `DatasetDiff` implementation;
+- the unused `PipelineStage`, duplicate `SQLiteArtifact.record_count`, and
+  unused `CandidateBuild.manifest` surfaces were removed.

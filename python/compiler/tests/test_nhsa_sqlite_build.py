@@ -21,7 +21,6 @@ def test_build_drug_sqlite_creates_deterministic_searchable_artifact(tmp_path: P
     )
 
     assert artifact.path == output_path
-    assert artifact.record_count == 2
     assert artifact.sha256 == hashlib.sha256(output_path.read_bytes()).hexdigest()
     assert artifact.size_bytes == output_path.stat().st_size
     assert artifact.validation.record_count == 2

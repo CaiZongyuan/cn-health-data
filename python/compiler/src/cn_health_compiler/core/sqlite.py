@@ -29,7 +29,6 @@ class SQLiteArtifact[ReportT: RecordCountReport]:
     path: Path
     sha256: str
     size_bytes: int
-    record_count: int
     validation: ReportT
 
 
@@ -76,7 +75,7 @@ def build_sqlite_artifact[RecordT, ReportT: RecordCountReport](
         _sync_file(temporary_path)
         os.replace(temporary_path, output_path)
         digest, size = hash_file(output_path)
-        return SQLiteArtifact(output_path, digest, size, validation.record_count, validation)
+        return SQLiteArtifact(output_path, digest, size, validation)
     finally:
         _remove_database_files(temporary_path)
 
