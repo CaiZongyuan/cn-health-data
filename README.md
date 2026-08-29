@@ -383,9 +383,6 @@ publishing any dataset.
   present.
 - LOINC has adapter and runtime coverage only; a real Candidate still needs a
   configured source package with a confirmed member layout and version.
-- The repository does not currently host public datasets or a public Registry.
-- Production signing-key custody, artifact hosting, and package publishing remain
-  operator responsibilities.
 
 ## Documentation
 
