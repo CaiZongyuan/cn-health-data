@@ -195,3 +195,26 @@ def test_area_city_parser_removes_non_china_and_filler_divisions(tmp_path: Path)
         ("4419", "44", "东莞市"),
     ]
     assert records[1].external_code == "441900000000"
+
+
+def test_area_city_parser_keeps_direct_administered_city_at_shallow_level(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "direct-city.csv"
+    source.write_text(
+        "id,pid,deep,name,pinyin_prefix,pinyin,ext_id,ext_name\n"
+        '41,0,0,"河南","h","he nan","410000000000","河南省"\n'
+        '419001,41,1,"济源","j","ji yuan","419001000000","济源市"\n'
+        '419001000,419001,2,"济源","j","ji yuan","419001000000","济源市"\n',
+        encoding="utf-8-sig",
+    )
+
+    records = list(
+        iter_area_city_divisions(
+            source,
+            source_version="2025.251231.260403",
+            source_sha256="c" * 64,
+        )
+    )
+
+    assert [(record.code, record.level) for record in records] == [("41", 0), ("419001", 1)]

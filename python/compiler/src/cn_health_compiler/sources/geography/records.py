@@ -23,6 +23,7 @@ _AREA_CITY_FIELDS = (
     "ext_id",
     "ext_name",
 )
+_AREA_CODE_LENGTHS = {0: {2}, 1: {4, 6}, 2: {6, 9}}
 
 
 class GeoNamesFormatError(ValueError):
@@ -241,7 +242,7 @@ def iter_area_city_divisions(
             external_code = row["ext_id"]
             if level not in (0, 1, 2):
                 raise GeoNamesFormatError(f"row {source_row} has invalid administrative level")
-            if not code.isdigit() or len(code) != (level + 1) * 2:
+            if not code.isdigit() or len(code) not in _AREA_CODE_LENGTHS[level]:
                 raise GeoNamesFormatError(f"row {source_row} has invalid administrative code")
             if not external_code.isdigit() or (external_code != "0" and len(external_code) != 12):
                 raise GeoNamesFormatError(f"row {source_row} has invalid external code")
