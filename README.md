@@ -3,9 +3,11 @@
 CN Health Data is infrastructure for compiling versioned, traceable Chinese
 healthcare reference datasets into local query artifacts such as SQLite.
 
-The repository is in bootstrap phase. The current implementation target is the
-Python dataset compiler described in
-[`docs/implementation-handbook.md`](docs/implementation-handbook.md).
+The repository contains working Python dataset compilers and a native Rust
+runtime following [`docs/implementation-handbook.md`](docs/implementation-handbook.md).
+
+Current completed and blocked surfaces are tracked in
+[`docs/implementation-status.md`](docs/implementation-status.md).
 
 ## Bootstrap
 

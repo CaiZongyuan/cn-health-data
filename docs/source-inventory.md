@@ -14,3 +14,6 @@ The LOINC adapter is covered by synthetic ZIP/CSV tests, but no real source
 package is present. Source acquisition, exact member layout, version, and
 redistribution rights must be confirmed before changing its status or building
 a Candidate.
+
+`nhc-procedure-clinical` remains planned but implementation is explicitly
+deferred; its local workbook is not consumed by any build command.
