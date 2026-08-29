@@ -1,7 +1,6 @@
 """Deterministic Chinese synthetic identity generation."""
 
 import hashlib
-import json
 import re
 import sqlite3
 import uuid
@@ -10,6 +9,8 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from cn_health_compiler.core.source import hash_file
 from cn_health_compiler.core.sqlite import SQLITE_APPLICATION_ID
@@ -26,6 +27,35 @@ type Gender = Literal["female", "male", "other", "unknown"]
 
 class CandidateReleaseError(ValueError):
     """Raised when a Candidate Release cannot be trusted by a consumer."""
+
+
+class _ManifestIdentity(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(min_length=1)
+
+
+class _ManifestCanonical(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class _ManifestArtifact(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    name: str
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    size_bytes: int = Field(alias="sizeBytes", ge=0)
+
+
+class _CandidateManifest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    dataset: _ManifestIdentity
+    release: _ManifestIdentity
+    canonical: _ManifestCanonical
+    artifacts: list[_ManifestArtifact]
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,55 +114,25 @@ def load_dataset_release_reference(
 ) -> DatasetReleaseReference:
     release_dir = release_dir.resolve(strict=True)
     try:
-        manifest: object = json.loads((release_dir / "manifest.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        manifest = _CandidateManifest.model_validate_json(
+            (release_dir / "manifest.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValidationError) as error:
         raise CandidateReleaseError("Candidate Manifest is unreadable") from error
-    if not isinstance(manifest, dict):
-        raise CandidateReleaseError("Candidate Manifest must be an object")
-    try:
-        dataset = manifest["dataset"]
-        release = manifest["release"]
-        canonical = manifest["canonical"]
-        artifacts = manifest["artifacts"]
-        if not all(isinstance(value, dict) for value in (dataset, release, canonical)):
-            raise TypeError
-        if not isinstance(artifacts, list):
-            raise TypeError
-        dataset_id = dataset["id"]
-        release_id = release["id"]
-        canonical_sha256 = canonical["sha256"]
-    except (KeyError, TypeError) as error:
-        raise CandidateReleaseError("Candidate Manifest identity is invalid") from error
-    if dataset_id != expected_dataset_id:
+    if manifest.dataset.id != expected_dataset_id:
         raise CandidateReleaseError("Candidate belongs to a different Dataset")
-    if not isinstance(release_id, str) or not release_id:
-        raise CandidateReleaseError("Candidate Release ID is invalid")
-    if not isinstance(canonical_sha256, str) or _SHA256.fullmatch(canonical_sha256) is None:
-        raise CandidateReleaseError("Candidate canonical SHA256 is invalid")
     sqlite_artifacts = [
-        artifact
-        for artifact in artifacts
-        if isinstance(artifact, dict) and artifact.get("name") == "data.sqlite"
+        artifact for artifact in manifest.artifacts if artifact.name == "data.sqlite"
     ]
     if len(sqlite_artifacts) != 1:
         raise CandidateReleaseError("Candidate must declare one SQLite artifact")
     artifact = sqlite_artifacts[0]
-    expected_sha256 = artifact.get("sha256")
-    expected_size = artifact.get("sizeBytes")
-    if (
-        not isinstance(expected_sha256, str)
-        or _SHA256.fullmatch(expected_sha256) is None
-        or not isinstance(expected_size, int)
-        or isinstance(expected_size, bool)
-        or expected_size < 0
-    ):
-        raise CandidateReleaseError("Candidate SQLite metadata is invalid")
     database_path = release_dir / "data.sqlite"
     try:
         actual_sha256, actual_size = hash_file(database_path)
     except OSError as error:
         raise CandidateReleaseError("Candidate SQLite artifact is unreadable") from error
-    if (actual_sha256, actual_size) != (expected_sha256, expected_size):
+    if (actual_sha256, actual_size) != (artifact.sha256, artifact.size_bytes):
         raise CandidateReleaseError("Candidate SQLite SHA256 or size does not match Manifest")
     connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:
@@ -145,8 +145,8 @@ def load_dataset_release_reference(
         connection.close()
     return DatasetReleaseReference(
         database_path=database_path,
-        release_id=release_id,
-        canonical_sha256=canonical_sha256,
+        release_id=manifest.release.id,
+        canonical_sha256=manifest.canonical.sha256,
     )
 
 
