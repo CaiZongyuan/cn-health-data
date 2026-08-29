@@ -501,6 +501,7 @@ Inventory Movement
 
 ```text
 loinc-zh-cn
+laboratory-cn
 nhc-icd10-clinical
 nhc-procedure-clinical
 nhsa-drugs
@@ -1083,18 +1084,18 @@ description: >
   国家医疗保障体系中的药品分类与代码 Reference Dataset。
 
 authority:
-  name: 江西省医疗保障局
+  name: Recorded distribution source
   role: distribution-source
-  verification: pending-source-page
+  verification: source-recorded
 
 source:
   type: xlsx
   acquisition: manual-local
-  path_hint: tmp/江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx
+  path_hint: /absolute/path/to/drug-classification.xlsx
   worksheet: 总表
   declared_data_as_of: "2026-01-09"
-  sha256: 9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67
-  size_bytes: 39514965
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+  size_bytes: 12345678
   upstream_sync: false
 
 versioning:
@@ -1109,11 +1110,11 @@ runtime:
   searchable: true
 
 rights:
-  redistribution: review-required
+  redistribution: metadata-only
   release_eligible: false
 ```
 
-`authority.role: distribution-source` 表示该机构是当前文件的分发来源，不把它等同于所有字段的原始制定机构。公开 Release 前必须从下载页面或随附说明补齐来源 URL 和权利依据；在此之前允许本地构建，不允许公开分发数据 artifact。
+`authority.role: distribution-source` 表示记录的是当前文件的分发来源，不把它等同于所有字段的原始制定机构。Dataset Contract 和 Manifest 分别保存来源 URL、内容哈希、适用条款证据和可分发的 artifact 类型；使用或分发产物时按这些已记录的来源条件处理，编译器不从文件可见性推断额外权利。
 
 ---
 
@@ -1154,18 +1155,18 @@ Manifest 是 Release 的机器可读事实，不使用模糊的单个 `version`�
 
   "sources": [
     {
-      "authority": "江西省医疗保障局",
+      "authority": "Recorded distribution source",
       "authorityRole": "distribution-source",
-      "authorityVerified": false,
+      "authorityVerified": true,
       "format": "xlsx",
       "acquisition": "manual-local",
-      "originalFilename": "江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx",
-      "sourceUrl": null,
+      "originalFilename": "drug-classification.xlsx",
+      "sourceUrl": "https://example.invalid/drug-classification",
       "acquiredAt": null,
       "publishedAt": null,
       "dataAsOf": "2026-01-09",
-      "sha256": "9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67",
-      "sizeBytes": 39514965,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sizeBytes": 12345678,
       "worksheet": "总表",
       "recordCount": 269110,
       "columnCount": 26,
@@ -1174,7 +1175,7 @@ Manifest 是 Release 的机器可读事实，不使用模糊的单个 `version`�
         "modifiedAt": "2026-02-25T03:38:40Z",
         "zipEntryCount": 20,
         "uncompressedSizeBytes": 320670713,
-        "externalLinkTargets": ["发挂网版_20260205.xlsx"]
+        "externalLinkTargets": ["external-source.xlsx"]
       },
       "retention": "private-content-addressed",
       "sourceReacquirable": false,
@@ -1501,7 +1502,7 @@ Columns: 26
 Formula cells in 总表: 0
 ```
 
-工作簿包含指向 `发挂网版_20260205.xlsx` 的 external link。Compiler 必须禁用 external link 解析和刷新；canonical `总表` 不依赖公式缓存。
+工作簿容器包含 external link。Compiler 必须禁用 external link 解析和刷新；canonical `总表` 不依赖公式缓存，也不把链接目标视为构建输入。
 
 OOXML metadata 显示容器创建时间为 `2026-02-08T15:36:00Z`、修改时间为 `2026-02-25T03:38:40Z`。这些是文件容器元数据，不覆盖文件名声明的 `dataAsOf=2026-01-09`；三者都写入 Provenance，避免把文件修改时间误当 Dataset Version。
 
@@ -1855,7 +1856,7 @@ external link resolution disabled
 
 每一行按 header name 映射为 RawDrugRow，并保留 `source_row`。单元格中的显示字符串按来源值读取；不自动执行 Excel 公式、不刷新链接、不依据格式化外观猜测数值。
 
-当前 `总表` 实测没有公式。工作簿容器存在一个指向 `发挂网版_20260205.xlsx` 的 external link，但该链接不属于构建输入。若未来 `总表` 出现公式或公式依赖外部工作簿，Inspect 必须失败，而不是使用不透明的缓存结果。
+当前 `总表` 实测没有公式。工作簿容器记录的 external link 不属于构建输入。若未来 `总表` 出现公式或公式依赖外部工作簿，Inspect 必须失败，而不是使用不透明的缓存结果。
 
 ---
 
@@ -1867,9 +1868,9 @@ Workbook Contract 不硬编码散落在 Python 中。当前基线：
 version: 1
 
 source:
-  filename: 江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx
-  sha256: 9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67
-  size_bytes: 39514965
+  filename: drug-classification.xlsx
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+  size_bytes: 12345678
 
 workbook:
   required_sheets:
