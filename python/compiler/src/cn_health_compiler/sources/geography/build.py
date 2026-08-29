@@ -1,11 +1,8 @@
 """End-to-end local Candidate build for Chinese geography data."""
 
 import hashlib
-import os
-import shutil
 from datetime import UTC, datetime
 from pathlib import Path
-from tempfile import mkdtemp
 from typing import Any, cast
 
 import rfc8785
@@ -13,10 +10,10 @@ import rfc8785
 from cn_health_compiler import __version__
 from cn_health_compiler.core.candidate import (
     CandidateBuild,
+    candidate_staging_directory,
     canonical_table_hash,
     compress_sqlite,
     resolve_git_commit,
-    sync_directory,
     write_parquet,
 )
 from cn_health_compiler.core.dataset import load_yaml_mapping
@@ -137,12 +134,7 @@ def build_geography_candidate(
         raise ValueError("created_at must be timezone-aware")
 
     releases_dir = output_root / "geography-cn/releases"
-    release_dir = releases_dir / storage_key
-    if release_dir.exists():
-        raise FileExistsError(f"refusing to overwrite Candidate: {release_dir}")
-    releases_dir.mkdir(parents=True, exist_ok=True)
-    temporary_dir = Path(mkdtemp(prefix=f".{storage_key}-", dir=releases_dir))
-    try:
+    with candidate_staging_directory(releases_dir, storage_key) as (temporary_dir, release_dir):
         snapshots_dir = repo_root / ".work/sources"
         division_snapshot = _snapshot(
             division_path, _source_config(contract, "divisions"), snapshots_dir
@@ -352,10 +344,4 @@ def build_geography_candidate(
         }
         validate_manifest(manifest, repo_root / "schemas/manifest.schema.json")
         write_json_atomic(temporary_dir / "manifest.json", manifest)
-        sync_directory(temporary_dir)
-        os.replace(temporary_dir, release_dir)
-        sync_directory(releases_dir)
         return CandidateBuild(release_dir, release_dir / "manifest.json")
-    finally:
-        if temporary_dir.exists():
-            shutil.rmtree(temporary_dir)

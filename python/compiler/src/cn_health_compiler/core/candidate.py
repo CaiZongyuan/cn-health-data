@@ -8,7 +8,8 @@ import re
 import shutil
 import sqlite3
 import subprocess
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -39,6 +40,27 @@ class DirtyRepositoryError(RuntimeError):
 class CandidateBuild:
     release_dir: Path
     manifest_path: Path
+
+
+@contextmanager
+def candidate_staging_directory(
+    releases_dir: Path,
+    storage_key: str,
+) -> Iterator[tuple[Path, Path]]:
+    """Stage and atomically publish one immutable Candidate directory."""
+    release_dir = releases_dir / storage_key
+    if release_dir.exists():
+        raise FileExistsError(f"refusing to overwrite Candidate: {release_dir}")
+    releases_dir.mkdir(parents=True, exist_ok=True)
+    temporary_dir = Path(mkdtemp(prefix=f".{storage_key}-", dir=releases_dir))
+    try:
+        yield temporary_dir, release_dir
+        sync_directory(temporary_dir)
+        os.replace(temporary_dir, release_dir)
+        sync_directory(releases_dir)
+    finally:
+        if temporary_dir.exists():
+            shutil.rmtree(temporary_dir)
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,12 +108,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
         raise ValueError("created_at must be timezone-aware")
 
     releases_dir = output_root / adapter.dataset_id / "releases"
-    release_dir = releases_dir / storage_key
-    if release_dir.exists():
-        raise FileExistsError(f"refusing to overwrite Candidate: {release_dir}")
-    releases_dir.mkdir(parents=True, exist_ok=True)
-    temporary_dir = Path(mkdtemp(prefix=f".{storage_key}-", dir=releases_dir))
-    try:
+    with candidate_staging_directory(releases_dir, storage_key) as (temporary_dir, release_dir):
         workbook_config = WorkbookConfig.load(workbook_path)
         snapshot = snapshot_local_source(
             source_path,
@@ -161,13 +178,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
         )
         validate_manifest(manifest, repo_root / "schemas" / "manifest.schema.json")
         write_json_atomic(temporary_dir / "manifest.json", manifest)
-        sync_directory(temporary_dir)
-        os.replace(temporary_dir, release_dir)
-        sync_directory(releases_dir)
         return CandidateBuild(release_dir, release_dir / "manifest.json")
-    finally:
-        if temporary_dir.exists():
-            shutil.rmtree(temporary_dir)
 
 
 def _build_diff[RecordT, RulesT, ReportT: RecordCountReport](
