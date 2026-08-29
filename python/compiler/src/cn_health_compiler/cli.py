@@ -1,5 +1,6 @@
 """Command-line entry point for compiler operations."""
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -7,6 +8,7 @@ import typer
 
 from cn_health_compiler import __version__
 from cn_health_compiler.core.dataset import find_repository_root
+from cn_health_compiler.core.manifest import write_json_atomic
 from cn_health_compiler.core.registry import build_signed_registry, generate_signing_keypair
 from cn_health_compiler.core.validation import validate_dataset_contracts
 from cn_health_compiler.sources.geography.build import build_geography_candidate
@@ -14,6 +16,7 @@ from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
 from cn_health_compiler.sources.population.build import build_population_candidate
+from cn_health_compiler.synthetic.synthea_localizer import localize_synthea_bundle
 from cn_health_compiler.synthetic.synthea_profile import build_synthea_profile
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
@@ -179,6 +182,53 @@ def build_synthea_cn_profile(
     )
     typer.echo(result.profile_dir)
     typer.echo(result.manifest_path)
+
+
+@synthea_app.command("localize")
+def localize_synthea_r4_bundle(
+    input_path: Annotated[
+        Path,
+        typer.Option("--input", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    output_path: Annotated[
+        Path,
+        typer.Option("--output", dir_okay=False, resolve_path=True),
+    ],
+    profile: Annotated[
+        Path,
+        typer.Option("--profile", exists=True, file_okay=False, resolve_path=True),
+    ],
+    names_release: Annotated[
+        Path,
+        typer.Option("--names-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    geography_release: Annotated[
+        Path,
+        typer.Option("--geography-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    population_release: Annotated[
+        Path,
+        typer.Option("--population-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    seed: Annotated[str, typer.Option("--seed")],
+) -> None:
+    """Localize one Synthea FHIR R4 collection Bundle for China."""
+    if output_path.exists():
+        raise typer.BadParameter("refusing to overwrite localized Bundle", param_hint="--output")
+    raw: object = json.loads(input_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("input Bundle must be a JSON object", param_hint="--input")
+    localized = localize_synthea_bundle(
+        raw,
+        profile_dir=profile,
+        names_release_dir=names_release,
+        geography_release_dir=geography_release,
+        population_release_dir=population_release,
+        seed=seed,
+    )
+    sha256, _ = write_json_atomic(output_path, localized.bundle)
+    typer.echo(output_path)
+    typer.echo(sha256)
 
 
 @registry_app.command("keygen")

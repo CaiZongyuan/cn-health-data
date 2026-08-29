@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 from cn_health_compiler.cli import app
+from cn_health_compiler.synthetic.synthea_localizer import localize_synthea_bundle
 from cn_health_compiler.synthetic.synthea_profile import build_synthea_profile
 from typer.testing import CliRunner
 
@@ -179,9 +180,7 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
 
     demographic_rows = list(
         csv.DictReader(
-            StringIO(
-                (result.profile_dir / "classpath/geography/demographics.csv").read_text()
-            )
+            StringIO((result.profile_dir / "classpath/geography/demographics.csv").read_text())
         )
     )
     assert len(demographic_rows) == 1
@@ -205,9 +204,7 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     assert "generate.geography.sdoh.default_file = geography/sdoh.csv" in properties
     payer = next(
         csv.DictReader(
-            (result.profile_dir / "classpath/payers/insurance_companies.csv").open(
-                encoding="utf-8"
-            )
+            (result.profile_dir / "classpath/payers/insurance_companies.csv").open(encoding="utf-8")
         )
     )
     assert payer["Ownership"] == "Government"
@@ -238,3 +235,120 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     )
     assert cli_result.exit_code == 0, cli_result.output
     assert "synthea-cn-profile/releases/2026-08-29.r1/manifest.json" in cli_result.output
+
+
+def test_localizer_replaces_identity_without_changing_clinical_resources(tmp_path: Path) -> None:
+    names = _names_release(tmp_path / "names")
+    geography = _geography_release(tmp_path / "geography")
+    population = _population_release(tmp_path / "population")
+    profile = build_synthea_profile(
+        repo_root=tmp_path,
+        names_release_dir=names,
+        geography_release_dir=geography,
+        population_release_dir=population,
+        output_root=tmp_path / "profiles",
+        profile_version="2026-08-29",
+        reference_year=2026,
+        synthea_commit=SYNTHEA_COMMIT,
+        git_commit="f" * 40,
+    )
+    condition = {
+        "resourceType": "Condition",
+        "id": "condition-1",
+        "subject": {"reference": "Patient/patient-1"},
+        "code": {
+            "coding": [
+                {
+                    "system": "http://snomed.info/sct",
+                    "code": "38341003",
+                    "display": "Hypertension",
+                }
+            ]
+        },
+    }
+    raw_bundle = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "fullUrl": "Patient/patient-1",
+                "resource": {
+                    "resourceType": "Patient",
+                    "id": "patient-1",
+                    "gender": "male",
+                    "birthDate": "1988-06-18",
+                    "name": [{"family": "Smith", "given": ["John"]}],
+                    "address": [{"state": "Massachusetts", "country": "US"}],
+                    "telecom": [{"system": "phone", "value": "555-123-4567"}],
+                    "identifier": [
+                        {
+                            "system": "https://github.com/synthetichealth/synthea",
+                            "value": "source-patient-1",
+                        },
+                        {"system": "http://hl7.org/fhir/sid/us-ssn", "value": "999-12-3456"},
+                    ],
+                },
+            },
+            {"fullUrl": "Condition/condition-1", "resource": condition},
+        ],
+    }
+
+    localized = localize_synthea_bundle(
+        raw_bundle,
+        profile_dir=profile.profile_dir,
+        names_release_dir=names,
+        geography_release_dir=geography,
+        population_release_dir=population,
+        seed="patient-1",
+    )
+    repeated = localize_synthea_bundle(
+        raw_bundle,
+        profile_dir=profile.profile_dir,
+        names_release_dir=names,
+        geography_release_dir=geography,
+        population_release_dir=population,
+        seed="patient-1",
+    )
+
+    assert localized == repeated
+    patient = localized.bundle["entry"][0]["resource"]
+    assert (
+        patient["name"][0]["text"] == patient["name"][0]["family"] + patient["name"][0]["given"][0]
+    )
+    assert patient["address"][0]["country"] == "CN"
+    assert patient["telecom"][0]["value"].startswith("100")
+    systems = {identifier["system"] for identifier in patient["identifier"]}
+    assert "https://github.com/synthetichealth/synthea" in systems
+    assert "urn:cn-health-data:synthetic-person" in systems
+    assert "urn:cn-health-data:synthetic-mrn" in systems
+    assert "urn:cn-health-data:simulated-resident-id" in systems
+    assert "http://hl7.org/fhir/sid/us-ssn" not in systems
+    assert localized.bundle["entry"][1]["resource"] == condition
+    assert localized.bundle["meta"]["tag"][0]["code"] == "synthea-cn@2026-08-29.r1"
+
+    input_path = tmp_path / "raw-bundle.json"
+    output_path = tmp_path / "localized-bundle.json"
+    input_path.write_text(json.dumps(raw_bundle), encoding="utf-8")
+    cli_result = CliRunner().invoke(
+        app,
+        [
+            "synthea",
+            "localize",
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--profile",
+            str(profile.profile_dir),
+            "--names-release",
+            str(names),
+            "--geography-release",
+            str(geography),
+            "--population-release",
+            str(population),
+            "--seed",
+            "patient-1",
+        ],
+    )
+    assert cli_result.exit_code == 0, cli_result.output
+    assert json.loads(output_path.read_text(encoding="utf-8")) == localized.bundle
