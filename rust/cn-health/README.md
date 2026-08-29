@@ -1,4 +1,5 @@
 # cn-health runtime package
 
-This directory will become the Cargo package for the native runtime in Phase 6.
-Do not add a `Cargo.toml` until the CLI and JSON contracts are stable.
+This Cargo package implements the native local runtime. It treats local
+Candidates as untrusted inputs, verifies compressed and uncompressed hashes,
+checks SQLite integrity/application ID, and atomically updates `current.json`.

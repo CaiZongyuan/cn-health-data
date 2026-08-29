@@ -8,8 +8,10 @@ Declared Source -> Snapshot -> Inspect -> Extract -> Normalize -> Validate
 ```
 
 Python owns acquisition and compilation. SQLite is the canonical runtime
-artifact. The Rust CLI and npm distribution wrapper are deferred until the
-Dataset Contract and JSON interface are stable.
+artifact. The Rust CLI verifies and installs local Candidates, maintains an
+atomic current pointer, and provides exact/FTS/bigram queries. Remote signed
+Registry installation and npm binary distribution remain separate delivery
+layers.
 
 See [`implementation-handbook.md`](implementation-handbook.md) for the complete
 architecture and invariants.

@@ -20,6 +20,20 @@ uv run cn-health-build --version
 uv run pytest
 ```
 
+Build and use the native local runtime:
+
+```bash
+cargo build -p cn-health
+
+target/debug/cn-health dataset install --local-manifest \
+  dist/nhsa-drugs/releases/2026-01-09.r2/manifest.json
+
+target/debug/cn-health drug search 二甲双胍 --json
+target/debug/cn-health diagnosis search 糖尿病 --json
+```
+
+Use `--data-dir <path>` to isolate an installation for testing.
+
 ## Source data
 
 Raw source files are not committed. Place explicitly acquired inputs in
@@ -41,7 +55,8 @@ dataset build.
 - `schemas/`: machine-readable contract schemas
 - `mappings/`: independently versioned terminology mappings
 - `docs/`: architecture, source inventory, rights, and implementation guidance
-- `rust/` and `npm/`: deferred runtime distribution phases
+- `rust/cn-health/`: native local installer and query runtime
+- `npm/`: deferred native binary distribution wrapper
 
 ## Licensing
 

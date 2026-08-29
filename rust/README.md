@@ -1,4 +1,5 @@
 # Rust Runtime
 
-Reserved for the `cn-health` runtime after the CLI, Manifest, Registry, and JSON
-contracts stabilize. Phase 0 does not contain a Rust package.
+Contains the native `cn-health` runtime. The current package supports verified
+local Candidate installation, dataset inspection, exact lookup, FTS5 trigram
+search, two-character bigram search, and JSON output.
