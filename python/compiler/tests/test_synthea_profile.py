@@ -147,6 +147,7 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     expected_files = {
         "classpath/geography/demographics.csv",
         "classpath/geography/foreign_birthplace.json",
+        "classpath/geography/sdoh.csv",
         "classpath/geography/timezones.csv",
         "classpath/geography/zipcodes.csv",
         "classpath/names.yml",
@@ -156,6 +157,7 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
         "classpath/providers/hospitals.csv",
         "classpath/providers/primary_care_facilities.csv",
         "classpath/providers/urgent_care_facilities.csv",
+        "classpath/version.txt",
         "manifest.json",
         "synthea.properties",
     }
@@ -200,6 +202,16 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     properties = (result.profile_dir / "synthea.properties").read_text(encoding="utf-8")
     assert "generate.geography.country_code = CN" in properties
     assert "generate.demographics.default_file = geography/demographics.csv" in properties
+    assert "generate.geography.sdoh.default_file = geography/sdoh.csv" in properties
+    payer = next(
+        csv.DictReader(
+            (result.profile_dir / "classpath/payers/insurance_companies.csv").open(
+                encoding="utf-8"
+            )
+        )
+    )
+    assert payer["Ownership"] == "Government"
+    assert (result.profile_dir / "classpath/version.txt").read_text().strip() == SYNTHEA_COMMIT
 
     cli_result = CliRunner().invoke(
         app,

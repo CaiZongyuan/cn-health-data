@@ -328,7 +328,7 @@ def _properties() -> str:
         "generate.geography.country_code": "CN",
         "generate.geography.timezones.default_file": "geography/timezones.csv",
         "generate.geography.foreign.birthplace.default_file": "geography/foreign_birthplace.json",
-        "generate.geography.sdoh.default_file": "",
+        "generate.geography.sdoh.default_file": "geography/sdoh.csv",
         "generate.geography.passport_uri": "urn:cn-health-data:synthetic-passport",
         "generate.append_numbers_to_person_names": "false",
         "generate.providers.hospitals.default_file": "providers/hospitals.csv",
@@ -377,7 +377,7 @@ def _payer_files() -> dict[str, str]:
                     "Zip": "100000",
                     "Phone": "10000000000",
                     "States Covered": "*",
-                    "Ownership": "Synthetic",
+                    "Ownership": "Government",
                     "Priority Level": 1,
                 }
             ],
@@ -492,6 +492,7 @@ def build_synthea_profile(
     releases_dir = output_root / "synthea-cn-profile/releases"
     with candidate_staging_directory(releases_dir, storage_key) as (profile_dir, release_dir):
         resources = {
+            "version.txt": f"{synthea_commit}\n",
             "names.yml": yaml.safe_dump(
                 _name_profile(names), allow_unicode=True, sort_keys=False, width=120
             ),
@@ -506,6 +507,7 @@ def build_synthea_profile(
                 indent=2,
             )
             + "\n",
+            "geography/sdoh.csv": "STATE,FIPS_CODE,COUNTY_CODE,COUNTY,ST\n",
             "providers/hospitals.csv": _providers(cities, "hospital"),
             "providers/primary_care_facilities.csv": _providers(cities, "primary"),
             "providers/urgent_care_facilities.csv": _providers(cities, "urgent"),
