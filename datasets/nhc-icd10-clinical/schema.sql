@@ -21,3 +21,9 @@ CREATE VIRTUAL TABLE diagnosis_fts USING fts5(
     content_rowid = 'rowid',
     tokenize = 'trigram'
 );
+
+CREATE TABLE diagnosis_search_bigram (
+    term TEXT NOT NULL,
+    code TEXT NOT NULL REFERENCES diagnosis(code),
+    PRIMARY KEY (term, code)
+) WITHOUT ROWID;

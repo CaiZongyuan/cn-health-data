@@ -63,6 +63,7 @@ def build_nhsa_drug_candidate(
     sequence: int = 1,
     git_commit: str | None = None,
     created_at: datetime | None = None,
+    base_release_dir: Path | None = None,
 ) -> CandidateBuild:
     return build_xlsx_candidate(
         _ADAPTER,
@@ -73,4 +74,5 @@ def build_nhsa_drug_candidate(
         sequence=sequence,
         git_commit=git_commit,
         created_at=created_at,
+        base_release_dir=base_release_dir,
     )

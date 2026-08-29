@@ -16,6 +16,17 @@ from cn_health_compiler.sources.nhc_icd10.validation import (
 _COLUMNS = tuple(field.name for field in fields(DiagnosisRecord))
 _POST_INSERT_SQL = (
     "INSERT INTO diagnosis_fts(rowid, name) SELECT rowid, name FROM diagnosis ORDER BY code",
+    """
+    WITH RECURSIVE grams(code, text, position) AS (
+        SELECT code, name, 1 FROM diagnosis WHERE length(name) >= 2
+        UNION ALL
+        SELECT code, text, position + 1
+        FROM grams
+        WHERE position < length(text) - 1
+    )
+    INSERT OR IGNORE INTO diagnosis_search_bigram(term, code)
+    SELECT substr(text, position, 2), code FROM grams ORDER BY 1, 2
+    """,
     "INSERT INTO diagnosis_fts(diagnosis_fts) VALUES('optimize')",
 )
 

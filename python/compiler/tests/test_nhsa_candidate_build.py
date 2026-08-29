@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from zipfile import ZipFile
 
+import polars as pl
 import yaml
 import zstandard
 from _nhsa import source_values
@@ -165,6 +166,7 @@ def test_build_command_creates_a_valid_local_candidate(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     release_dir = tmp_path / "dist" / "nhsa-drugs" / "releases" / "2026-01-09.r1"
     assert sorted(path.name for path in release_dir.iterdir()) == [
+        "data.parquet",
         "data.sqlite",
         "data.sqlite.zst",
         "diff.json",
@@ -177,6 +179,7 @@ def test_build_command_creates_a_valid_local_candidate(tmp_path: Path) -> None:
     assert manifest["release"]["id"] == "nhsa-drugs@2026-01-09.r1"
     assert manifest["compiler"]["gitCommit"] == git_commit
     assert manifest["canonical"]["recordCount"] == 2
+    assert pl.read_parquet(release_dir / "data.parquet").height == 2
     assert manifest["rights"] == {
         "redistribution": "review-required",
         "releaseEligible": False,

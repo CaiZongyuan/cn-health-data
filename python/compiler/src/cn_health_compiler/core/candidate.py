@@ -1,6 +1,7 @@
 """Shared provenance and packaging for local Dataset Candidates."""
 
 import hashlib
+import json
 import os
 import platform
 import re
@@ -14,11 +15,13 @@ from pathlib import Path
 from tempfile import mkdtemp
 from typing import Any, cast
 
+import polars as pl
 import rfc8785
 import zstandard
 
 from cn_health_compiler import __version__
 from cn_health_compiler.core.dataset import load_yaml_mapping
+from cn_health_compiler.core.diff import compare_sqlite_tables, enforce_relative_record_count
 from cn_health_compiler.core.manifest import validate_manifest, write_json_atomic
 from cn_health_compiler.core.source import hash_file, snapshot_local_source
 from cn_health_compiler.core.sqlite import RecordCountReport, SQLiteArtifact
@@ -48,6 +51,11 @@ class XlsxCandidateAdapter[RecordT, RulesT, ReportT: RecordCountReport]:
     load_rules: Callable[[Path], RulesT]
     build_sqlite: Callable[[Iterable[RecordT], RulesT, Path, Path], SQLiteArtifact[ReportT]]
     validation_payload: Callable[[ReportT], dict[str, object]]
+    excluded_diff_fields: tuple[str, ...] = (
+        "source_row",
+        "source_version",
+        "source_sha256",
+    )
 
 
 def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
@@ -60,6 +68,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
     sequence: int = 1,
     git_commit: str | None = None,
     created_at: datetime | None = None,
+    base_release_dir: Path | None = None,
 ) -> CandidateBuild:
     repo_root = repo_root.resolve(strict=True)
     dataset_dir = repo_root / "datasets" / adapter.dataset_id
@@ -105,6 +114,9 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
         compressed_sha256, compressed_size = compress_sqlite(
             sqlite_artifact.path, temporary_dir / "data.sqlite.zst"
         )
+        parquet_sha256, parquet_size = write_parquet(
+            sqlite_artifact.path, adapter.table, temporary_dir / "data.parquet"
+        )
         validation_sha256, _ = write_json_atomic(
             temporary_dir / "validation.json",
             {
@@ -113,20 +125,16 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
                 **adapter.validation_payload(sqlite_artifact.validation),
             },
         )
-        diff_sha256, _ = write_json_atomic(
-            temporary_dir / "diff.json",
-            {
-                "schemaVersion": 1,
-                "baseRelease": None,
-                "targetRelease": release_id,
-                "baseSourceSha256": None,
-                "targetSourceSha256": snapshot.sha256,
-                "added": sqlite_artifact.record_count,
-                "removed": 0,
-                "modified": 0,
-                "unchanged": 0,
-            },
+        diff_payload, supersedes = _build_diff(
+            adapter,
+            contract,
+            sqlite_artifact.path,
+            sqlite_artifact.record_count,
+            release_id,
+            snapshot.sha256,
+            base_release_dir,
         )
+        diff_sha256, _ = write_json_atomic(temporary_dir / "diff.json", diff_payload)
         manifest = build_xlsx_manifest(
             contract=contract,
             workbook_config=workbook_config,
@@ -134,6 +142,8 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
             sqlite_artifact=sqlite_artifact,
             compressed_sha256=compressed_sha256,
             compressed_size=compressed_size,
+            parquet_sha256=parquet_sha256,
+            parquet_size=parquet_size,
             validation_sha256=validation_sha256,
             diff_sha256=diff_sha256,
             canonical_sha256=canonical_sha256,
@@ -144,6 +154,7 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
             sequence=sequence,
             created_at=created_at,
             git_commit=resolved_commit,
+            supersedes=supersedes,
             contract_path=contract_path,
             workbook_path=workbook_path,
             schema_path=schema_path,
@@ -160,6 +171,75 @@ def build_xlsx_candidate[RecordT, RulesT, ReportT: RecordCountReport](
             shutil.rmtree(temporary_dir)
 
 
+def _build_diff[RecordT, RulesT, ReportT: RecordCountReport](
+    adapter: XlsxCandidateAdapter[RecordT, RulesT, ReportT],
+    contract: dict[str, Any],
+    target_database: Path,
+    target_count: int,
+    target_release_id: str,
+    target_source_sha256: str,
+    base_release_dir: Path | None,
+) -> tuple[dict[str, object], str | None]:
+    if base_release_dir is None:
+        return (
+            {
+                "schemaVersion": 1,
+                "baseRelease": None,
+                "targetRelease": target_release_id,
+                "baseSourceSha256": None,
+                "targetSourceSha256": target_source_sha256,
+                "added": target_count,
+                "removed": 0,
+                "modified": 0,
+                "unchanged": 0,
+                "modifiedFields": {},
+            },
+            None,
+        )
+
+    base_release_dir = base_release_dir.resolve(strict=True)
+    base_manifest = json.loads((base_release_dir / "manifest.json").read_text(encoding="utf-8"))
+    if base_manifest["dataset"]["id"] != adapter.dataset_id:
+        raise ValueError("base Release belongs to a different Dataset")
+    base_artifact = next(
+        artifact for artifact in base_manifest["artifacts"] if artifact["name"] == "data.sqlite"
+    )
+    base_database = base_release_dir / "data.sqlite"
+    base_sha256, _ = hash_file(base_database)
+    if base_sha256 != base_artifact["sha256"]:
+        raise ValueError("base Release SQLite SHA256 does not match its Manifest")
+    report = compare_sqlite_tables(
+        base_database,
+        target_database,
+        adapter.table,
+        excluded_fields=adapter.excluded_diff_fields,
+    )
+    validation = cast(dict[str, Any], contract["validation"])
+    count_rules = cast(dict[str, Any], validation["record_count"])
+    enforce_relative_record_count(
+        report.base_count,
+        report.target_count,
+        max_decrease=float(count_rules["max_relative_decrease"]),
+        max_increase=float(count_rules["max_relative_increase"]),
+    )
+    base_release_id = str(base_manifest["release"]["id"])
+    return (
+        {
+            "schemaVersion": 1,
+            "baseRelease": base_release_id,
+            "targetRelease": target_release_id,
+            "baseSourceSha256": str(base_manifest["sources"][0]["sha256"]),
+            "targetSourceSha256": target_source_sha256,
+            "added": report.added,
+            "removed": report.removed,
+            "modified": report.modified,
+            "unchanged": report.unchanged,
+            "modifiedFields": dict(report.modified_fields),
+        },
+        base_release_id,
+    )
+
+
 def build_xlsx_manifest[ReportT: RecordCountReport](
     *,
     contract: dict[str, Any],
@@ -168,6 +248,8 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
     sqlite_artifact: SQLiteArtifact[ReportT],
     compressed_sha256: str,
     compressed_size: int,
+    parquet_sha256: str,
+    parquet_size: int,
     validation_sha256: str,
     diff_sha256: str,
     canonical_sha256: str,
@@ -178,6 +260,7 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
     sequence: int,
     created_at: datetime,
     git_commit: str,
+    supersedes: str | None,
     contract_path: Path,
     workbook_path: Path,
     schema_path: Path,
@@ -216,7 +299,7 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
             "storageKey": storage_key,
             "buildRevision": build_revision,
             "createdAt": created_at_text,
-            "supersedes": None,
+            "supersedes": supersedes,
             "revoked": False,
         },
         "dataset": {
@@ -267,6 +350,7 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
             "pythonVersion": platform.python_version(),
             "sqliteVersion": sqlite3.sqlite_version,
             "zstandardVersion": zstandard.__version__,
+            "polarsVersion": pl.__version__,
         },
         "canonical": {
             "serialization": "canonical-ndjson-v1",
@@ -291,6 +375,13 @@ def build_xlsx_manifest[ReportT: RecordCountReport](
                 "uncompressedName": "data.sqlite",
                 "uncompressedSha256": sqlite_artifact.sha256,
                 "uncompressedSizeBytes": sqlite_artifact.size_bytes,
+            },
+            {
+                "name": "data.parquet",
+                "url": "data.parquet",
+                "mediaType": "application/vnd.apache.parquet",
+                "sha256": parquet_sha256,
+                "sizeBytes": parquet_size,
             },
         ],
         "validation": {
@@ -337,6 +428,25 @@ def compress_sqlite(source_path: Path, output_path: Path) -> tuple[str, int]:
         compressor.copy_stream(source, output, size=source_path.stat().st_size)
         output.flush()
         os.fsync(output.fileno())
+    return hash_file(output_path)
+
+
+def write_parquet(database_path: Path, table: str, output_path: Path) -> tuple[str, int]:
+    if _SQL_IDENTIFIER_PATTERN.fullmatch(table) is None:
+        raise ValueError(f"unsafe SQLite table name: {table!r}")
+    connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
+    try:
+        frame = pl.read_database(f"SELECT * FROM {table} ORDER BY code", connection)
+    finally:
+        connection.close()
+    frame.write_parquet(
+        output_path,
+        compression="zstd",
+        compression_level=9,
+        statistics=True,
+    )
+    with output_path.open("rb") as artifact:
+        os.fsync(artifact.fileno())
     return hash_file(output_path)
 
 

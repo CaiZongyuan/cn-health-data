@@ -60,6 +60,10 @@ def build_dataset(
         Path | None,
         typer.Option("--output-root", file_okay=False, resolve_path=True),
     ] = None,
+    base_release: Annotated[
+        Path | None,
+        typer.Option("--base-release", file_okay=False, exists=True, resolve_path=True),
+    ] = None,
     build_revision: Annotated[int, typer.Option("--build-revision", min=1)] = 1,
     sequence: Annotated[int, typer.Option("--sequence", min=1)] = 1,
 ) -> None:
@@ -80,6 +84,7 @@ def build_dataset(
         output_root=output_root or root / "dist",
         build_revision=build_revision,
         sequence=sequence,
+        base_release_dir=base_release,
     )
     typer.echo(result.release_dir)
     typer.echo(result.manifest_path)

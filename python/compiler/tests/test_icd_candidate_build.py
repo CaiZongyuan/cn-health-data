@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zipfile import ZipFile
 
+import polars as pl
 import yaml
 import zstandard
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
@@ -145,6 +146,7 @@ def test_build_diagnosis_candidate_packages_manifest_and_zstd(tmp_path: Path) ->
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(manifest)
     assert manifest["release"]["id"] == "nhc-icd10-clinical@2022.r1"
     assert manifest["canonical"]["recordCount"] == 3
+    assert pl.read_parquet(release / "data.parquet").height == 3
     assert manifest["rights"]["releaseEligible"] is False
     sqlite_bytes = (release / "data.sqlite").read_bytes()
     compressed = (release / "data.sqlite.zst").read_bytes()
@@ -157,3 +159,19 @@ def test_build_diagnosis_candidate_packages_manifest_and_zstd(tmp_path: Path) ->
         ).fetchone() == (1,)
     finally:
         connection.close()
+
+    revision = build_diagnosis_candidate(
+        repo_root=tmp_path,
+        source_path=source_path,
+        output_root=tmp_path / "dist",
+        build_revision=2,
+        sequence=2,
+        base_release_dir=release,
+        git_commit="c" * 40,
+        created_at=datetime(2026, 8, 30, tzinfo=UTC),
+    )
+    revision_manifest = json.loads(revision.manifest_path.read_text(encoding="utf-8"))
+    revision_diff = json.loads((revision.release_dir / "diff.json").read_text(encoding="utf-8"))
+    assert revision_manifest["release"]["supersedes"] == "nhc-icd10-clinical@2022.r1"
+    assert revision_diff["unchanged"] == 3
+    assert revision_diff["added"] == revision_diff["removed"] == 0

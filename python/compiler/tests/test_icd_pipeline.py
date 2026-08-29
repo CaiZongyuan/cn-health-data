@@ -110,6 +110,9 @@ def test_diagnosis_validator_and_sqlite_support_all_code_forms(tmp_path: Path) -
         assert connection.execute(
             "SELECT count(*) FROM diagnosis_fts WHERE diagnosis_fts MATCH '伤寒性肝炎'"
         ).fetchone() == (1,)
+        assert connection.execute(
+            "SELECT count(*) FROM diagnosis_search_bigram WHERE term = '伤寒'"
+        ).fetchone() == (1,)
     finally:
         connection.close()
 

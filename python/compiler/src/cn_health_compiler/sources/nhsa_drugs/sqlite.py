@@ -27,6 +27,21 @@ _POST_INSERT_SQL = (
     FROM drug
     ORDER BY code
     """,
+    """
+    WITH RECURSIVE searchable(code, text) AS (
+        SELECT code, registered_name FROM drug
+        UNION ALL
+        SELECT code, insurance_name FROM drug WHERE insurance_name IS NOT NULL
+    ), grams(code, text, position) AS (
+        SELECT code, text, 1 FROM searchable WHERE length(text) >= 2
+        UNION ALL
+        SELECT code, text, position + 1
+        FROM grams
+        WHERE position < length(text) - 1
+    )
+    INSERT OR IGNORE INTO drug_search_bigram(term, code)
+    SELECT substr(text, position, 2), code FROM grams ORDER BY 1, 2
+    """,
     "INSERT INTO drug_fts(drug_fts) VALUES('optimize')",
 )
 

@@ -36,6 +36,9 @@ def test_build_drug_sqlite_creates_deterministic_searchable_artifact(tmp_path: P
         assert connection.execute(
             "SELECT count(*) FROM drug_fts WHERE drug_fts MATCH ?", ("二甲双胍",)
         ).fetchone() == (2,)
+        assert connection.execute(
+            "SELECT count(*) FROM drug_search_bigram WHERE term = ?", ("二甲",)
+        ).fetchone() == (2,)
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA application_id").fetchone() == (0x434E4844,)
         assert connection.execute("PRAGMA user_version").fetchone() == (1,)
