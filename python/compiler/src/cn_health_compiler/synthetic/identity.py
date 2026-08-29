@@ -1,6 +1,7 @@
 """Deterministic Chinese synthetic identity generation."""
 
 import hashlib
+import json
 import re
 import sqlite3
 import uuid
@@ -10,6 +11,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
+from cn_health_compiler.core.source import hash_file
+from cn_health_compiler.core.sqlite import SQLITE_APPLICATION_ID
+
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _ALGORITHM_VERSION = "synthetic-identity-v1"
 _WEIGHT_SCALE = Decimal("1000000")
@@ -18,6 +22,10 @@ _ID_CARD_WEIGHTS = (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2)
 _ID_CARD_CHECKS = ("1", "0", "X", "9", "8", "7", "6", "5", "4", "3", "2")
 
 type Gender = Literal["female", "male", "other", "unknown"]
+
+
+class CandidateReleaseError(ValueError):
+    """Raised when a Candidate Release cannot be trusted by a consumer."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +75,79 @@ class _Location:
     district: str | None
     latitude: float
     longitude: float
+
+
+def load_dataset_release_reference(
+    release_dir: Path,
+    *,
+    expected_dataset_id: str,
+) -> DatasetReleaseReference:
+    release_dir = release_dir.resolve(strict=True)
+    try:
+        manifest: object = json.loads((release_dir / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise CandidateReleaseError("Candidate Manifest is unreadable") from error
+    if not isinstance(manifest, dict):
+        raise CandidateReleaseError("Candidate Manifest must be an object")
+    try:
+        dataset = manifest["dataset"]
+        release = manifest["release"]
+        canonical = manifest["canonical"]
+        artifacts = manifest["artifacts"]
+        if not all(isinstance(value, dict) for value in (dataset, release, canonical)):
+            raise TypeError
+        if not isinstance(artifacts, list):
+            raise TypeError
+        dataset_id = dataset["id"]
+        release_id = release["id"]
+        canonical_sha256 = canonical["sha256"]
+    except (KeyError, TypeError) as error:
+        raise CandidateReleaseError("Candidate Manifest identity is invalid") from error
+    if dataset_id != expected_dataset_id:
+        raise CandidateReleaseError("Candidate belongs to a different Dataset")
+    if not isinstance(release_id, str) or not release_id:
+        raise CandidateReleaseError("Candidate Release ID is invalid")
+    if not isinstance(canonical_sha256, str) or _SHA256.fullmatch(canonical_sha256) is None:
+        raise CandidateReleaseError("Candidate canonical SHA256 is invalid")
+    sqlite_artifacts = [
+        artifact
+        for artifact in artifacts
+        if isinstance(artifact, dict) and artifact.get("name") == "data.sqlite"
+    ]
+    if len(sqlite_artifacts) != 1:
+        raise CandidateReleaseError("Candidate must declare one SQLite artifact")
+    artifact = sqlite_artifacts[0]
+    expected_sha256 = artifact.get("sha256")
+    expected_size = artifact.get("sizeBytes")
+    if (
+        not isinstance(expected_sha256, str)
+        or _SHA256.fullmatch(expected_sha256) is None
+        or not isinstance(expected_size, int)
+        or isinstance(expected_size, bool)
+        or expected_size < 0
+    ):
+        raise CandidateReleaseError("Candidate SQLite metadata is invalid")
+    database_path = release_dir / "data.sqlite"
+    try:
+        actual_sha256, actual_size = hash_file(database_path)
+    except OSError as error:
+        raise CandidateReleaseError("Candidate SQLite artifact is unreadable") from error
+    if (actual_sha256, actual_size) != (expected_sha256, expected_size):
+        raise CandidateReleaseError("Candidate SQLite SHA256 or size does not match Manifest")
+    connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
+    try:
+        if connection.execute("PRAGMA integrity_check").fetchone() != ("ok",):
+            raise CandidateReleaseError("Candidate SQLite integrity check failed")
+        application_id = int(connection.execute("PRAGMA application_id").fetchone()[0])
+        if application_id != SQLITE_APPLICATION_ID:
+            raise CandidateReleaseError("Candidate SQLite application ID is invalid")
+    finally:
+        connection.close()
+    return DatasetReleaseReference(
+        database_path=database_path,
+        release_id=release_id,
+        canonical_sha256=canonical_sha256,
+    )
 
 
 def _digest_number(seed: str, label: str) -> int:

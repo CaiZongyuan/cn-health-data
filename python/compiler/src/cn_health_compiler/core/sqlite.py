@@ -10,7 +10,7 @@ from typing import Protocol
 
 from cn_health_compiler.core.source import hash_file
 
-_APPLICATION_ID = 0x434E4844
+SQLITE_APPLICATION_ID = 0x434E4844
 _BATCH_SIZE = 1000
 
 
@@ -86,7 +86,7 @@ def build_sqlite_database[ReportT: RecordCountReport](
         connection = sqlite3.connect(temporary_path)
         try:
             connection.execute("PRAGMA page_size = 4096")
-            connection.execute(f"PRAGMA application_id = {_APPLICATION_ID}")
+            connection.execute(f"PRAGMA application_id = {SQLITE_APPLICATION_ID}")
             connection.execute("PRAGMA user_version = 1")
             connection.execute("PRAGMA journal_mode = DELETE")
             connection.execute("PRAGMA synchronous = FULL")

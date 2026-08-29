@@ -1,15 +1,21 @@
+import hashlib
+import json
 import sqlite3
 from pathlib import Path
 
+import pytest
 from cn_health_compiler.synthetic.identity import (
+    CandidateReleaseError,
     DatasetReleaseReference,
     generate_synthetic_identity,
+    load_dataset_release_reference,
 )
 
 
 def _names_database(path: Path) -> None:
     connection = sqlite3.connect(path)
     try:
+        connection.execute("PRAGMA application_id = 1129203780")
         connection.executescript(
             """
             CREATE TABLE name_component (
@@ -34,6 +40,7 @@ def _names_database(path: Path) -> None:
 def _geography_database(path: Path) -> None:
     connection = sqlite3.connect(path)
     try:
+        connection.execute("PRAGMA application_id = 1129203780")
         connection.executescript(
             """
             CREATE TABLE administrative_division (
@@ -134,3 +141,39 @@ def test_synthetic_identity_is_deterministic_and_non_routable(tmp_path: Path) ->
         for index in range(16)
     }
     assert len(generated_names) > 1
+
+
+def test_candidate_release_loader_verifies_manifest_and_sqlite(tmp_path: Path) -> None:
+    release = tmp_path / "names-release"
+    release.mkdir()
+    database = release / "data.sqlite"
+    _names_database(database)
+    database_bytes = database.read_bytes()
+    database_sha256 = hashlib.sha256(database_bytes).hexdigest()
+    (release / "manifest.json").write_text(
+        json.dumps(
+            {
+                "release": {"id": "names-cn@40.37.0.r1"},
+                "dataset": {"id": "names-cn"},
+                "canonical": {"sha256": "a" * 64},
+                "artifacts": [
+                    {
+                        "name": "data.sqlite",
+                        "sha256": database_sha256,
+                        "sizeBytes": len(database_bytes),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    reference = load_dataset_release_reference(release, expected_dataset_id="names-cn")
+
+    assert reference.release_id == "names-cn@40.37.0.r1"
+    assert reference.database_path == database
+
+    with database.open("ab") as stream:
+        stream.write(b"tampered")
+    with pytest.raises(CandidateReleaseError, match="SHA256 or size"):
+        load_dataset_release_reference(release, expected_dataset_id="names-cn")
