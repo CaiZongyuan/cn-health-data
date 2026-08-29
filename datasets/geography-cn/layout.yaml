@@ -1,0 +1,37 @@
+version: 1
+
+administrative_divisions:
+  encoding: utf-8-sig
+  delimiter: comma
+  headers:
+    - id
+    - pid
+    - deep
+    - name
+    - pinyin_prefix
+    - pinyin
+    - ext_id
+    - ext_name
+  accepted_levels: [0, 1, 2]
+  exclude_external_code: "0"
+  duplicate_external_code_policy: keep-shallowest
+
+gazetteer:
+  archive_member: CN.txt
+  encoding: utf-8
+  delimiter: tab
+  columns: 19
+  country_code: CN
+  include:
+    - feature_class: A
+    - feature_class: P
+      minimum_population: 1
+  chinese_name_source: cjk-only-alternate-names
+
+postal_areas:
+  archive_member: CN.txt
+  encoding: utf-8
+  delimiter: tab
+  columns: 12
+  country_code: CN
+  accepted_accuracy: [1, 2, 3, 4, 5, 6]

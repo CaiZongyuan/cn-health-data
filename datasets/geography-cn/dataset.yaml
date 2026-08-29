@@ -1,0 +1,72 @@
+id: geography-cn
+title: 中国地理与行政区划参考数据
+description: >
+  Versioned Chinese administrative divisions, populated places, coordinates,
+  timezones, population weights, and postal areas for healthcare simulation and
+  other local consumers.
+status: experimental
+
+authority:
+  name: GeoNames and AreaCity source collection
+  role: multi-source-reference
+  verification: source-pages-verified-2026-08-29
+
+source:
+  type: composite
+  acquisition: manual-local
+  declared_version: "2026-08-29"
+  upstream_sync: false
+  divisions:
+    authority: AreaCity-JsSpider-StatsGov
+    authority_role: community-source-aggregation
+    format: csv
+    acquisition: manual-local
+    filename: area-city-level3-2025.251231.260403.csv
+    path_hint: tmp/area-city-level3-2025.251231.260403.csv
+    source_url: https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/blob/c6c6e35bea3066d674efe2cded189dc57a86e7d8/src/%E9%87%87%E9%9B%86%E5%88%B0%E7%9A%84%E6%95%B0%E6%8D%AE/ok_data_level3.csv
+    upstream_commit: c6c6e35bea3066d674efe2cded189dc57a86e7d8
+    sha256: dd5a1594565b65fa3fea5ce4b9935e0b28908226949ae44f07ebfd533428e8ff
+    size_bytes: 240347
+  gazetteer:
+    authority: GeoNames
+    authority_role: original-open-gazetteer
+    format: zip
+    acquisition: official-download
+    filename: geonames-CN-2026-08-29.zip
+    path_hint: tmp/geonames-CN-2026-08-29.zip
+    source_url: https://download.geonames.org/export/dump/CN.zip
+    member: CN.txt
+    sha256: 0097ff5009cf8ba1d4a8ddefcf8903dc15e3004b1dd3affeb26bd9444ca3bd73
+    size_bytes: 32094056
+  postal:
+    authority: GeoNames
+    authority_role: original-open-postal-data
+    format: zip
+    acquisition: official-download
+    filename: geonames-postal-CN-2026-08-29.zip
+    path_hint: tmp/geonames-postal-CN-2026-08-29.zip
+    source_url: https://download.geonames.org/export/zip/CN.zip
+    member: CN.txt
+    sha256: 8b4202489ce26e9757b973184acf1e511153ce931f6149f938e0ef5fbb7355d8
+    size_bytes: 42329
+
+versioning:
+  strategy: declared-source-collection-date
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+  minimum_sqlite_version: 3.34.0
+
+rights:
+  redistribution: normalized-only
+  release_eligible: false
+
+validation:
+  min_division_count: 3595
+  min_place_count: 18784
+  min_postal_count: 2352

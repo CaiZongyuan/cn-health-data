@@ -20,6 +20,7 @@ def test_dataset_contracts_validate() -> None:
     validated = validate_dataset_contracts(REPO_ROOT)
 
     assert [path.parent.name for path in validated] == [
+        "geography-cn",
         "loinc-zh-cn",
         "nhc-icd10-clinical",
         "nhc-procedure-clinical",

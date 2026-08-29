@@ -9,6 +9,7 @@ from cn_health_compiler import __version__
 from cn_health_compiler.core.dataset import find_repository_root
 from cn_health_compiler.core.registry import build_signed_registry, generate_signing_keypair
 from cn_health_compiler.core.validation import validate_dataset_contracts
+from cn_health_compiler.sources.geography.build import build_geography_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
 
@@ -55,6 +56,18 @@ def build_dataset(
         Path,
         typer.Option("--source", exists=True, dir_okay=False, readable=True, resolve_path=True),
     ],
+    division_source: Annotated[
+        Path | None,
+        typer.Option(
+            "--division-source", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ] = None,
+    postal_source: Annotated[
+        Path | None,
+        typer.Option(
+            "--postal-source", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ] = None,
     repo_root: Annotated[
         Path | None,
         typer.Option("--repo-root", file_okay=False, resolve_path=True),
@@ -71,6 +84,31 @@ def build_dataset(
     sequence: Annotated[int, typer.Option("--sequence", min=1)] = 1,
 ) -> None:
     """Build an immutable local Dataset Candidate."""
+    root = repo_root or find_repository_root()
+    target_output_root = output_root or root / "dist"
+    if dataset_id == "geography-cn":
+        if division_source is None or postal_source is None:
+            raise typer.BadParameter(
+                "geography-cn requires --division-source and --postal-source",
+                param_hint="dataset_id",
+            )
+        result = build_geography_candidate(
+            repo_root=root,
+            gazetteer_path=source,
+            division_path=division_source,
+            postal_path=postal_source,
+            output_root=target_output_root,
+            build_revision=build_revision,
+            sequence=sequence,
+        )
+        typer.echo(result.release_dir)
+        typer.echo(result.manifest_path)
+        return
+    if division_source is not None or postal_source is not None:
+        raise typer.BadParameter(
+            "additional geography sources are only valid for geography-cn",
+            param_hint="dataset_id",
+        )
     builders = {
         "nhsa-drugs": build_nhsa_drug_candidate,
         "nhc-icd10-clinical": build_diagnosis_candidate,
@@ -80,11 +118,10 @@ def build_dataset(
         raise typer.BadParameter(
             f"build is not implemented for {dataset_id}", param_hint="dataset_id"
         )
-    root = repo_root or find_repository_root()
     result = builder(
         repo_root=root,
         source_path=source,
-        output_root=output_root or root / "dist",
+        output_root=target_output_root,
         build_revision=build_revision,
         sequence=sequence,
         base_release_dir=base_release,
