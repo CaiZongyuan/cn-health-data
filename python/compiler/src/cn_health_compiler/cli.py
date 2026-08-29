@@ -13,6 +13,7 @@ from cn_health_compiler.sources.geography.build import build_geography_candidate
 from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
+from cn_health_compiler.sources.population.build import build_population_candidate
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 registry_app = typer.Typer(no_args_is_help=True)
@@ -115,6 +116,7 @@ def build_dataset(
         "names-cn": build_names_candidate,
         "nhsa-drugs": build_nhsa_drug_candidate,
         "nhc-icd10-clinical": build_diagnosis_candidate,
+        "population-cn": build_population_candidate,
     }
     builder = builders.get(dataset_id)
     if builder is None:

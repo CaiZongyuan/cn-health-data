@@ -1,0 +1,36 @@
+version: 1
+container: gzip
+encoding: utf-8-sig
+delimiter: comma
+
+headers:
+  - SortOrder
+  - LocID
+  - Notes
+  - ISO3_code
+  - ISO2_code
+  - SDMX_code
+  - LocTypeID
+  - LocTypeName
+  - ParentID
+  - Location
+  - VarID
+  - Variant
+  - Time
+  - MidPeriod
+  - AgeGrp
+  - AgeGrpStart
+  - AgeGrpSpan
+  - PopMale
+  - PopFemale
+  - PopTotal
+
+selection:
+  ISO3_code: CHN
+  Variant: Medium
+
+population_unit:
+  source: thousands
+  canonical: persons
+  rounding: decimal-half-up
+  total_tolerance_persons: 2

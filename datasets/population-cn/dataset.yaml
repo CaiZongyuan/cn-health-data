@@ -1,0 +1,44 @@
+id: population-cn
+title: 中国人口年龄与性别分布
+description: >
+  Versioned aggregate age/sex population estimates for China. The Dataset
+  contains statistical distributions only and no person-level records.
+status: experimental
+
+authority:
+  name: United Nations, Department of Economic and Social Affairs, Population Division
+  role: original-authority
+  verification: source-download-verified-2026-08-29
+
+source:
+  type: gzip-csv
+  acquisition: official-download
+  path_hint: tmp/WPP2024_PopulationByAge5GroupSex_Medium.csv.gz
+  source_url: https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_PopulationByAge5GroupSex_Medium.csv.gz
+  declared_version: WPP2024
+  variant: Medium
+  country_code: CHN
+  sha256: a04d7d1486a5eb2832cc812d599448f0a71e8ac9e1e7e6fa4066673d6a2487cd
+  size_bytes: 29948947
+  upstream_sync: false
+
+versioning:
+  strategy: upstream-release
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: false
+  minimum_sqlite_version: 3.34.0
+
+rights:
+  redistribution: normalized-only
+  release_eligible: false
+
+validation:
+  expected_age_group_count: 21
+  min_record_count: 3171
+  min_year_count: 151

@@ -26,4 +26,5 @@ def test_dataset_contracts_validate() -> None:
         "nhc-icd10-clinical",
         "nhc-procedure-clinical",
         "nhsa-drugs",
+        "population-cn",
     ]
