@@ -116,7 +116,7 @@ def _manifest_source_set_sha256(manifest: dict[str, Any]) -> str:
     sources = cast(list[dict[str, Any]], manifest["sources"])
     source_hashes = {str(source["role"]): str(source["sha256"]) for source in sources}
     expected_roles = {"administrative-divisions", "gazetteer", "postal-areas"}
-    if set(source_hashes) != expected_roles:
+    if len(sources) != len(expected_roles) or set(source_hashes) != expected_roles:
         raise ValueError("base geography Manifest has an unexpected source set")
     return _source_set_sha256(source_hashes)
 
@@ -126,12 +126,10 @@ def _build_diff(
     database_path: Path,
     release_id: str,
     source_set_sha256: str,
+    target_count: int,
     base_release_dir: Path | None,
 ) -> tuple[dict[str, object], str | None]:
     if base_release_dir is None:
-        record_count = sum(
-            canonical_table_hash(database_path, table)[1] for table, _ in _TABLE_ARTIFACTS
-        )
         return (
             {
                 "schemaVersion": 1,
@@ -139,7 +137,7 @@ def _build_diff(
                 "targetRelease": release_id,
                 "baseSourceSha256": None,
                 "targetSourceSha256": source_set_sha256,
-                "added": record_count,
+                "added": target_count,
                 "removed": 0,
                 "modified": 0,
                 "unchanged": 0,
@@ -302,6 +300,7 @@ def build_geography_candidate(
             database_path=sqlite_artifact.path,
             release_id=release_id,
             source_set_sha256=source_set_sha256,
+            target_count=canonical_count,
             base_release_dir=base_release_dir,
         )
         diff_sha256, _ = write_json_atomic(
