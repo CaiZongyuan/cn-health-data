@@ -1,4 +1,4 @@
-"""End-to-end local Candidate build for the NHSA drug dataset."""
+"""End-to-end local Candidate build for NHC clinical diagnosis data."""
 
 from collections.abc import Iterable
 from datetime import datetime
@@ -10,15 +10,15 @@ from cn_health_compiler.core.candidate import (
     build_xlsx_candidate,
 )
 from cn_health_compiler.core.workbook import WorkbookConfig, WorkbookInspection
-from cn_health_compiler.sources.nhsa_drugs.records import (
-    DrugRecord,
-    iter_raw_drug_rows,
-    normalize_raw_drug_row,
+from cn_health_compiler.sources.nhc_icd10.records import (
+    DiagnosisRecord,
+    iter_raw_diagnosis_rows,
+    normalize_raw_diagnosis_row,
 )
-from cn_health_compiler.sources.nhsa_drugs.sqlite import build_drug_sqlite
-from cn_health_compiler.sources.nhsa_drugs.validation import (
-    DrugValidationRules,
-    ValidationReport,
+from cn_health_compiler.sources.nhc_icd10.sqlite import build_diagnosis_sqlite
+from cn_health_compiler.sources.nhc_icd10.validation import (
+    DiagnosisValidationReport,
+    DiagnosisValidationRules,
 )
 
 
@@ -27,34 +27,35 @@ def _records(
     config: WorkbookConfig,
     source_version: str,
     source_sha256: str,
-) -> Iterable[DrugRecord]:
+) -> Iterable[DiagnosisRecord]:
     return (
-        normalize_raw_drug_row(raw, source_version, source_sha256)
-        for raw in iter_raw_drug_rows(inspection, config)
+        normalize_raw_diagnosis_row(raw, source_version, source_sha256)
+        for raw in iter_raw_diagnosis_rows(inspection, config)
     )
 
 
-def _validation_payload(report: ValidationReport) -> dict[str, object]:
+def _validation_payload(report: DiagnosisValidationReport) -> dict[str, object]:
     return {
         "recordCount": report.record_count,
         "uniqueCodes": report.unique_codes,
-        "nullCounts": dict(report.null_counts),
-        "marketStatusCounts": dict(report.market_status_counts),
+        "mainCodeCount": report.main_code_count,
+        "additionalOnlyCount": report.additional_only_count,
+        "pairedCodeCount": report.paired_code_count,
     }
 
 
 _ADAPTER = XlsxCandidateAdapter(
-    dataset_id="nhsa-drugs",
-    source_version_field="declared_data_as_of",
-    table="drug",
+    dataset_id="nhc-icd10-clinical",
+    source_version_field="declared_version",
+    table="diagnosis",
     iter_records=_records,
-    load_rules=DrugValidationRules.load_dataset,
-    build_sqlite=build_drug_sqlite,
+    load_rules=DiagnosisValidationRules.load_dataset,
+    build_sqlite=build_diagnosis_sqlite,
     validation_payload=_validation_payload,
 )
 
 
-def build_nhsa_drug_candidate(
+def build_diagnosis_candidate(
     repo_root: Path,
     source_path: Path,
     output_root: Path,

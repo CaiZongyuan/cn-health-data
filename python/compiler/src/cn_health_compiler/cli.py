@@ -8,6 +8,7 @@ import typer
 from cn_health_compiler import __version__
 from cn_health_compiler.core.dataset import find_repository_root
 from cn_health_compiler.core.validation import validate_dataset_contracts
+from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
@@ -63,12 +64,17 @@ def build_dataset(
     sequence: Annotated[int, typer.Option("--sequence", min=1)] = 1,
 ) -> None:
     """Build an immutable local Dataset Candidate."""
-    if dataset_id != "nhsa-drugs":
+    builders = {
+        "nhsa-drugs": build_nhsa_drug_candidate,
+        "nhc-icd10-clinical": build_diagnosis_candidate,
+    }
+    builder = builders.get(dataset_id)
+    if builder is None:
         raise typer.BadParameter(
             f"build is not implemented for {dataset_id}", param_hint="dataset_id"
         )
     root = repo_root or find_repository_root()
-    result = build_nhsa_drug_candidate(
+    result = builder(
         repo_root=root,
         source_path=source,
         output_root=output_root or root / "dist",
