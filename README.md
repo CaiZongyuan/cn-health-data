@@ -2,14 +2,18 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-CN Health Data is a local-first toolchain for compiling Chinese healthcare
-reference data into versioned, traceable, and searchable artifacts. It combines
-a Python compiler, immutable Dataset Contracts and Manifests, a native Rust CLI,
-and a thin npm launcher.
+CN Health Data is a local-first toolchain for compiling reusable Chinese
+healthcare reference data into versioned, traceable, and searchable artifacts.
+It combines a Python compiler, immutable Dataset Contracts and Manifests, a
+native Rust CLI, and a thin npm launcher.
 
-The project currently builds real drug and diagnosis datasets from explicitly
-provided XLSX snapshots. It does not download a presumed latest source, store
-patient data, or provide a production clinical system.
+The repository is organized around Chinese health data needed by different
+consumers, not around one simulator. It currently builds drug and diagnosis
+datasets from explicitly provided XLSX snapshots, a project-authored curated
+laboratory catalog, and general-purpose geography, name, and population
+Datasets. Synthea is supported through a versioned consumer projection. The
+project does not download a presumed latest source, store patient data, or
+provide a production clinical system.
 
 > **Data and license:** The MIT License covers repository-owned software and
 > original project documentation. Source datasets retain their own terms; this
@@ -25,6 +29,7 @@ patient data, or provide a production clinical system.
 | `geography-cn` | Versioned administrative divisions, populated places, and postal areas | `2026-08-29.r1` | 24,731 |
 | `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r1` | 530 |
 | `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r1` | 3,171 |
+| `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r1` | 18 |
 | `loinc-zh-cn` | ZIP/CSV adapter and Rust queries tested with synthetic fixtures | None | None |
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
@@ -43,6 +48,8 @@ Implemented infrastructure includes:
   bounded decompression, and SQLite integrity checks;
 - installed-version listing, activation, and rollback;
 - exact and literal search commands for drugs, diagnoses, and LOINC;
+- a project-authored laboratory/vital-sign catalog with Chinese displays and
+  curated LOINC 2.83/UCUM crosswalks;
 - deterministic Chinese synthetic names, addresses, `100` phones, and `990000`
   simulated resident IDs;
 - a fixed-commit Synthea profile projection, FHIR R4 identity localizer, and
@@ -144,7 +151,7 @@ Source acquisition is explicit and local. The compiler never scans `tmp/`, never
 chooses a file by modification time, and never synchronizes from an upstream PDF
 or website. Pass the exact source path on every build.
 
-The currently declared real inputs are:
+The currently declared third-party workbook inputs are:
 
 | Dataset | Input contract | Worksheet | Expected SHA256 |
 |---|---|---|---|
@@ -154,6 +161,12 @@ The currently declared real inputs are:
 The drug compiler reads only the declared workbook's `总表`. The downloaded drug
 PDF in `tmp/` is not part of this build. The local procedure workbook is also not
 consumed because procedure implementation is deferred.
+
+`laboratory-cn` is different from those imported workbooks: its source is the
+repository-owned [`datasets/laboratory-cn/catalog.csv`](datasets/laboratory-cn/catalog.csv).
+The catalog's Chinese displays, selection, categories, result types, preferred
+UCUM units, and curation notes are project-authored. Its LOINC and UCUM
+identifiers continue to identify their respective external standards.
 
 You can verify inputs before building:
 
@@ -188,6 +201,11 @@ uv run cn-health-build build nhc-icd10-clinical \
   --source "$DIAGNOSIS_SOURCE" \
   --build-revision 1 \
   --sequence 1
+
+uv run cn-health-build build laboratory-cn \
+  --source datasets/laboratory-cn/catalog.csv \
+  --build-revision 1 \
+  --sequence 1
 ```
 
 The compiler prints the release directory and Manifest path. Each Candidate has
@@ -220,11 +238,23 @@ predecessor, and calculates `diff.json` from the base SQLite database. Source
 Version, Build Revision, release sequence, compiler version, Dataset Schema
 Version, and Manifest Schema Version are intentionally separate dimensions.
 
-## Chinese Demographics and Synthea
+## General-Purpose Chinese Data and Synthea Support
 
 `geography-cn`, `names-cn`, and `population-cn` are general-purpose Datasets.
 The Synthea profile is a versioned consumer projection rather than a canonical
-data model. The verified combination is:
+data model or a release priority for the repository as a whole.
+
+The current implementations reuse pinned upstream reference material while
+keeping Dataset contracts, validation, normalization, and release production in
+this repository:
+
+| Dataset | Pinned reference material | Implementation choice |
+|---|---|---|
+| `geography-cn` | AreaCity administrative divisions plus GeoNames China places and postal data | Compile a provenance-preserving composite Candidate; do not depend on either project at runtime |
+| `names-cn` | Faker `zh_CN` person provider 40.37.0 | Parse declared literals with Python AST without importing or executing the provider module |
+| `population-cn` | UN World Population Prospects 2024 Medium projection | Keep only aggregate China age/sex marginals; do not synthesize unsupported joint distributions |
+
+The verified Synthea combination is:
 
 ```text
 geography-cn@2026-08-29.r1
@@ -269,6 +299,21 @@ Organization identity presentation while preserving clinical IDs, codings,
 dates, values, units, and reference closure. See
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md) for the full contract and
 Docker acceptance criteria.
+
+## Curated Laboratory Concepts
+
+`laboratory-cn@2026-08-30.r1` contains 18 laboratory and vital-sign concepts
+needed by the currently validated consumers. It pairs project-authored Chinese
+displays and catalog metadata with exact LOINC 2.83 codes and preferred UCUM
+units. The same Candidate Contract, deterministic SQLite/Parquet packaging,
+Manifest verification, FTS, and bigram indexing used by the other compilers
+apply to this catalog.
+
+This focused catalog is not the official complete LOINC Chinese linguistic
+variant. `loinc-zh-cn` remains a separate adapter for an operator-supplied
+official package; consumers that only need the reviewed subset can use
+`laboratory-cn` without representing it as that language package. See
+[`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md).
 
 ## Install and Query Locally
 
@@ -440,8 +485,10 @@ publishing any dataset.
   path is implemented.
 - Procedure classification is explicitly deferred even if a local workbook is
   present.
-- LOINC has adapter and runtime coverage only; a real Candidate still needs a
-  configured source package with a confirmed member layout and version.
+- `laboratory-cn` is a curated project catalog, not the complete official LOINC
+  Chinese linguistic variant.
+- Building `loinc-zh-cn` still requires an operator-supplied official package
+  with a confirmed member layout, version, and applicable terms.
 
 ## Documentation
 

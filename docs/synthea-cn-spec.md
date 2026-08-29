@@ -1,6 +1,6 @@
 # Synthea 中国本地化与消费者接入 Spec
 
-状态：已实现；真实 `loinc-zh-cn` Candidate 取决于调用方提供的官方来源包
+状态：已实现；`laboratory-cn` 精选目录已可用，完整 `loinc-zh-cn` 仍由调用方提供官方来源包
 
 ## 1. 目标
 
@@ -47,7 +47,8 @@ cn-health-data canonical releases
   names-cn
   nhsa-drugs
   nhc-icd10-clinical
-  loinc-zh-cn
+  laboratory-cn
+  loinc-zh-cn (optional official language package)
       |
       +--------------------------+
       |                          |
@@ -68,13 +69,14 @@ Canonical Dataset 不保存 Synthea 的美国兼容列，也不保存 ClinMesh �
 
 职责：保存行政区划、居民点、坐标、时区、人口权重和邮政前缀等地点参考数据。
 
-初始来源策略：
+当前来源策略：
 
-- GeoNames 中国 dump 作为可自动获取的居民点、WGS84 坐标、时区和人口字段来源；
-- 国家地名信息库的版本化人工快照作为行政区划代码来源；
-- 社区行政区划项目只用于差异检查，不直接覆盖来源记录。
+- 固定 commit 的 AreaCity 社区汇总 CSV 提供三级行政区划名称、层级、父子关系和外部代码；
+- 固定下载的 GeoNames 中国 dump 提供居民点、WGS84 坐标、时区和人口权重；
+- GeoNames 中国邮政 dump 提供邮政区域坐标与精度；
+- 三个来源分别保存版本、哈希和来源角色，组合 Candidate 不把社区汇总表示为官方权威数据。
 
-至少包含以下 canonical 表：
+Candidate 暴露以下 canonical 表和查询视图：
 
 ```text
 administrative_division
@@ -86,22 +88,28 @@ administrative_division
   valid_to
   source_version
 
-populated_place
-  place_id
+place
+  code
+  geoname_id
   name_zh
   name_ascii
-  administrative_code
-  latitude_wgs84
-  longitude_wgs84
+  kind
+  admin1_code ... admin4_code
+  latitude
+  longitude
   timezone
   population
   source_version
 
+populated_place (view over place)
+
 postal_area
-  postal_prefix
-  place_id
-  latitude_wgs84
-  longitude_wgs84
+  code
+  postal_code
+  place_name
+  admin1_code ... admin3_code
+  latitude
+  longitude
   accuracy
   source_version
 ```
@@ -113,55 +121,40 @@ postal_area
 
 职责：保存聚合人口分布，不生成或保存个人记录。
 
-初始来源策略：
+当前 Candidate 从联合国《世界人口展望 2024》Medium projection 中只选择 `CHN`，将来源
+的千人单位确定性转换为人数，并保存 1950 至 2100 年的五岁年龄组、性别计数和归一化
+权重。canonical 表为 `population_age_sex`。
 
-- 结构化年龄/性别数据优先采用可固定版本的统计发布；
-- 第七次全国人口普查用于校准省级人口、城乡、教育和家庭规模；
-- 地点人口字段只能作为空间采样权重，不能冒充年龄、性别或家庭联合分布。
-
-不同边际分布分表保存，不能在没有联合统计依据时拼成伪联合分布：
-
-```text
-population_by_age_sex
-population_by_area
-population_by_urbanicity
-population_by_education
-household_size_distribution
-```
-
-每行包含统计时期、地域范围、类别、计数、归一化权重、来源和适用说明。Synthea
-投影需要插值或回退时，规则及其版本进入 profile Manifest。
+当前 Dataset 不包含省级人口、城乡、教育或家庭规模，也不会用彼此独立的统计拼成伪联合
+分布。地点人口字段只作为空间采样权重。Synthea 投影所用参考年份、插值或回退规则及其
+版本进入 profile Manifest。
 
 ### 4.3 `names-cn`
 
 职责：保存生成中文姓名所需的组件与聚合权重，不保存真实完整人员名单。
 
-初始实现采用可替换 source adapter：
-
-- Faker `zh_CN` 只作为接口、算法和测试参考；
-- 可明确再利用条件的聚合姓氏/名字统计可构建独立 Candidate；
-- 只有完整姓名、来源不明确的语料库不进入 canonical Dataset。
-
-至少包含：
+当前 Candidate 固定 Faker 40.37.0 的 `zh_CN` person provider 源文件，通过 Python AST
+只读取 `last_names`、`first_names_male` 和 `first_names_female` 的声明字面量，不导入模块，
+也不执行来源代码。canonical 表为：
 
 ```text
-surname
+name_component
+  code
+  kind
+  gender
   text
   weight
   is_compound
-  romanized
+  source_duplicate
+  source_ordinal
 
-given_name
-  text
-  gender
-  birth_cohort_start
-  birth_cohort_end
-  weight
-  romanized
+surname (view over name_component)
+given_name (view over name_component)
 ```
 
-生成器按性别、出生年代和姓名长度策略选择组件。相同 Release、seed 和 ordinal 必须得到
-相同姓名；Release 改变必须改变 profile hash，不能悄悄改变旧结果。
+姓氏沿用来源权重，名字列表按重复频次形成权重。Dataset 不包含完整人员身份记录或
+出生年代统计。生成器按性别和确定性权重选择组件；相同 Release、seed 和 ordinal 必须
+得到相同姓名，Release 改变必须改变 profile hash，不能悄悄改变旧结果。
 
 ## 5. 合成身份规则
 
@@ -260,9 +253,10 @@ ClinMesh authoring reference database 新增 `cn-health-data` Candidate adapter�
 2. 以只读模式打开 SQLite 并检查 application ID/integrity；
 3. 将 `nhc-icd10-clinical` 导入 diagnosis concepts；
 4. 将 `nhsa-drugs` 导入 medication products；
-5. 将真实 `loinc-zh-cn` Candidate 导入 laboratory concepts；
-6. 保存原始 Candidate Release ID、canonical hash 和 artifact hash；
-7. 导入失败不发布部分 ClinMesh reference release。
+5. 将项目自有 `laboratory-cn` Candidate 导入 laboratory concepts；
+6. 若调用方提供完整 `loinc-zh-cn` Candidate，则通过同一 reference concept 边界导入；
+7. 保存原始 Candidate Release ID、canonical hash 和 artifact hash；
+8. 导入失败不发布部分 ClinMesh reference release。
 
 完整国家参考库只存在于 build/authoring plane。Hospital Baseline Compiler 仍按病例闭包
 选择本院子集，普通运行时和 reset 不读取全量 Candidate。
@@ -320,7 +314,8 @@ hypertension
 
 ### 9.5 ClinMesh 验收
 
-- 全量药品、诊断以及调用方提供的 LOINC Candidate 可导入独立 reference SQLite；
+- 全量药品、诊断与 `laboratory-cn` Candidate 可导入独立 reference SQLite；调用方提供的
+  完整 `loinc-zh-cn` 使用同一导入边界；
 - 三个病种关键映射目标实际存在于导入 Release；
 - Synthetic Patient Profile 不再依赖姓名、地址或手机号常量；
 - 安装后的 Scenario Package 在 Synthea、`cn-health-data` 和外网离线时可运行和 reset；

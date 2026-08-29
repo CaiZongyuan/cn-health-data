@@ -17,6 +17,7 @@ distribution layer.
 See [`implementation-handbook.md`](implementation-handbook.md) for the complete
 architecture and invariants.
 
-The implementation contract for generic Chinese demographic datasets, their
-Synthea projection, and downstream consumer integration is defined in
+The implementation contract for general-purpose Chinese geography, population,
+name, drug, diagnosis, and laboratory datasets, their supported Synthea
+projection, and downstream consumer integration is defined in
 [`synthea-cn-spec.md`](synthea-cn-spec.md).

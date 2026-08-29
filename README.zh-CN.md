@@ -2,12 +2,14 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-CN Health Data 是一套本地优先的中国医疗健康参考数据工具链，用于将来源明确的
-数据编译成可版本化、可追溯、可检索的产物。项目由 Python 编译器、不可变的
+CN Health Data 是一套本地优先的中国医疗健康参考数据工具链，用于将来源明确、可供不同
+消费者复用的数据编译成可版本化、可追溯、可检索的产物。项目由 Python 编译器、不可变的
 Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组成。
 
-项目目前可以从用户明确提供的 XLSX 快照构建真实的药品分类与疾病分类数据。项目
-不会自行下载所谓“最新版”数据，不保存患者数据，也不是生产级临床业务系统。
+仓库围绕不同消费者需要的中国健康数据组织，而不是围绕某一个模拟器组织。目前可以从
+用户明确提供的 XLSX 快照构建药品分类与疾病分类数据，也包含项目自行编写的精选检验目录，
+以及通用的地理、姓名和人口 Dataset。Synthea 通过版本化消费投影获得明确支持。项目不会
+自行下载所谓“最新版”数据，不保存患者数据，也不是生产级临床业务系统。
 
 > **数据与许可证：** MIT License 只覆盖项目自行创作的软件代码和原创文档。来源数据
 > 继续适用其自身条款；本项目不拥有这些数据，也不会通过项目许可证重新授权这些数据。
@@ -22,6 +24,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 | `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r1` | 24,731 |
 | `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 |
 | `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 |
+| `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 |
 | `loinc-zh-cn` | ZIP/CSV 适配器与 Rust 查询已通过合成数据测试 | 暂无 | 暂无 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
@@ -38,6 +41,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 - 本地安装时校验压缩前后 SHA256、限制解压大小，并执行 SQLite 完整性检查；
 - 已安装版本的查看、切换与回退；
 - 药品、疾病和 LOINC 的精确查询与文本搜索命令；
+- 项目自行编写的中文检验/生命体征目录，以及精选 LOINC 2.83/UCUM 交叉引用；
 - 中国合成姓名、地址、`100` 电话和 `990000` 模拟居民号码的确定性生成；
 - 固定 Synthea commit 的 profile 投影、FHIR R4 身份本地化和内部 HTTP 服务；
 - Ed25519 签名 Registry 的生成与远程安装验证；
@@ -132,7 +136,7 @@ target/debug/cn-health --version
 来源获取采用显式、本地模式。编译器不会扫描 `tmp/`，不会按修改时间选择文件，也不会
 从上游 PDF 或网站进行同步。每次构建都必须传入精确的来源路径。
 
-当前声明的真实输入如下：
+当前声明的第三方工作簿输入如下：
 
 | Dataset | 输入约束 | 工作表 | 预期 SHA256 |
 |---|---|---|---|
@@ -141,6 +145,11 @@ target/debug/cn-health --version
 
 药品编译器只读取声明的工作簿 `总表`。`tmp/` 中下载的药品 PDF 不参与构建。手术操作
 工作簿也不会被读取，因为手术分类开发已经暂缓。
+
+`laboratory-cn` 与上述导入工作簿不同，它的来源是仓库内的
+[`datasets/laboratory-cn/catalog.csv`](datasets/laboratory-cn/catalog.csv)。其中的中文显示、
+概念选择、分类、结果类型、首选 UCUM 单位和整理说明由项目自行编写；LOINC 与 UCUM
+标识仍然指向各自的外部标准。
 
 构建前可以检查输入文件：
 
@@ -173,6 +182,11 @@ uv run cn-health-build build nhc-icd10-clinical \
   --source "$DIAGNOSIS_SOURCE" \
   --build-revision 1 \
   --sequence 1
+
+uv run cn-health-build build laboratory-cn \
+  --source datasets/laboratory-cn/catalog.csv \
+  --build-revision 1 \
+  --sequence 1
 ```
 
 编译器会输出 Release 目录和 Manifest 路径。每个 Candidate 的结构如下：
@@ -202,10 +216,21 @@ uv run cn-health-build build nhc-icd10-clinical \
 SQLite 生成 `diff.json`。Source Version、Build Revision、Release Sequence、Compiler
 Version、Dataset Schema Version 与 Manifest Schema Version 是相互独立的版本维度。
 
-## 中国人口数据与 Synthea
+## 通用中国数据与 Synthea 支持
 
 `geography-cn`、`names-cn` 和 `population-cn` 是通用 Dataset；Synthea profile 是消费这些
-Release 的版本化投影，不是 canonical 数据模型。当前已验证组合为：
+Release 的版本化投影，不是 canonical 数据模型，也不代表整个仓库的发布优先级。
+
+当前实现复用固定版本的上游参考材料，Dataset Contract、校验、规范化和 Release 构建仍由
+本仓库负责：
+
+| Dataset | 固定的参考材料 | 实现选择 |
+|---|---|---|
+| `geography-cn` | AreaCity 行政区划，加 GeoNames 中国居民点与邮政数据 | 编译为保留各来源 Provenance 的组合 Candidate，运行时不依赖这些参考项目 |
+| `names-cn` | Faker `zh_CN` person provider 40.37.0 | 只用 Python AST 读取声明的字面量，不导入或执行来源模块 |
+| `population-cn` | 联合国《世界人口展望 2024》Medium projection | 只保留中国聚合年龄/性别边际分布，不构造缺乏统计依据的联合分布 |
+
+当前已验证的 Synthea 组合为：
 
 ```text
 geography-cn@2026-08-29.r1
@@ -258,6 +283,18 @@ uv run cn-health-synthea-service --host 127.0.0.1
 本地化器只替换 Patient、Practitioner 和 Organization 的身份展示，保留临床资源 ID、
 编码、日期、数值、单位与引用闭包。完整合同与 Docker 验收见
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)。
+
+## 精选检验概念
+
+`laboratory-cn@2026-08-30.r1` 包含当前已验证消费者所需的 18 个检验与生命体征概念。
+它将项目自行编写的中文显示和目录元数据，与精确的 LOINC 2.83 编码及首选 UCUM 单位
+组合在一起，并使用与其他编译器相同的 Candidate Contract、确定性 SQLite/Parquet
+打包、Manifest 校验、FTS 和双字索引。
+
+这个小型目录不是官方完整 LOINC 中文语言包。`loinc-zh-cn` 仍是独立适配器，用于运维方
+自行提供的官方来源包；只需要经过评审的小范围概念时，消费者可以直接使用
+`laboratory-cn`，而不把它表示成完整语言包。详见
+[`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md)。
 
 ## 本地安装与查询
 
@@ -411,8 +448,8 @@ MIT **不会**自动覆盖：
 - 项目只处理参考数据，不处理或保存真实患者数据。
 - 药品分类使用声明的工作簿 `总表`，未实现 PDF 同步链路。
 - 即使本地存在工作簿，手术操作分类仍按当前计划暂缓开发。
-- LOINC 目前只有适配器和运行时测试；真实 Candidate 仍需配置来源包，并确认成员布局
-  与版本。
+- `laboratory-cn` 是项目精选目录，不是官方完整 LOINC 中文语言包。
+- 构建 `loinc-zh-cn` 仍需运维方提供官方来源包，并确认成员布局、版本和适用条款。
 
 ## 文档索引
 
