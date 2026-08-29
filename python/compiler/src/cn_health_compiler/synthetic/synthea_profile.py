@@ -491,11 +491,10 @@ def build_synthea_profile(
     storage_key = f"{profile_version}.r{build_revision}"
     releases_dir = output_root / "synthea-cn-profile/releases"
     with candidate_staging_directory(releases_dir, storage_key) as (profile_dir, release_dir):
-        files = {
+        resources = {
             "names.yml": yaml.safe_dump(
                 _name_profile(names), allow_unicode=True, sort_keys=False, width=120
             ),
-            "synthea.properties": _properties(),
             "geography/demographics.csv": _demographics(cities, ages, male, female, total),
             "geography/zipcodes.csv": _zipcodes(cities),
             "geography/timezones.csv": (
@@ -511,6 +510,10 @@ def build_synthea_profile(
             "providers/primary_care_facilities.csv": _providers(cities, "primary"),
             "providers/urgent_care_facilities.csv": _providers(cities, "urgent"),
             **_payer_files(),
+        }
+        files = {
+            "synthea.properties": _properties(),
+            **{f"classpath/{path}": content for path, content in resources.items()},
         }
         for relative_path, content in files.items():
             _write_text(profile_dir / relative_path, content)

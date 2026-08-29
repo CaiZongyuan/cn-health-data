@@ -145,18 +145,18 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     )
 
     expected_files = {
-        "geography/demographics.csv",
-        "geography/foreign_birthplace.json",
-        "geography/timezones.csv",
-        "geography/zipcodes.csv",
+        "classpath/geography/demographics.csv",
+        "classpath/geography/foreign_birthplace.json",
+        "classpath/geography/timezones.csv",
+        "classpath/geography/zipcodes.csv",
+        "classpath/names.yml",
+        "classpath/payers/insurance_companies.csv",
+        "classpath/payers/insurance_eligibilities.csv",
+        "classpath/payers/insurance_plans.csv",
+        "classpath/providers/hospitals.csv",
+        "classpath/providers/primary_care_facilities.csv",
+        "classpath/providers/urgent_care_facilities.csv",
         "manifest.json",
-        "names.yml",
-        "payers/insurance_companies.csv",
-        "payers/insurance_eligibilities.csv",
-        "payers/insurance_plans.csv",
-        "providers/hospitals.csv",
-        "providers/primary_care_facilities.csv",
-        "providers/urgent_care_facilities.csv",
         "synthea.properties",
     }
     assert {
@@ -176,7 +176,11 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     assert manifest["projectionPolicy"]["demographicsCompatibility"] == "synthetic"
 
     demographic_rows = list(
-        csv.DictReader(StringIO((result.profile_dir / "geography/demographics.csv").read_text()))
+        csv.DictReader(
+            StringIO(
+                (result.profile_dir / "classpath/geography/demographics.csv").read_text()
+            )
+        )
     )
     assert len(demographic_rows) == 1
     row = demographic_rows[0]
@@ -185,10 +189,14 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     assert abs(sum(float(row[str(index)]) for index in range(1, 19)) - 1) < 1e-9
     assert abs(float(row["TOT_MALE"]) + float(row["TOT_FEMALE"]) - 1) < 1e-9
 
-    names_yml = yaml.safe_load((result.profile_dir / "names.yml").read_text(encoding="utf-8"))
+    names_yml = yaml.safe_load(
+        (result.profile_dir / "classpath/names.yml").read_text(encoding="utf-8")
+    )
     assert set(names_yml["english"]["family"]) == {"王", "欧阳"}
     assert names_yml["english"]["M"] == ["安宁"]
-    assert "中国" in (result.profile_dir / "providers/hospitals.csv").read_text(encoding="utf-8")
+    assert "中国" in (result.profile_dir / "classpath/providers/hospitals.csv").read_text(
+        encoding="utf-8"
+    )
     properties = (result.profile_dir / "synthea.properties").read_text(encoding="utf-8")
     assert "generate.geography.country_code = CN" in properties
     assert "generate.demographics.default_file = geography/demographics.csv" in properties
