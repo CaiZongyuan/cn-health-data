@@ -1,0 +1,43 @@
+id: names-cn
+title: 中文合成姓名组件
+description: >
+  Weighted surname and gender-specific given-name components for deterministic
+  synthetic identities. The Dataset contains no person-level identity records.
+status: experimental
+
+authority:
+  name: Faker project
+  role: software-data-source
+  verification: pinned-source-verified-2026-08-29
+
+source:
+  type: python-source
+  acquisition: manual-local
+  path_hint: tmp/faker-person-zh_CN-40.37.0.py
+  source_url: https://github.com/joke2k/faker/blob/c5a00935f1eff78bf0258c8a45fb431747c46b48/faker/providers/person/zh_CN/__init__.py
+  declared_version: 40.37.0
+  upstream_commit: c5a00935f1eff78bf0258c8a45fb431747c46b48
+  sha256: c27bc139ec31885a485d5d2e1cb1d36e4df3a4a0341f1d0fe28898edb6a4865a
+  size_bytes: 16430
+  upstream_sync: false
+
+versioning:
+  strategy: upstream-package-version
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: false
+  minimum_sqlite_version: 3.34.0
+
+rights:
+  redistribution: normalized-only
+  release_eligible: false
+
+validation:
+  min_surname_count: 399
+  min_male_given_count: 57
+  min_female_given_count: 74

@@ -1,0 +1,19 @@
+version: 1
+parser: python-ast-literals
+
+provider_class: Provider
+assignments:
+  surnames:
+    name: last_names
+    shape: OrderedDict
+    duplicate_policy: keep-last-value-at-first-position
+  male_given_names:
+    name: first_names_male
+    shape: list-of-string-literals
+  female_given_names:
+    name: first_names_female
+    shape: list-of-string-literals
+
+execution:
+  import_source_module: false
+  execute_source_code: false
