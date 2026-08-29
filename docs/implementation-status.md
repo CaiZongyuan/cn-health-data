@@ -13,8 +13,8 @@
 
 ## Local Candidates
 
-- `nhsa-drugs@2026-01-09.r2`
-- `nhc-icd10-clinical@2022.r2`
+- `nhsa-drugs@2026-01-09.r3`
+- `nhc-icd10-clinical@2022.r3`
 
 Both are local and `releaseEligible: false`. Their SQLite, Parquet, and other
 record-level artifacts must not be published until source rights evidence is

@@ -28,7 +28,7 @@ Build and use the native local runtime:
 cargo build -p cn-health
 
 target/debug/cn-health dataset install --local-manifest \
-  dist/nhsa-drugs/releases/2026-01-09.r2/manifest.json
+  dist/nhsa-drugs/releases/2026-01-09.r3/manifest.json
 
 target/debug/cn-health drug search 二甲双胍 --json
 target/debug/cn-health diagnosis search 糖尿病 --json
