@@ -152,37 +152,44 @@ def _release_dependencies(
             raise SyntheaLocalizationError(f"Synthea profile dependency mismatch: {dataset_id}")
 
 
+def _human_name(identity: SyntheticIdentity) -> dict[str, object]:
+    return {
+        "use": "official",
+        "text": identity.display_name,
+        "family": identity.family_name,
+        "given": [identity.given_name],
+    }
+
+
+def _base_address(identity: SyntheticIdentity) -> dict[str, object]:
+    return {
+        "line": [identity.address],
+        "city": identity.city,
+        "state": identity.province,
+        "postalCode": identity.postal_code,
+        "country": "CN",
+    }
+
+
 def _patient_identity(resource: dict[str, Any], identity: SyntheticIdentity) -> None:
-    resource["name"] = [
-        {
-            "use": "official",
-            "text": identity.display_name,
-            "family": identity.family_name,
-            "given": [identity.given_name],
-        }
-    ]
-    resource["address"] = [
-        {
-            "use": "home",
-            "line": [identity.address],
-            "city": identity.city,
-            "district": identity.district,
-            "state": identity.province,
-            "postalCode": identity.postal_code,
-            "country": "CN",
-            "extension": [
-                {
-                    "url": "http://hl7.org/fhir/StructureDefinition/geolocation",
-                    "extension": [
-                        {"url": "latitude", "valueDecimal": identity.latitude},
-                        {"url": "longitude", "valueDecimal": identity.longitude},
-                    ],
-                }
-            ],
-        }
-    ]
+    resource["name"] = [_human_name(identity)]
+    address = {
+        **_base_address(identity),
+        "use": "home",
+        "district": identity.district,
+        "extension": [
+            {
+                "url": "http://hl7.org/fhir/StructureDefinition/geolocation",
+                "extension": [
+                    {"url": "latitude", "valueDecimal": identity.latitude},
+                    {"url": "longitude", "valueDecimal": identity.longitude},
+                ],
+            }
+        ],
+    }
     if identity.district is None:
-        resource["address"][0].pop("district")
+        address.pop("district")
+    resource["address"] = [address]
     resource["telecom"] = [
         {"system": "phone", "value": identity.phone, "use": "home"},
         {"system": "email", "value": identity.email, "use": "home"},
@@ -244,25 +251,10 @@ def _related_identity(
     resource_type: str,
 ) -> None:
     if resource_type == "Practitioner":
-        resource["name"] = [
-            {
-                "use": "official",
-                "text": identity.display_name,
-                "family": identity.family_name,
-                "given": [identity.given_name],
-            }
-        ]
+        resource["name"] = [_human_name(identity)]
     elif not isinstance(resource.get("name"), str) or _CHINESE.search(resource["name"]) is None:
         resource["name"] = f"合成医疗机构-{resource['id']}"
-    resource["address"] = [
-        {
-            "line": [identity.address],
-            "city": identity.city,
-            "state": identity.province,
-            "postalCode": identity.postal_code,
-            "country": "CN",
-        }
-    ]
+    resource["address"] = [_base_address(identity)]
     resource["telecom"] = [{"system": "phone", "value": identity.phone, "use": "work"}]
     resource["identifier"] = [
         {
