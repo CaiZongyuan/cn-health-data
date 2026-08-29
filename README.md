@@ -390,6 +390,8 @@ publishing any dataset.
   boundaries and current gaps
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md): normative
   implementation handbook
+- [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md): executable specification
+  for Chinese datasets, Synthea projection, and consumer integration
 - [`docs/architecture.md`](docs/architecture.md): concise component architecture
 - [`docs/dataset-format.md`](docs/dataset-format.md): Dataset Contract layout
 - [`docs/source-inventory.md`](docs/source-inventory.md): source inventory and status

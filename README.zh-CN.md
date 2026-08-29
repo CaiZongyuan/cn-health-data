@@ -354,6 +354,8 @@ MIT **不会**自动覆盖：
 
 - [`docs/implementation-status.md`](docs/implementation-status.md)：实现边界与待完成项
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md)：规范性实施手册
+- [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)：中国人口数据、Synthea 投影与消费者
+  接入的可执行规格
 - [`docs/architecture.md`](docs/architecture.md)：组件架构概览
 - [`docs/dataset-format.md`](docs/dataset-format.md)：Dataset Contract 结构
 - [`docs/source-inventory.md`](docs/source-inventory.md)：数据来源清单与状态
