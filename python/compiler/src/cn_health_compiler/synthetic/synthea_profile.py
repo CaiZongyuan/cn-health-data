@@ -27,6 +27,19 @@ from cn_health_compiler.synthetic.identity import (
 
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 _AGE_STARTS = tuple(range(0, 85, 5))
+_INCOME_FIELDS = (
+    "00..10",
+    "10..15",
+    "15..25",
+    "25..35",
+    "35..50",
+    "50..75",
+    "75..100",
+    "100..150",
+    "150..200",
+    "200..999",
+)
+_EDUCATION_FIELDS = ("LESS_THAN_HS", "HS_DEGREE", "SOME_COLLEGE", "BS_DEGREE")
 _INCOME = (0.02, 0.03, 0.08, 0.15, 0.22, 0.24, 0.15, 0.08, 0.02, 0.01)
 _EDUCATION = (0.20, 0.30, 0.30, 0.20)
 _DEMOGRAPHICS_FIELDS = (
@@ -46,20 +59,8 @@ _DEMOGRAPHICS_FIELDS = (
     "NATIVE",
     "OTHER",
     *(str(index) for index in range(1, 19)),
-    "00..10",
-    "10..15",
-    "15..25",
-    "25..35",
-    "35..50",
-    "50..75",
-    "75..100",
-    "100..150",
-    "150..200",
-    "200..999",
-    "LESS_THAN_HS",
-    "HS_DEGREE",
-    "SOME_COLLEGE",
-    "BS_DEGREE",
+    *_INCOME_FIELDS,
+    *_EDUCATION_FIELDS,
 )
 _PROVIDER_FIELDS = (
     "",
@@ -253,8 +254,8 @@ def _demographics(
             "OTHER": 0,
         }
         row.update({str(index): value for index, value in enumerate(ages, start=1)})
-        row.update(dict(zip(_DEMOGRAPHICS_FIELDS[33:43], _INCOME, strict=True)))
-        row.update(dict(zip(_DEMOGRAPHICS_FIELDS[43:47], _EDUCATION, strict=True)))
+        row.update(dict(zip(_INCOME_FIELDS, _INCOME, strict=True)))
+        row.update(dict(zip(_EDUCATION_FIELDS, _EDUCATION, strict=True)))
         rows.append(row)
     return _csv_text(_DEMOGRAPHICS_FIELDS, rows)
 
@@ -351,6 +352,103 @@ def _properties() -> str:
     return "".join(f"{key} = {value}\n" for key, value in values.items())
 
 
+def _payer_files() -> dict[str, str]:
+    return {
+        "payers/insurance_companies.csv": _csv_text(
+            (
+                "Id",
+                "Name",
+                "Address",
+                "City",
+                "State Headquarterd",
+                "Zip",
+                "Phone",
+                "States Covered",
+                "Ownership",
+                "Priority Level",
+            ),
+            [
+                {
+                    "Id": "10001",
+                    "Name": "模拟基本医疗保险",
+                    "Address": "合成路1号",
+                    "City": "北京市",
+                    "State Headquarterd": "中国",
+                    "Zip": "100000",
+                    "Phone": "10000000000",
+                    "States Covered": "*",
+                    "Ownership": "Synthetic",
+                    "Priority Level": 1,
+                }
+            ],
+        ),
+        "payers/insurance_plans.csv": _csv_text(
+            (
+                "Payer Id",
+                "Plan Id",
+                "Name",
+                "Services Covered",
+                "Deductible",
+                "Default Coinsurance",
+                "Default Copay",
+                "Monthly Premium",
+                "Medicare Supplement",
+                "Eligibility Policy",
+                "Start Year",
+                "End Year",
+                "Notes",
+            ),
+            [
+                {
+                    "Payer Id": "10001",
+                    "Plan Id": "10010",
+                    "Name": "模拟基本医疗保险计划",
+                    "Services Covered": "*",
+                    "Deductible": 0,
+                    "Default Coinsurance": 0,
+                    "Default Copay": 0,
+                    "Monthly Premium": 0,
+                    "Medicare Supplement": "false",
+                    "Eligibility Policy": "EveryoneEligible",
+                    "Start Year": 0,
+                    "End Year": "",
+                    "Notes": "",
+                }
+            ],
+        ),
+        "payers/insurance_eligibilities.csv": _csv_text(
+            (
+                "Name",
+                "Poverty Multiplier",
+                "Income Threshold",
+                "Age Threshold",
+                "Qualifying Codes",
+                "Qualifying Attributes",
+                "Poverty Multiplier File",
+                "Spenddown File",
+                "Acceptance Likelihood",
+                "Sub-Eligibilities",
+                "Logical Operator",
+            ),
+            [
+                {
+                    "Name": "EveryoneEligible",
+                    "Poverty Multiplier": "",
+                    "Income Threshold": "",
+                    "Age Threshold": 0,
+                    "Qualifying Codes": "",
+                    "Qualifying Attributes": "",
+                    "Poverty Multiplier File": "",
+                    "Spenddown File": "",
+                    "Acceptance Likelihood": "",
+                    "Sub-Eligibilities": "",
+                    "Logical Operator": "",
+                }
+            ],
+        ),
+    }
+
+
 def _dependency(dataset_id: str, reference: DatasetReleaseReference) -> dict[str, str]:
     artifact_sha256, _ = hash_file(reference.database_path)
     return {
@@ -412,23 +510,7 @@ def build_synthea_profile(
             "providers/hospitals.csv": _providers(cities, "hospital"),
             "providers/primary_care_facilities.csv": _providers(cities, "primary"),
             "providers/urgent_care_facilities.csv": _providers(cities, "urgent"),
-            "payers/insurance_companies.csv": (
-                "Id,Name,Address,City,State Headquarterd,Zip,Phone,States Covered,"
-                "Ownership,Priority Level\n"
-                "10001,模拟基本医疗保险,合成路1号,北京市,中国,100000,10000000000,*,Synthetic,1\n"
-            ),
-            "payers/insurance_plans.csv": (
-                "Payer Id,Plan Id,Name,Services Covered,Deductible,Default Coinsurance,"
-                "Default Copay,Monthly Premium,Medicare Supplement,Eligibility Policy,"
-                "Start Year,End Year,Notes\n"
-                "10001,10010,模拟基本医疗保险计划,*,0,0,0,0,false,EveryoneEligible,0,,\n"
-            ),
-            "payers/insurance_eligibilities.csv": (
-                "Name,Poverty Multiplier,Income Threshold,Age Threshold,Qualifying Codes,"
-                "Qualifying Attributes,Poverty Multiplier File,Spenddown File,"
-                "Acceptance Likelihood,Sub-Eligibilities,Logical Operator\n"
-                "EveryoneEligible,,,0,,,,,,,\n"
-            ),
+            **_payer_files(),
         }
         for relative_path, content in files.items():
             _write_text(profile_dir / relative_path, content)
