@@ -34,6 +34,22 @@ pub struct InstalledDataset {
     pub trust: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct InstallMetadata {
+    trust: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledVersion {
+    pub release_id: String,
+    pub sequence: u64,
+    pub storage_key: String,
+    pub source_version: String,
+    pub build_revision: u64,
+    pub trust: String,
+}
+
 pub fn install_local(data_dir: &Path, manifest_path: &Path) -> Result<InstalledDataset> {
     install_manifest(data_dir, manifest_path, "local-untrusted")
 }
@@ -48,16 +64,7 @@ pub(crate) fn install_manifest(
     let dataset_dir = data_dir.join("datasets").join(&manifest.dataset.id);
     let releases_dir = dataset_dir.join("releases");
     fs::create_dir_all(&releases_dir)?;
-    fs::create_dir_all(data_dir.join("locks"))?;
-    let lock_path = data_dir
-        .join("locks")
-        .join(format!("{}.lock", manifest.dataset.id));
-    let lock = OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .read(true)
-        .write(true)
-        .open(lock_path)?;
+    let lock = dataset_lock(data_dir, &manifest.dataset.id)?;
     FileExt::lock_exclusive(&lock)?;
 
     let final_dir = releases_dir.join(&manifest.release.storage_key);
@@ -87,17 +94,15 @@ pub(crate) fn install_manifest(
     }
     verify_database(&database_path)?;
     fs::copy(&manifest_path, temporary.path().join("manifest.json"))?;
+    fs::write(
+        temporary.path().join("install.json"),
+        serde_json::to_vec_pretty(&InstallMetadata {
+            trust: trust.to_owned(),
+        })?,
+    )?;
     fs::rename(temporary.path(), &final_dir)?;
 
-    let pointer = CurrentPointer {
-        release_id: manifest.release.id.clone(),
-        sequence: manifest.release.sequence,
-        storage_key: manifest.release.storage_key.clone(),
-        source_version: manifest.dataset.source_version.clone(),
-        build_revision: manifest.release.build_revision,
-        relative_path: format!("releases/{}", manifest.release.storage_key),
-        trust: trust.to_owned(),
-    };
+    let pointer = pointer_from(&manifest, trust);
     write_json_atomic(&dataset_dir.join("current.json"), &pointer)?;
     FileExt::unlock(&lock)?;
     Ok(InstalledDataset {
@@ -107,6 +112,89 @@ pub(crate) fn install_manifest(
         build_revision: pointer.build_revision,
         trust: pointer.trust,
     })
+}
+
+pub fn list_versions(data_dir: &Path, dataset_id: &str) -> Result<Vec<InstalledVersion>> {
+    validate_segment(dataset_id, "Dataset ID")?;
+    let releases_dir = data_dir.join("datasets").join(dataset_id).join("releases");
+    if !releases_dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut versions = Vec::new();
+    for entry in fs::read_dir(releases_dir)? {
+        let release_dir = entry?.path();
+        if !release_dir.is_dir() {
+            continue;
+        }
+        let manifest = Manifest::read(&release_dir.join("manifest.json"))?;
+        let metadata: InstallMetadata =
+            serde_json::from_reader(File::open(release_dir.join("install.json"))?)?;
+        versions.push(InstalledVersion {
+            release_id: manifest.release.id,
+            sequence: manifest.release.sequence,
+            storage_key: manifest.release.storage_key,
+            source_version: manifest.dataset.source_version,
+            build_revision: manifest.release.build_revision,
+            trust: metadata.trust,
+        });
+    }
+    versions.sort_by_key(|version| version.sequence);
+    Ok(versions)
+}
+
+pub fn activate_release(
+    data_dir: &Path,
+    dataset_id: &str,
+    release_id: &str,
+) -> Result<InstalledVersion> {
+    let lock = dataset_lock(data_dir, dataset_id)?;
+    let version = list_versions(data_dir, dataset_id)?
+        .into_iter()
+        .find(|version| version.release_id == release_id)
+        .with_context(|| format!("Release {release_id} is not installed"))?;
+    let manifest_path = data_dir
+        .join("datasets")
+        .join(dataset_id)
+        .join("releases")
+        .join(&version.storage_key)
+        .join("manifest.json");
+    let manifest = Manifest::read(&manifest_path)?;
+    let pointer = pointer_from(&manifest, &version.trust);
+    write_json_atomic(
+        &data_dir
+            .join("datasets")
+            .join(dataset_id)
+            .join("current.json"),
+        &pointer,
+    )?;
+    FileExt::unlock(&lock)?;
+    Ok(version)
+}
+
+fn pointer_from(manifest: &Manifest, trust: &str) -> CurrentPointer {
+    CurrentPointer {
+        release_id: manifest.release.id.clone(),
+        sequence: manifest.release.sequence,
+        storage_key: manifest.release.storage_key.clone(),
+        source_version: manifest.dataset.source_version.clone(),
+        build_revision: manifest.release.build_revision,
+        relative_path: format!("releases/{}", manifest.release.storage_key),
+        trust: trust.to_owned(),
+    }
+}
+
+fn dataset_lock(data_dir: &Path, dataset_id: &str) -> Result<File> {
+    validate_segment(dataset_id, "Dataset ID")?;
+    fs::create_dir_all(data_dir.join("locks"))?;
+    let lock_path = data_dir.join("locks").join(format!("{dataset_id}.lock"));
+    let lock = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(lock_path)?;
+    FileExt::lock_exclusive(&lock)?;
+    Ok(lock)
 }
 
 fn decompress_bounded(source: &Path, target: &Path, expected_size: u64) -> Result<()> {

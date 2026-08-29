@@ -173,6 +173,32 @@ fn installs_lists_and_queries_local_candidates() {
         .assert()
         .success();
 
+    let second_manifest = fixture_release(&temporary.path().join("fixtures-v2"), "nhsa-drugs");
+    let mut second: Value = serde_json::from_slice(&fs::read(&second_manifest).unwrap()).unwrap();
+    second["release"]["id"] = Value::String("nhsa-drugs@fixture.r2".to_owned());
+    second["release"]["storageKey"] = Value::String("fixture.r2".to_owned());
+    second["release"]["sequence"] = Value::from(2);
+    fs::write(
+        &second_manifest,
+        serde_json::to_vec_pretty(&second).unwrap(),
+    )
+    .unwrap();
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(&second_manifest)
+        .assert()
+        .success();
+    command(&data_dir)
+        .args(["dataset", "versions", "nhsa-drugs", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("fixture.r1"))
+        .stdout(predicate::str::contains("fixture.r2"));
+    command(&data_dir)
+        .args(["dataset", "use", "nhsa-drugs", "nhsa-drugs@fixture.r1"])
+        .assert()
+        .success();
+
     command(&data_dir)
         .args(["dataset", "list", "--json"])
         .assert()

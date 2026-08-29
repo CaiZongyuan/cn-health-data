@@ -13,7 +13,9 @@ use serde_json::json;
 
 use crate::query::{diagnosis_get, diagnosis_search, drug_get, drug_search};
 use crate::registry::install_remote;
-use crate::storage::{current_database, install_local, list_installed};
+use crate::storage::{
+    activate_release, current_database, install_local, list_installed, list_versions,
+};
 
 #[derive(Parser)]
 #[command(
@@ -60,6 +62,15 @@ enum DatasetCommand {
         dataset_id: String,
         #[arg(long)]
         json: bool,
+    },
+    Versions {
+        dataset_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    Use {
+        dataset_id: String,
+        release_id: String,
     },
 }
 
@@ -157,6 +168,34 @@ fn run_dataset(data_dir: &std::path::Path, command: DatasetCommand) -> Result<()
                     installed.id, installed.release_id, installed.trust
                 );
             }
+        }
+        DatasetCommand::Versions {
+            dataset_id,
+            json: json_output,
+        } => {
+            let versions = list_versions(data_dir, &dataset_id)?;
+            if json_output {
+                print_json(&json!({
+                    "schemaVersion": 1,
+                    "command": "dataset.versions",
+                    "dataset": dataset_id,
+                    "items": versions
+                }))?;
+            } else {
+                for version in versions {
+                    println!(
+                        "{}\t{}\t{}",
+                        version.release_id, version.source_version, version.trust
+                    );
+                }
+            }
+        }
+        DatasetCommand::Use {
+            dataset_id,
+            release_id,
+        } => {
+            let version = activate_release(data_dir, &dataset_id, &release_id)?;
+            println!("{} {}", dataset_id, version.release_id);
         }
     }
     Ok(())
