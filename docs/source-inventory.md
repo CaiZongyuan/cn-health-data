@@ -9,3 +9,8 @@
 
 Detailed hashes and fingerprints live in each dataset's `dataset.yaml` and
 source-specific configuration.
+
+The LOINC adapter is covered by synthetic ZIP/CSV tests, but no real source
+package is present. Source acquisition, exact member layout, version, and
+redistribution rights must be confirmed before changing its status or building
+a Candidate.
