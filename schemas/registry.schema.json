@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CN Health Dataset Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "datasets", "signature"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "datasets": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["recommendedRelease", "releases"],
+        "properties": {
+          "recommendedRelease": { "type": ["string", "null"] },
+          "releases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "sequence",
+                "storageKey",
+                "sourceVersion",
+                "buildRevision",
+                "manifestUrl",
+                "manifestSha256",
+                "revoked"
+              ],
+              "properties": {
+                "id": { "type": "string", "minLength": 1 },
+                "sequence": { "type": "integer", "minimum": 1 },
+                "storageKey": {
+                  "type": "string",
+                  "pattern": "^(?!.*\\.\\.)(?!.*[\\\\/])[A-Za-z0-9][A-Za-z0-9._-]*$"
+                },
+                "sourceVersion": { "type": "string", "minLength": 1 },
+                "buildRevision": { "type": "integer", "minimum": 1 },
+                "manifestUrl": { "type": "string", "format": "uri" },
+                "manifestSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "revoked": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "keyId", "url"],
+      "properties": {
+        "algorithm": { "const": "Ed25519" },
+        "keyId": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri-reference" }
+      }
+    }
+  }
+}

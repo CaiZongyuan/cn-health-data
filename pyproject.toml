@@ -1,0 +1,43 @@
+[project]
+name = "cn-health-data-workspace"
+version = "0.0.0"
+description = "Workspace for compiling Chinese healthcare reference data"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "cn-health-compiler",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16,<2",
+    "pytest>=8.3,<10",
+    "ruff>=0.12,<1",
+    "types-jsonschema>=4.26,<5",
+    "types-pyyaml>=6.0.12,<7",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+cn-health-compiler = { workspace = true }
+
+[tool.uv.workspace]
+members = ["python/compiler"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["python/compiler/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["python/compiler/src"]

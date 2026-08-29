@@ -1,0 +1,54 @@
+version: 1
+
+source:
+  filename: 江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx
+  sha256: 9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67
+  size_bytes: 39514965
+
+workbook:
+  required_sheets:
+    - 西药中成药新增变更
+    - 本省双通道
+    - 总表
+  canonical_sheet: 总表
+  resolve_external_links: false
+
+container:
+  expected_zip_entries: 20
+  expected_uncompressed_size_bytes: 320670713
+  max_uncompressed_size_bytes: 400000000
+  reject_macros: true
+
+sheet:
+  dimension: A1:Z269111
+  header_row: 1
+  first_data_row: 2
+  expected_data_rows: 269110
+  expected_formula_cells: 0
+  headers:
+    - 药品代码
+    - 数据来源
+    - 注册名称
+    - 商品名称
+    - 注册剂型
+    - 剂型
+    - 注册规格
+    - 规格
+    - 包装材质
+    - 最小包装数量
+    - 最小制剂单位
+    - 最小包装单位
+    - 药品企业
+    - 分包装企业名称
+    - 生产企业
+    - 批准文号
+    - 原批准文号
+    - 药品本位码
+    - 上市药品持有人
+    - 市场状态
+    - 医保药品名称
+    - 2025版甲乙类
+    - 医保剂型
+    - 编号
+    - 备注
+    - 曾用码

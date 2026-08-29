@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CN Health Dataset Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "description",
+    "status",
+    "authority",
+    "source",
+    "versioning",
+    "output",
+    "runtime",
+    "rights"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "status": {
+      "enum": ["planned", "experimental", "beta", "stable", "deprecated"]
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "verification"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 },
+        "verification": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "acquisition"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "acquisition": {
+          "enum": ["manual-local", "official-download", "api", "to-be-confirmed"]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "upstream_sync": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "versioning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": { "const": "sqlite" },
+        "optional": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["parquet"] }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["searchable"],
+      "properties": {
+        "searchable": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["redistribution", "release_eligible"],
+      "properties": {
+        "redistribution": {
+          "enum": [
+            "public",
+            "normalized-only",
+            "metadata-only",
+            "private",
+            "review-required"
+          ]
+        },
+        "release_eligible": { "type": "boolean" }
+      }
+    },
+    "validation": { "type": "object" }
+  }
+}

@@ -1,0 +1,22 @@
+tmp/
+
+# Build inputs, caches, and release candidates
+.cache/
+.work/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node and Rust
+node_modules/
+target/
+
+# Editors and operating systems
+.DS_Store
+*.swp

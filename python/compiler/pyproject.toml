@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cn-health-compiler"
+version = "0.1.0"
+description = "Build-time compiler for CN Health reference datasets"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "jsonschema[format]>=4.24,<5",
+    "openpyxl>=3.1.5,<4",
+    "pydantic>=2.11,<3",
+    "pyyaml>=6.0.2,<7",
+    "typer>=0.16,<1",
+]
+
+[project.scripts]
+cn-health-build = "cn_health_compiler.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cn_health_compiler"]

@@ -1,0 +1,33 @@
+id: nhc-icd10-clinical
+title: 疾病分类与代码国家临床版
+description: >
+  National clinical diagnosis classification reference data compiled from the
+  2022 workbook snapshot.
+status: planned
+
+authority:
+  name: 国家卫生健康委员会
+  role: original-authority
+  verification: pending-source-page
+
+source:
+  type: xlsx
+  acquisition: manual-local
+  path_hint: tmp/疾病分类与代码国家临床版2.0(2022汇总版).xlsx
+  declared_version: "2022"
+  sha256: e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52
+
+versioning:
+  strategy: declared-source-version
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+
+rights:
+  redistribution: review-required
+  release_eligible: false

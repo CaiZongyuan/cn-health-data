@@ -1,0 +1,33 @@
+id: nhc-procedure-clinical
+title: 手术操作分类代码国家临床版
+description: >
+  National clinical procedure classification reference data compiled from the
+  2022 workbook snapshot.
+status: planned
+
+authority:
+  name: 国家卫生健康委员会
+  role: original-authority
+  verification: pending-source-page
+
+source:
+  type: xlsx
+  acquisition: manual-local
+  path_hint: tmp/手术操作分类代码国家临床版3.0(2022汇总版).xlsx
+  declared_version: "2022"
+  sha256: daea850ab13394a644fac1c946d8ebfb8cf93f3dba8585a70844102e54e8a5a6
+
+versioning:
+  strategy: declared-source-version
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+
+rights:
+  redistribution: review-required
+  release_eligible: false

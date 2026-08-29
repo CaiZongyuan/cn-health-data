@@ -1,0 +1,30 @@
+id: loinc-zh-cn
+title: LOINC 中文参考数据
+description: >
+  LOINC concepts and Chinese display data compiled into a local reference
+  dataset.
+status: planned
+
+authority:
+  name: Regenstrief Institute
+  role: original-authority
+  verification: pending-source-review
+
+source:
+  type: zip
+  acquisition: to-be-confirmed
+
+versioning:
+  strategy: upstream-version
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+
+rights:
+  redistribution: review-required
+  release_eligible: false

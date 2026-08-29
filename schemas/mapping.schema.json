@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CN Health Terminology Mapping Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mappingVersion",
+    "sourceSystem",
+    "sourceCode",
+    "targetSystem",
+    "targetCode",
+    "relation",
+    "method",
+    "reviewStatus",
+    "provenanceId"
+  ],
+  "properties": {
+    "mappingVersion": { "type": "string", "minLength": 1 },
+    "sourceSystem": { "type": "string", "minLength": 1 },
+    "sourceCode": { "type": "string", "minLength": 1 },
+    "targetSystem": { "type": "string", "minLength": 1 },
+    "targetCode": { "type": "string", "minLength": 1 },
+    "relation": { "type": "string", "minLength": 1 },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "method": { "type": "string", "minLength": 1 },
+    "reviewStatus": { "type": "string", "minLength": 1 },
+    "provenanceId": { "type": "string", "minLength": 1 },
+    "evidenceUri": { "type": ["string", "null"], "format": "uri-reference" },
+    "reviewer": { "type": ["string", "null"] },
+    "reviewedAt": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

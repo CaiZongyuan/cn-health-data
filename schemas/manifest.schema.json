@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CN Health Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "release",
+    "dataset",
+    "sources",
+    "compiler",
+    "canonical",
+    "artifacts",
+    "validation",
+    "rights",
+    "runtime"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence",
+        "storageKey",
+        "buildRevision",
+        "createdAt",
+        "supersedes",
+        "revoked"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "storageKey": {
+          "type": "string",
+          "pattern": "^(?!.*\\.\\.)(?!.*[\\\\/])[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "buildRevision": { "type": "integer", "minimum": 1 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "supersedes": { "type": ["string", "null"] },
+        "revoked": { "type": "boolean" }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sourceVersion", "datasetSchemaVersion", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "sourceVersion": { "type": "string", "minLength": 1 },
+        "datasetSchemaVersion": { "type": "integer", "minimum": 1 },
+        "status": {
+          "enum": ["experimental", "beta", "stable", "deprecated"]
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["authority", "format", "acquisition", "sha256", "sizeBytes"],
+        "properties": {
+          "authority": { "type": "string", "minLength": 1 },
+          "format": { "type": "string", "minLength": 1 },
+          "acquisition": { "type": "string", "minLength": 1 },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sizeBytes": { "type": "integer", "minimum": 0 },
+          "sourceUrl": { "type": ["string", "null"], "format": "uri" },
+          "reproducibleFromSource": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "adapter",
+        "adapterVersion",
+        "gitCommit",
+        "lockSha256",
+        "configSha256",
+        "buildInputSha256"
+      ],
+      "additionalProperties": true
+    },
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serialization", "recordCount", "sha256"],
+      "properties": {
+        "serialization": { "type": "string", "minLength": 1 },
+        "recordCount": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "validation": { "$ref": "#/$defs/report" },
+    "diff": { "$ref": "#/$defs/report" },
+    "rights": {
+      "type": "object",
+      "required": ["redistribution", "releaseEligible"],
+      "properties": {
+        "redistribution": { "type": "string", "minLength": 1 },
+        "releaseEligible": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["minimumCliVersion", "minimumSQLiteVersion"],
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["name", "url", "mediaType", "sha256", "sizeBytes"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri-reference" },
+        "mediaType": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "compression": { "type": "string" },
+        "uncompressedName": { "type": "string" },
+        "uncompressedSha256": { "$ref": "#/$defs/sha256" },
+        "uncompressedSizeBytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report", "sha256"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "report": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

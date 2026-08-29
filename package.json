@@ -1,0 +1,10 @@
+{
+  "name": "cn-health-data-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22"
+  }
+}
