@@ -436,7 +436,13 @@ def write_parquet(database_path: Path, table: str, output_path: Path) -> tuple[s
         raise ValueError(f"unsafe SQLite table name: {table!r}")
     connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:
-        frame = pl.read_database(f"SELECT * FROM {table} ORDER BY code", connection)
+        schema_overrides = _parquet_schema(connection, table)
+        frame = pl.read_database(
+            f"SELECT * FROM {table} ORDER BY code",
+            connection,
+            schema_overrides=schema_overrides,
+            infer_schema_length=None,
+        )
     finally:
         connection.close()
     frame.write_parquet(
@@ -448,6 +454,29 @@ def write_parquet(database_path: Path, table: str, output_path: Path) -> tuple[s
     with output_path.open("rb") as artifact:
         os.fsync(artifact.fileno())
     return hash_file(output_path)
+
+
+def _parquet_schema(
+    connection: sqlite3.Connection,
+    table: str,
+) -> dict[str, type[pl.DataType]]:
+    sqlite_types = {
+        "TEXT": pl.String,
+        "INTEGER": pl.Int64,
+        "REAL": pl.Float64,
+        "BLOB": pl.Binary,
+    }
+    schema: dict[str, type[pl.DataType]] = {}
+    for row in connection.execute(f"PRAGMA table_info({table})"):
+        column_name = str(row[1])
+        declared_type = str(row[2]).upper()
+        try:
+            schema[column_name] = sqlite_types[declared_type]
+        except KeyError as error:
+            raise ValueError(
+                f"unsupported SQLite type {declared_type!r} for Parquet column {column_name}"
+            ) from error
+    return schema
 
 
 def resolve_git_commit(repo_root: Path, supplied_commit: str | None) -> str:
