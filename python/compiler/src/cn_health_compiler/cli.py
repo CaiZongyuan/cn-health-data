@@ -12,6 +12,7 @@ from cn_health_compiler.core.manifest import write_json_atomic
 from cn_health_compiler.core.registry import build_signed_registry, generate_signing_keypair
 from cn_health_compiler.core.validation import validate_dataset_contracts
 from cn_health_compiler.sources.geography.build import build_geography_candidate
+from cn_health_compiler.sources.laboratory.build import build_laboratory_candidate
 from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
@@ -119,6 +120,7 @@ def build_dataset(
             param_hint="dataset_id",
         )
     builders = {
+        "laboratory-cn": build_laboratory_candidate,
         "names-cn": build_names_candidate,
         "nhsa-drugs": build_nhsa_drug_candidate,
         "nhc-icd10-clinical": build_diagnosis_candidate,

@@ -1,0 +1,62 @@
+id: laboratory-cn
+title: 中国精选检验概念目录
+description: >
+  Project-authored Chinese displays and a curated LOINC/UCUM crosswalk for the
+  laboratory and vital-sign concepts exercised by Synthea and ClinMesh. This is
+  not the official complete LOINC Chinese linguistic variant.
+status: beta
+
+authority:
+  name: CN Health Data contributors
+  role: project-author
+  verification: repository-reviewed-2026-08-30
+
+source:
+  type: csv
+  acquisition: manual-local
+  path_hint: datasets/laboratory-cn/catalog.csv
+  source_url: https://github.com/CaiZongyuan/cn-health-data/blob/main/datasets/laboratory-cn/catalog.csv
+  declared_version: 2026-08-30
+  sha256: 0ce998b45c921a06f2b1e016610afc83ea2886fc68c7ce7c5a69c8be6da43d2b
+  size_bytes: 2383
+  upstream_sync: false
+
+versioning:
+  strategy: project-release
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+  minimum_sqlite_version: 3.34.0
+
+rights:
+  redistribution: public
+  release_eligible: true
+  evidence:
+    - LICENSE
+    - datasets/laboratory-cn/README.md
+
+validation:
+  allowed_ucum_units:
+    - "%"
+    - 10*12/L
+    - 10*9/L
+    - Cel
+    - L/L
+    - fL
+    - g/L
+    - mg/dL
+    - mm[Hg]
+    - pg
+  expected_record_count: 18
+  required_codes:
+    - 2339-0
+    - 4548-4
+    - 8310-5
+    - 8462-4
+    - 8480-6
+  terminology_version: "2.83"

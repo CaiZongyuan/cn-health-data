@@ -436,7 +436,7 @@ def build_candidate_manifest(
         "rights": {
             "redistribution": str(rights["redistribution"]),
             "releaseEligible": bool(rights["release_eligible"]),
-            "evidence": None,
+            "evidence": rights.get("evidence"),
         },
         "runtime": {
             "minimumCliVersion": "0.2.0",

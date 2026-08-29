@@ -21,6 +21,7 @@ def test_dataset_contracts_validate() -> None:
 
     assert [path.parent.name for path in validated] == [
         "geography-cn",
+        "laboratory-cn",
         "loinc-zh-cn",
         "names-cn",
         "nhc-icd10-clinical",

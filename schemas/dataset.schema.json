@@ -95,7 +95,13 @@
             "review-required"
           ]
         },
-        "release_eligible": { "type": "boolean" }
+        "release_eligible": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        }
       }
     },
     "validation": { "type": "object" }

@@ -132,7 +132,18 @@
       "required": ["redistribution", "releaseEligible"],
       "properties": {
         "redistribution": { "type": "string", "minLength": 1 },
-        "releaseEligible": { "type": "boolean" }
+        "releaseEligible": { "type": "boolean" },
+        "evidence": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          ]
+        }
       },
       "additionalProperties": true
     },
