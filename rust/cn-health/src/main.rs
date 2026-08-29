@@ -1,5 +1,6 @@
 mod manifest;
 mod query;
+mod registry;
 mod storage;
 
 use std::path::PathBuf;
@@ -11,6 +12,7 @@ use serde::Serialize;
 use serde_json::json;
 
 use crate::query::{diagnosis_get, diagnosis_search, drug_get, drug_search};
+use crate::registry::install_remote;
 use crate::storage::{current_database, install_local, list_installed};
 
 #[derive(Parser)]
@@ -42,8 +44,13 @@ struct DatasetArgs {
 #[derive(Subcommand)]
 enum DatasetCommand {
     Install {
+        dataset_id: Option<String>,
         #[arg(long)]
-        local_manifest: PathBuf,
+        local_manifest: Option<PathBuf>,
+        #[arg(long)]
+        registry: Option<String>,
+        #[arg(long)]
+        public_key: Option<PathBuf>,
     },
     List {
         #[arg(long)]
@@ -103,8 +110,21 @@ fn default_data_dir() -> PathBuf {
 
 fn run_dataset(data_dir: &std::path::Path, command: DatasetCommand) -> Result<()> {
     match command {
-        DatasetCommand::Install { local_manifest } => {
-            let installed = install_local(data_dir, &local_manifest)?;
+        DatasetCommand::Install {
+            dataset_id,
+            local_manifest,
+            registry,
+            public_key,
+        } => {
+            let installed = match (dataset_id, local_manifest, registry, public_key) {
+                (None, Some(manifest), None, None) => install_local(data_dir, &manifest)?,
+                (Some(id), None, Some(registry), Some(public_key)) => {
+                    install_remote(data_dir, &id, &registry, &public_key)?
+                }
+                _ => anyhow::bail!(
+                    "use either --local-manifest PATH or DATASET_ID --registry URL --public-key PATH"
+                ),
+            };
             println!("{} {}", installed.id, installed.release_id);
         }
         DatasetCommand::List { json: json_output } => {

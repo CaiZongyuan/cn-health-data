@@ -35,6 +35,14 @@ pub struct InstalledDataset {
 }
 
 pub fn install_local(data_dir: &Path, manifest_path: &Path) -> Result<InstalledDataset> {
+    install_manifest(data_dir, manifest_path, "local-untrusted")
+}
+
+pub(crate) fn install_manifest(
+    data_dir: &Path,
+    manifest_path: &Path,
+    trust: &str,
+) -> Result<InstalledDataset> {
     let manifest_path = manifest_path.canonicalize()?;
     let manifest = Manifest::read(&manifest_path)?;
     let dataset_dir = data_dir.join("datasets").join(&manifest.dataset.id);
@@ -88,7 +96,7 @@ pub fn install_local(data_dir: &Path, manifest_path: &Path) -> Result<InstalledD
         source_version: manifest.dataset.source_version.clone(),
         build_revision: manifest.release.build_revision,
         relative_path: format!("releases/{}", manifest.release.storage_key),
-        trust: "local-untrusted".to_owned(),
+        trust: trust.to_owned(),
     };
     write_json_atomic(&dataset_dir.join("current.json"), &pointer)?;
     FileExt::unlock(&lock)?;

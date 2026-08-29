@@ -9,9 +9,11 @@ rust-version.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 directories.workspace = true
+ed25519-dalek.workspace = true
 fs2.workspace = true
 hex.workspace = true
 rusqlite.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
@@ -21,3 +23,4 @@ zstd.workspace = true
 [dev-dependencies]
 assert_cmd = "2.2.2"
 predicates = "3.1"
+tiny_http = "0.12"

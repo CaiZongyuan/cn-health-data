@@ -32,6 +32,17 @@ target/debug/cn-health drug search 二甲双胍 --json
 target/debug/cn-health diagnosis search 糖尿病 --json
 ```
 
+For a published, rights-approved Registry:
+
+```bash
+target/debug/cn-health dataset install nhsa-drugs \
+  --registry https://data.example/registry.json \
+  --public-key registry.pub
+```
+
+Remote installation is unavailable for the current local Candidates because
+their Manifests correctly set `releaseEligible` to `false`.
+
 Use `--data-dir <path>` to isolate an installation for testing.
 
 ## Source data

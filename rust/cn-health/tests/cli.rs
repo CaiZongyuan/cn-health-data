@@ -3,11 +3,13 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use ed25519_dalek::{Signer, SigningKey};
 use predicates::prelude::*;
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tempfile::TempDir;
+use tiny_http::{Response, Server};
 
 fn sha256(path: &Path) -> String {
     let mut digest = Sha256::new();
@@ -221,4 +223,76 @@ fn rejects_corrupt_compressed_artifact_without_installing() {
         .failure()
         .stderr(predicate::str::contains("SHA256"));
     assert!(!data_dir.join("datasets/nhsa-drugs/current.json").exists());
+}
+
+#[test]
+fn installs_from_a_signed_registry() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_release(&temporary.path().join("fixtures"), "nhsa-drugs");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    fs::write(&manifest_path, &manifest_bytes).unwrap();
+    let compressed = manifest_path.parent().unwrap().join("data.sqlite.zst");
+
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let manifest_sha256 = hex::encode(Sha256::digest(&manifest_bytes));
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "nhsa-drugs": {
+                "recommendedRelease": "nhsa-drugs@fixture.r1",
+                "releases": [{
+                    "id": "nhsa-drugs@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": manifest_sha256,
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let compressed_bytes = fs::read(compressed).unwrap();
+    let server_thread = std::thread::spawn(move || {
+        for _ in 0..4 {
+            let request = server.recv().unwrap();
+            let body = match request.url() {
+                "/registry.json" => registry_bytes.clone(),
+                "/registry.json.sig" => signature_bytes.clone(),
+                "/manifest.json" => manifest_bytes.clone(),
+                "/data.sqlite.zst" => compressed_bytes.clone(),
+                path => panic!("unexpected request {path}"),
+            };
+            request.respond(Response::from_data(body)).unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+    let data_dir = temporary.path().join("data");
+
+    command(&data_dir)
+        .args(["dataset", "install", "nhsa-drugs", "--registry"])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(public_key_path)
+        .assert()
+        .success();
+    server_thread.join().unwrap();
+    command(&data_dir)
+        .args(["dataset", "list", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("signed-registry"));
 }
