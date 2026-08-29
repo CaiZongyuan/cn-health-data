@@ -14,10 +14,13 @@ from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
 from cn_health_compiler.sources.population.build import build_population_candidate
+from cn_health_compiler.synthetic.synthea_profile import build_synthea_profile
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 registry_app = typer.Typer(no_args_is_help=True)
+synthea_app = typer.Typer(no_args_is_help=True)
 app.add_typer(registry_app, name="registry")
+app.add_typer(synthea_app, name="synthea")
 
 
 def _version_callback(value: bool) -> None:
@@ -132,6 +135,49 @@ def build_dataset(
         base_release_dir=base_release,
     )
     typer.echo(result.release_dir)
+    typer.echo(result.manifest_path)
+
+
+@synthea_app.command("profile")
+def build_synthea_cn_profile(
+    names_release: Annotated[
+        Path,
+        typer.Option("--names-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    geography_release: Annotated[
+        Path,
+        typer.Option("--geography-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    population_release: Annotated[
+        Path,
+        typer.Option("--population-release", exists=True, file_okay=False, resolve_path=True),
+    ],
+    output_root: Annotated[
+        Path,
+        typer.Option("--output-root", file_okay=False, resolve_path=True),
+    ],
+    profile_version: Annotated[str, typer.Option("--profile-version")],
+    reference_year: Annotated[int, typer.Option("--reference-year", min=1900, max=2200)],
+    synthea_commit: Annotated[str, typer.Option("--synthea-commit")],
+    repo_root: Annotated[
+        Path | None,
+        typer.Option("--repo-root", file_okay=False, resolve_path=True),
+    ] = None,
+    build_revision: Annotated[int, typer.Option("--build-revision", min=1)] = 1,
+) -> None:
+    """Build a versioned Chinese Synthea resource profile."""
+    result = build_synthea_profile(
+        repo_root=repo_root or find_repository_root(),
+        names_release_dir=names_release,
+        geography_release_dir=geography_release,
+        population_release_dir=population_release,
+        output_root=output_root,
+        profile_version=profile_version,
+        reference_year=reference_year,
+        synthea_commit=synthea_commit,
+        build_revision=build_revision,
+    )
+    typer.echo(result.profile_dir)
     typer.echo(result.manifest_path)
 
 
