@@ -6,6 +6,7 @@ from pathlib import Path
 
 from cn_health_compiler.core.sqlite import SQLiteArtifact, build_sqlite_database
 from cn_health_compiler.sources.geography.records import (
+    AdministrativeDivisionRecord,
     GeographyPlaceRecord,
     GeographyPostalAreaRecord,
 )
@@ -41,6 +42,22 @@ def _place_values(record: GeographyPlaceRecord) -> tuple[object, ...]:
     )
 
 
+def _division_values(record: AdministrativeDivisionRecord) -> tuple[object, ...]:
+    return (
+        record.code,
+        record.parent_code,
+        record.level,
+        record.name_zh,
+        record.short_name_zh,
+        record.pinyin,
+        record.pinyin_prefix,
+        record.external_code,
+        record.source_row,
+        record.source_version,
+        record.source_sha256,
+    )
+
+
 def _postal_values(record: GeographyPostalAreaRecord) -> tuple[object, ...]:
     return (
         record.code,
@@ -67,12 +84,25 @@ def build_geography_sqlite(
     rules: GeographyValidationRules,
     schema_path: Path,
     output_path: Path,
+    *,
+    administrative_divisions: Iterable[AdministrativeDivisionRecord] = (),
 ) -> SQLiteArtifact[GeographyValidationReport]:
+    division_records = list(administrative_divisions)
     place_records = list(places)
     postal_records = list(postal_areas)
-    report = validate_geography_records(place_records, postal_records, rules)
+    report = validate_geography_records(division_records, place_records, postal_records, rules)
 
     def populate(connection: sqlite3.Connection) -> GeographyValidationReport:
+        connection.executemany(
+            """INSERT INTO administrative_division (
+                code, parent_code, level, name_zh, short_name_zh, pinyin,
+                pinyin_prefix, external_code, source_row, source_version, source_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                _division_values(record)
+                for record in sorted(division_records, key=lambda item: item.code)
+            ),
+        )
         connection.executemany(
             """INSERT INTO place (
                 code, geoname_id, name_zh, name_ascii, alternate_names_zh, kind,

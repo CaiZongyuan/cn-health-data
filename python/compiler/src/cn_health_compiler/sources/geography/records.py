@@ -13,6 +13,16 @@ from zipfile import BadZipFile, ZipFile
 _PLACE_COLUMN_COUNT = 19
 _POSTAL_COLUMN_COUNT = 12
 _CHINESE_NAME = re.compile(r"[\u3400-\u9fff]+")
+_AREA_CITY_FIELDS = (
+    "id",
+    "pid",
+    "deep",
+    "name",
+    "pinyin_prefix",
+    "pinyin",
+    "ext_id",
+    "ext_name",
+)
 
 
 class GeoNamesFormatError(ValueError):
@@ -57,6 +67,21 @@ class GeographyPostalAreaRecord:
     latitude: float
     longitude: float
     accuracy: int | None
+    source_row: int
+    source_version: str
+    source_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class AdministrativeDivisionRecord:
+    code: str
+    parent_code: str | None
+    level: int
+    name_zh: str
+    short_name_zh: str
+    pinyin: str
+    pinyin_prefix: str
+    external_code: str
     source_row: int
     source_version: str
     source_sha256: str
@@ -196,3 +221,58 @@ def iter_geonames_postal_areas(
             source_version=source_version,
             source_sha256=source_sha256,
         )
+
+
+def iter_area_city_divisions(
+    path: Path,
+    *,
+    source_version: str,
+    source_sha256: str,
+) -> Iterator[AdministrativeDivisionRecord]:
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        if tuple(reader.fieldnames or ()) != _AREA_CITY_FIELDS:
+            raise GeoNamesFormatError("AreaCity CSV headers do not match the adapter contract")
+        parsed: list[AdministrativeDivisionRecord] = []
+        for source_row, row in enumerate(reader, start=2):
+            code = row["id"]
+            parent = row["pid"]
+            level = _integer(row["deep"], "administrative level", source_row)
+            external_code = row["ext_id"]
+            if level not in (0, 1, 2):
+                raise GeoNamesFormatError(f"row {source_row} has invalid administrative level")
+            if not code.isdigit() or len(code) != (level + 1) * 2:
+                raise GeoNamesFormatError(f"row {source_row} has invalid administrative code")
+            if not external_code.isdigit() or (external_code != "0" and len(external_code) != 12):
+                raise GeoNamesFormatError(f"row {source_row} has invalid external code")
+            parent_code = None if level == 0 else parent
+            if level == 0 and parent != "0":
+                raise GeoNamesFormatError(f"row {source_row} has invalid root parent")
+            if parent_code is not None and (
+                not parent_code.isdigit() or not code.startswith(parent_code)
+            ):
+                raise GeoNamesFormatError(f"row {source_row} has invalid parent code")
+            if not row["name"] or not row["ext_name"] or not row["pinyin"]:
+                raise GeoNamesFormatError(f"row {source_row} has missing administrative text")
+            if external_code == "0":
+                continue
+            parsed.append(
+                AdministrativeDivisionRecord(
+                    code=code,
+                    parent_code=parent_code,
+                    level=level,
+                    name_zh=row["ext_name"],
+                    short_name_zh=row["name"],
+                    pinyin=row["pinyin"],
+                    pinyin_prefix=row["pinyin_prefix"],
+                    external_code=external_code,
+                    source_row=source_row,
+                    source_version=source_version,
+                    source_sha256=source_sha256,
+                )
+            )
+
+    selected: dict[str, AdministrativeDivisionRecord] = {}
+    for record in sorted(parsed, key=lambda item: (item.level, item.source_row)):
+        selected.setdefault(record.external_code, record)
+    yield from sorted(selected.values(), key=lambda item: item.source_row)

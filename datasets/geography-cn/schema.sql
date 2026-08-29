@@ -1,5 +1,22 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE administrative_division (
+    code TEXT PRIMARY KEY,
+    parent_code TEXT REFERENCES administrative_division(code),
+    level INTEGER NOT NULL CHECK (level BETWEEN 0 AND 2),
+    name_zh TEXT NOT NULL,
+    short_name_zh TEXT NOT NULL,
+    pinyin TEXT NOT NULL,
+    pinyin_prefix TEXT NOT NULL,
+    external_code TEXT NOT NULL UNIQUE CHECK (length(external_code) = 12),
+    source_row INTEGER NOT NULL UNIQUE CHECK (source_row >= 2),
+    source_version TEXT NOT NULL,
+    source_sha256 TEXT NOT NULL CHECK (length(source_sha256) = 64)
+);
+
+CREATE INDEX administrative_division_parent_idx
+    ON administrative_division(parent_code, level);
+
 CREATE TABLE place (
     code TEXT PRIMARY KEY,
     geoname_id INTEGER NOT NULL UNIQUE,
@@ -35,9 +52,6 @@ CREATE VIRTUAL TABLE place_fts USING fts5(
     content_rowid = 'rowid',
     tokenize = 'trigram'
 );
-
-CREATE VIEW administrative_division AS
-SELECT * FROM place WHERE kind = 'administrative-division';
 
 CREATE VIEW populated_place AS
 SELECT * FROM place WHERE kind = 'populated-place';
