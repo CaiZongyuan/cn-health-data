@@ -251,29 +251,30 @@ Registry 工具已经实现，但当前真实数据的 Manifest 均为 `releaseE
 Registry。仓库也不包含生产签名私钥或托管地址。
 
 对于已经通过权利审核的 Manifest，运维方可以生成 Ed25519 原始密钥并构建签名
-Registry：
+Registry。以下示例将开发密钥和产物放在 Git 忽略的 `.work/` 目录中；请替换大写的
+路径占位符：
 
 ```bash
 uv run cn-health-build registry keygen \
-  --private-key registry.key \
-  --public-key registry.pub
+  --private-key .work/registry/registry.key \
+  --public-key .work/registry/registry.pub
 
 uv run cn-health-build registry build \
-  dist/<dataset-id>/releases/<release>/manifest.json \
+  dist/DATASET_ID/releases/RELEASE/manifest.json \
   --manifest-base-url https://data.example/releases \
-  --private-key registry.key \
-  --output registry.json \
-  --signature registry.json.sig
+  --private-key .work/registry/registry.key \
+  --output .work/registry/registry.json \
+  --signature .work/registry/registry.json.sig
 ```
 
-私钥必须保存在仓库和生产托管服务器之外。Registry、分离签名、Manifest 与压缩产物
-应按声明的同源 HTTPS URL 发布。客户端使用独立固定的公钥安装 Registry 推荐且未撤销
-的 Release：
+生产私钥必须保存在仓库检出目录和公开托管服务器之外。Registry、分离签名、Manifest
+与压缩产物应按声明的同源 HTTPS URL 发布。客户端使用独立固定的公钥安装 Registry
+推荐且未撤销的 Release：
 
 ```bash
-target/debug/cn-health dataset install <dataset-id> \
+target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
   --registry https://data.example/registry.json \
-  --public-key registry.pub
+  --public-key .work/registry/registry.pub
 ```
 
 运行时会验证 Registry 签名和 key ID、Manifest 摘要和身份、发布资格、产物哈希与

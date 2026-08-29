@@ -271,30 +271,31 @@ rights evidence and the Rights Gate permit the relevant artifact types. There is
 also no production signing key or hosting endpoint in this repository.
 
 For a rights-approved Manifest, an operator can generate a raw Ed25519 keypair
-and build a signed Registry:
+and build a signed Registry. The example keeps its development keys and output
+under the Git-ignored `.work/` directory; replace the uppercase path placeholders:
 
 ```bash
 uv run cn-health-build registry keygen \
-  --private-key registry.key \
-  --public-key registry.pub
+  --private-key .work/registry/registry.key \
+  --public-key .work/registry/registry.pub
 
 uv run cn-health-build registry build \
-  dist/<dataset-id>/releases/<release>/manifest.json \
+  dist/DATASET_ID/releases/RELEASE/manifest.json \
   --manifest-base-url https://data.example/releases \
-  --private-key registry.key \
-  --output registry.json \
-  --signature registry.json.sig
+  --private-key .work/registry/registry.key \
+  --output .work/registry/registry.json \
+  --signature .work/registry/registry.json.sig
 ```
 
-Keep the private key outside the repository and production host. Publish the
-Registry, detached signature, Manifests, and compressed artifacts at their
-declared same-origin HTTPS URLs. A client installs the Registry's recommended,
-non-revoked release with a separately pinned public key:
+Production private keys must remain outside the repository checkout and public
+host. Publish the Registry, detached signature, Manifests, and compressed
+artifacts at their declared same-origin HTTPS URLs. A client installs the
+Registry's recommended, non-revoked release with a separately pinned public key:
 
 ```bash
-target/debug/cn-health dataset install <dataset-id> \
+target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
   --registry https://data.example/registry.json \
-  --public-key registry.pub
+  --public-key .work/registry/registry.pub
 ```
 
 The runtime verifies the Registry signature and key ID, Manifest digest and
