@@ -1,0 +1,33 @@
+version: 1
+
+source:
+  filename: 疾病分类与代码国家临床版2.0(2022汇总版).xlsx
+  sha256: e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52
+  size_bytes: 1979868
+
+workbook:
+  required_sheets:
+    - 2.0（2022版）
+    - 2020新增
+    - 2022修改名称
+    - "2.0"
+    - 说明
+  canonical_sheet: 2.0（2022版）
+  resolve_external_links: false
+
+container:
+  expected_zip_entries: 17
+  expected_uncompressed_size_bytes: 16688910
+  max_uncompressed_size_bytes: 25000000
+  reject_macros: true
+
+sheet:
+  dimension: A1:C37295
+  header_row: 1
+  first_data_row: 2
+  expected_data_rows: 37294
+  expected_formula_cells: 0
+  headers:
+    - 主要编码
+    - 附加编码
+    - 疾病名称
