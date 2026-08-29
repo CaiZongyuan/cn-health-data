@@ -30,6 +30,37 @@ pub struct DiagnosisItem {
     pub rank: usize,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoincItem {
+    pub code: String,
+    pub long_common_name: String,
+    pub zh_display: Option<String>,
+    pub rank: usize,
+}
+
+trait Ranked {
+    fn set_rank(&mut self, rank: usize);
+}
+
+impl Ranked for DrugItem {
+    fn set_rank(&mut self, rank: usize) {
+        self.rank = rank;
+    }
+}
+
+impl Ranked for DiagnosisItem {
+    fn set_rank(&mut self, rank: usize) {
+        self.rank = rank;
+    }
+}
+
+impl Ranked for LoincItem {
+    fn set_rank(&mut self, rank: usize) {
+        self.rank = rank;
+    }
+}
+
 fn connection(path: &Path) -> Result<Connection> {
     Ok(Connection::open_with_flags(
         path,
@@ -60,10 +91,7 @@ pub fn drug_get(path: &Path, code: &str) -> Result<Option<DrugItem>> {
 
 pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<SearchResults<DrugItem>> {
     let connection = connection(path)?;
-    let characters = query.chars().count();
-    if characters < 2 {
-        bail!("search query must contain at least two Unicode characters");
-    }
+    let characters = query_length(query)?;
     let (sql, argument) = if characters == 2 {
         (
             "SELECT d.code, d.registered_name, d.trade_name, d.market_status, d.insurance_name
@@ -92,13 +120,10 @@ pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<SearchResul
             rank: 0,
         })
     })?;
-    let mut items = rows.collect::<rusqlite::Result<Vec<_>>>()?;
-    let truncated = items.len() > limit;
-    items.truncate(limit);
-    for (index, item) in items.iter_mut().enumerate() {
-        item.rank = index + 1;
-    }
-    Ok(SearchResults { items, truncated })
+    Ok(finish_search(
+        rows.collect::<rusqlite::Result<Vec<_>>>()?,
+        limit,
+    ))
 }
 
 pub fn diagnosis_get(path: &Path, code: &str) -> Result<Option<DiagnosisItem>> {
@@ -126,10 +151,7 @@ pub fn diagnosis_search(
     limit: usize,
 ) -> Result<SearchResults<DiagnosisItem>> {
     let connection = connection(path)?;
-    let characters = query.chars().count();
-    if characters < 2 {
-        bail!("search query must contain at least two Unicode characters");
-    }
+    let characters = query_length(query)?;
     let (sql, argument) = if characters == 2 {
         (
             "SELECT d.code, d.main_code, d.additional_code, d.name
@@ -156,13 +178,80 @@ pub fn diagnosis_search(
             rank: 0,
         })
     })?;
-    let mut items = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(finish_search(
+        rows.collect::<rusqlite::Result<Vec<_>>>()?,
+        limit,
+    ))
+}
+
+pub fn loinc_get(path: &Path, code: &str) -> Result<Option<LoincItem>> {
+    let connection = connection(path)?;
+    Ok(connection
+        .query_row(
+            "SELECT code, long_common_name, zh_display FROM loinc WHERE code = ?1",
+            [code],
+            |row| {
+                Ok(LoincItem {
+                    code: row.get(0)?,
+                    long_common_name: row.get(1)?,
+                    zh_display: row.get(2)?,
+                    rank: 1,
+                })
+            },
+        )
+        .optional()?)
+}
+
+pub fn loinc_search(path: &Path, query: &str, limit: usize) -> Result<SearchResults<LoincItem>> {
+    let connection = connection(path)?;
+    let characters = query_length(query)?;
+    let (sql, argument) = if characters == 2 {
+        (
+            "SELECT l.code, l.long_common_name, l.zh_display
+             FROM loinc_search_bigram b JOIN loinc l USING(code)
+             WHERE b.term = ?1
+               AND (instr(l.long_common_name, ?2) > 0 OR instr(COALESCE(l.zh_display,''), ?2) > 0)
+             ORDER BY l.code LIMIT ?3",
+            query.to_owned(),
+        )
+    } else {
+        (
+            "SELECT l.code, l.long_common_name, l.zh_display
+             FROM loinc_fts JOIN loinc l ON l.rowid = loinc_fts.rowid
+             WHERE loinc_fts MATCH ?1 ORDER BY bm25(loinc_fts), l.code LIMIT ?3",
+            literal_fts_query(query),
+        )
+    };
+    let mut statement = connection.prepare(sql)?;
+    let rows = statement.query_map(params![argument, query, limit as i64 + 1], |row| {
+        Ok(LoincItem {
+            code: row.get(0)?,
+            long_common_name: row.get(1)?,
+            zh_display: row.get(2)?,
+            rank: 0,
+        })
+    })?;
+    Ok(finish_search(
+        rows.collect::<rusqlite::Result<Vec<_>>>()?,
+        limit,
+    ))
+}
+
+fn query_length(query: &str) -> Result<usize> {
+    let characters = query.chars().count();
+    if characters < 2 {
+        bail!("search query must contain at least two Unicode characters");
+    }
+    Ok(characters)
+}
+
+fn finish_search<T: Ranked>(mut items: Vec<T>, limit: usize) -> SearchResults<T> {
     let truncated = items.len() > limit;
     items.truncate(limit);
     for (index, item) in items.iter_mut().enumerate() {
-        item.rank = index + 1;
+        item.set_rank(index + 1);
     }
-    Ok(SearchResults { items, truncated })
+    SearchResults { items, truncated }
 }
 
 fn literal_fts_query(query: &str) -> String {

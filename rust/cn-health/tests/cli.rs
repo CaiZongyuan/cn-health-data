@@ -70,7 +70,7 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
         connection
             .execute("INSERT INTO drug_search_bigram VALUES ('二甲', 'XA01')", [])
             .unwrap();
-    } else {
+    } else if dataset_id == "nhc-icd10-clinical" {
         connection
             .execute_batch(
                 "
@@ -107,6 +107,47 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
         connection
             .execute(
                 "INSERT INTO diagnosis_search_bigram VALUES ('糖尿', 'E11.900')",
+                [],
+            )
+            .unwrap();
+    } else {
+        connection
+            .execute_batch(
+                "
+                CREATE TABLE loinc(
+                    code TEXT PRIMARY KEY,
+                    long_common_name TEXT NOT NULL,
+                    zh_display TEXT
+                );
+                CREATE VIRTUAL TABLE loinc_fts USING fts5(
+                    long_common_name, zh_display,
+                    content='loinc', content_rowid='rowid', tokenize='trigram'
+                );
+                CREATE TABLE loinc_search_bigram(
+                    term TEXT NOT NULL, code TEXT NOT NULL,
+                    PRIMARY KEY(term, code)
+                ) WITHOUT ROWID;
+                PRAGMA application_id=1129203780;
+                PRAGMA user_version=1;
+                ",
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO loinc VALUES ('4548-4', 'Hemoglobin A1c', '糖化血红蛋白')",
+                [],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO loinc_fts(rowid, long_common_name, zh_display)
+                 SELECT rowid, long_common_name, zh_display FROM loinc",
+                [],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO loinc_search_bigram VALUES ('糖化', '4548-4')",
                 [],
             )
             .unwrap();
@@ -161,6 +202,7 @@ fn installs_lists_and_queries_local_candidates() {
     let data_dir = temporary.path().join("data");
     let drug_manifest = fixture_release(&fixtures, "nhsa-drugs");
     let diagnosis_manifest = fixture_release(&fixtures, "nhc-icd10-clinical");
+    let loinc_manifest = fixture_release(&fixtures, "loinc-zh-cn");
 
     command(&data_dir)
         .args(["dataset", "install", "--local-manifest"])
@@ -170,6 +212,11 @@ fn installs_lists_and_queries_local_candidates() {
     command(&data_dir)
         .args(["dataset", "install", "--local-manifest"])
         .arg(&diagnosis_manifest)
+        .assert()
+        .success();
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(&loinc_manifest)
         .assert()
         .success();
 
@@ -222,6 +269,14 @@ fn installs_lists_and_queries_local_candidates() {
     assert!(diagnosis_output.status.success());
     let diagnosis_json: Value = serde_json::from_slice(&diagnosis_output.stdout).unwrap();
     assert_eq!(diagnosis_json["items"][0]["code"], "E11.900");
+
+    let loinc_output = command(&data_dir)
+        .args(["loinc", "search", "糖化血红蛋白", "--json"])
+        .output()
+        .unwrap();
+    assert!(loinc_output.status.success());
+    let loinc_json: Value = serde_json::from_slice(&loinc_output.stdout).unwrap();
+    assert_eq!(loinc_json["items"][0]["code"], "4548-4");
 
     command(&data_dir)
         .args(["drug", "get", "XA01", "--json"])

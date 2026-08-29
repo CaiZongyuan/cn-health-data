@@ -11,7 +11,9 @@ use directories::ProjectDirs;
 use serde::Serialize;
 use serde_json::json;
 
-use crate::query::{SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search};
+use crate::query::{
+    SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search, loinc_get, loinc_search,
+};
 use crate::registry::install_remote;
 use crate::storage::{
     activate_release, current_database, install_local, list_installed, list_versions,
@@ -35,6 +37,7 @@ enum Command {
     Dataset(DatasetArgs),
     Drug(LookupArgs),
     Diagnosis(LookupArgs),
+    Loinc(LookupArgs),
 }
 
 #[derive(Args)]
@@ -127,11 +130,11 @@ impl Cli {
                 | DatasetCommand::Versions { json, .. } => *json,
                 DatasetCommand::Install { .. } | DatasetCommand::Use { .. } => false,
             },
-            Command::Drug(LookupArgs { command }) | Command::Diagnosis(LookupArgs { command }) => {
-                match command {
-                    LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
-                }
-            }
+            Command::Drug(LookupArgs { command })
+            | Command::Diagnosis(LookupArgs { command })
+            | Command::Loinc(LookupArgs { command }) => match command {
+                LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
+            },
         }
     }
 }
@@ -152,6 +155,7 @@ fn run(cli: Cli) -> Result<()> {
         Command::Dataset(args) => run_dataset(&data_dir, args.command),
         Command::Drug(args) => run_lookup(&data_dir, "nhsa-drugs", args.command),
         Command::Diagnosis(args) => run_lookup(&data_dir, "nhc-icd10-clinical", args.command),
+        Command::Loinc(args) => run_lookup(&data_dir, "loinc-zh-cn", args.command),
     }
 }
 
@@ -266,6 +270,22 @@ fn run_lookup(data_dir: &std::path::Path, dataset_id: &str, command: LookupComma
         }
         ("nhsa-drugs", LookupCommand::Get { code, json }) => {
             let item = drug_get(&database, &code)?.context("drug code not found")?;
+            output_item(item, json)
+        }
+        ("loinc-zh-cn", LookupCommand::Search { query, limit, json }) => {
+            let results = loinc_search(&database, &query, limit)?;
+            output_search(
+                dataset_id,
+                &current.release_id,
+                "loinc.search",
+                query,
+                limit,
+                results,
+                json,
+            )
+        }
+        ("loinc-zh-cn", LookupCommand::Get { code, json }) => {
+            let item = loinc_get(&database, &code)?.context("LOINC code not found")?;
             output_item(item, json)
         }
         (_, LookupCommand::Search { query, limit, json }) => {
