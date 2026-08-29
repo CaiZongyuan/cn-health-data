@@ -4,6 +4,11 @@ use anyhow::{Result, bail};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde::Serialize;
 
+pub struct SearchResults<T> {
+    pub items: Vec<T>,
+    pub truncated: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DrugItem {
@@ -53,7 +58,7 @@ pub fn drug_get(path: &Path, code: &str) -> Result<Option<DrugItem>> {
         .optional()?)
 }
 
-pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<Vec<DrugItem>> {
+pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<SearchResults<DrugItem>> {
     let connection = connection(path)?;
     let characters = query.chars().count();
     if characters < 2 {
@@ -77,7 +82,7 @@ pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<Vec<DrugIte
         )
     };
     let mut statement = connection.prepare(sql)?;
-    let rows = statement.query_map(params![argument, query, limit as i64], |row| {
+    let rows = statement.query_map(params![argument, query, limit as i64 + 1], |row| {
         Ok(DrugItem {
             code: row.get(0)?,
             registered_name: row.get(1)?,
@@ -88,10 +93,12 @@ pub fn drug_search(path: &Path, query: &str, limit: usize) -> Result<Vec<DrugIte
         })
     })?;
     let mut items = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    let truncated = items.len() > limit;
+    items.truncate(limit);
     for (index, item) in items.iter_mut().enumerate() {
         item.rank = index + 1;
     }
-    Ok(items)
+    Ok(SearchResults { items, truncated })
 }
 
 pub fn diagnosis_get(path: &Path, code: &str) -> Result<Option<DiagnosisItem>> {
@@ -113,7 +120,11 @@ pub fn diagnosis_get(path: &Path, code: &str) -> Result<Option<DiagnosisItem>> {
         .optional()?)
 }
 
-pub fn diagnosis_search(path: &Path, query: &str, limit: usize) -> Result<Vec<DiagnosisItem>> {
+pub fn diagnosis_search(
+    path: &Path,
+    query: &str,
+    limit: usize,
+) -> Result<SearchResults<DiagnosisItem>> {
     let connection = connection(path)?;
     let characters = query.chars().count();
     if characters < 2 {
@@ -136,7 +147,7 @@ pub fn diagnosis_search(path: &Path, query: &str, limit: usize) -> Result<Vec<Di
         )
     };
     let mut statement = connection.prepare(sql)?;
-    let rows = statement.query_map(params![argument, query, limit as i64], |row| {
+    let rows = statement.query_map(params![argument, query, limit as i64 + 1], |row| {
         Ok(DiagnosisItem {
             code: row.get(0)?,
             main_code: row.get(1)?,
@@ -146,10 +157,12 @@ pub fn diagnosis_search(path: &Path, query: &str, limit: usize) -> Result<Vec<Di
         })
     })?;
     let mut items = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    let truncated = items.len() > limit;
+    items.truncate(limit);
     for (index, item) in items.iter_mut().enumerate() {
         item.rank = index + 1;
     }
-    Ok(items)
+    Ok(SearchResults { items, truncated })
 }
 
 fn literal_fts_query(query: &str) -> String {

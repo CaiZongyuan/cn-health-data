@@ -207,12 +207,13 @@ fn installs_lists_and_queries_local_candidates() {
         .stdout(predicate::str::contains("nhc-icd10-clinical"));
 
     let drug_output = command(&data_dir)
-        .args(["drug", "search", "二甲双胍", "--json"])
+        .args(["drug", "search", "二甲双胍", "--limit", "1", "--json"])
         .output()
         .unwrap();
     assert!(drug_output.status.success());
     let drug_json: Value = serde_json::from_slice(&drug_output.stdout).unwrap();
     assert_eq!(drug_json["items"][0]["code"], "XA01");
+    assert_eq!(drug_json["page"]["truncated"], false);
 
     let diagnosis_output = command(&data_dir)
         .args(["diagnosis", "search", "糖尿病", "--json"])
@@ -227,6 +228,20 @@ fn installs_lists_and_queries_local_candidates() {
         .assert()
         .success()
         .stdout(predicate::str::contains("盐酸二甲双胍片"));
+}
+
+#[test]
+fn emits_json_error_for_missing_dataset() {
+    let temporary = TempDir::new().unwrap();
+    let output = command(&temporary.path().join("data"))
+        .args(["diagnosis", "search", "糖尿病", "--json"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stderr.is_empty());
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(error["error"]["code"], "DATASET_NOT_INSTALLED");
 }
 
 #[test]

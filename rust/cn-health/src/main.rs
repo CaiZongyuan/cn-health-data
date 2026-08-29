@@ -11,7 +11,7 @@ use directories::ProjectDirs;
 use serde::Serialize;
 use serde_json::json;
 
-use crate::query::{diagnosis_get, diagnosis_search, drug_get, drug_search};
+use crate::query::{SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search};
 use crate::registry::install_remote;
 use crate::storage::{
     activate_release, current_database, install_local, list_installed, list_versions,
@@ -97,9 +97,52 @@ enum LookupCommand {
 }
 
 fn main() {
-    if let Err(error) = run(Cli::parse()) {
-        eprintln!("{error:#}");
-        std::process::exit(1);
+    let cli = Cli::parse();
+    let json_output = cli.wants_json();
+    if let Err(error) = run(cli) {
+        let message = format!("{error:#}");
+        let (code, exit_code) = classify_error(&message);
+        if json_output {
+            println!(
+                "{}",
+                serde_json::to_string(&json!({
+                    "schemaVersion": 1,
+                    "error": {"code": code, "message": message}
+                }))
+                .expect("JSON error serialization cannot fail")
+            );
+        } else {
+            eprintln!("{message}");
+        }
+        std::process::exit(exit_code);
+    }
+}
+
+impl Cli {
+    fn wants_json(&self) -> bool {
+        match &self.command {
+            Command::Dataset(DatasetArgs { command }) => match command {
+                DatasetCommand::List { json }
+                | DatasetCommand::Info { json, .. }
+                | DatasetCommand::Versions { json, .. } => *json,
+                DatasetCommand::Install { .. } | DatasetCommand::Use { .. } => false,
+            },
+            Command::Drug(LookupArgs { command }) | Command::Diagnosis(LookupArgs { command }) => {
+                match command {
+                    LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
+                }
+            }
+        }
+    }
+}
+
+fn classify_error(message: &str) -> (&'static str, i32) {
+    if message.contains("is not installed") {
+        ("DATASET_NOT_INSTALLED", 3)
+    } else if message.contains("SHA256") || message.contains("integrity_check") {
+        ("ARTIFACT_VERIFICATION_FAILED", 4)
+    } else {
+        ("RUNTIME_ERROR", 5)
     }
 }
 
@@ -210,14 +253,14 @@ fn run_lookup(data_dir: &std::path::Path, dataset_id: &str, command: LookupComma
     }
     match (dataset_id, command) {
         ("nhsa-drugs", LookupCommand::Search { query, limit, json }) => {
-            let items = drug_search(&database, &query, limit)?;
+            let results = drug_search(&database, &query, limit)?;
             output_search(
                 dataset_id,
                 &current.release_id,
                 "drug.search",
                 query,
                 limit,
-                items,
+                results,
                 json,
             )
         }
@@ -226,14 +269,14 @@ fn run_lookup(data_dir: &std::path::Path, dataset_id: &str, command: LookupComma
             output_item(item, json)
         }
         (_, LookupCommand::Search { query, limit, json }) => {
-            let items = diagnosis_search(&database, &query, limit)?;
+            let results = diagnosis_search(&database, &query, limit)?;
             output_search(
                 dataset_id,
                 &current.release_id,
                 "diagnosis.search",
                 query,
                 limit,
-                items,
+                results,
                 json,
             )
         }
@@ -250,9 +293,10 @@ fn output_search<T: Serialize>(
     command: &str,
     query: String,
     limit: usize,
-    items: Vec<T>,
+    results: SearchResults<T>,
     json_output: bool,
 ) -> Result<()> {
+    let SearchResults { items, truncated } = results;
     if json_output {
         let returned = items.len();
         print_json(&json!({
@@ -261,7 +305,7 @@ fn output_search<T: Serialize>(
             "dataset": {"id": dataset_id, "releaseId": release_id},
             "query": {"text": query, "mode": "literal", "limit": limit},
             "items": items,
-            "page": {"returned": returned, "limit": limit, "truncated": returned == limit}
+            "page": {"returned": returned, "limit": limit, "truncated": truncated}
         }))?;
     } else {
         for item in items {
