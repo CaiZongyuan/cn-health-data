@@ -1,3 +1,4 @@
 # Native binary launchers
 
-Platform launcher files will be added with the npm distribution phase.
+`cn-health.js` resolves and executes the native binary without changing command
+semantics or output.

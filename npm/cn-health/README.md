@@ -1,4 +1,5 @@
 # cn-health npm wrapper
 
-This directory will become the thin npm package for the native runtime in
-Phase 7. It must only select and execute a platform binary.
+This package is the thin launcher for the native runtime. Set
+`CN_HEALTH_BINARY` during local development; published builds resolve an
+`@cn-health/cli-<platform>-<arch>` optional package.

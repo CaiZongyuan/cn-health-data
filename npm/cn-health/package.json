@@ -1,0 +1,18 @@
+{
+  "name": "cn-health",
+  "version": "0.1.0",
+  "description": "Thin npm launcher for the native cn-health runtime",
+  "license": "MIT",
+  "bin": {
+    "cn-health": "bin/cn-health.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
