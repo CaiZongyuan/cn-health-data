@@ -2,6 +2,7 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+from _nhsa import raw_drug_row, source_values, validation_rules
 from cn_health_compiler.core.source import SourceSnapshot
 from cn_health_compiler.sources.nhsa_drugs.records import (
     SOURCE_HEADERS,
@@ -13,7 +14,6 @@ from cn_health_compiler.sources.nhsa_drugs.records import (
 from cn_health_compiler.sources.nhsa_drugs.validation import (
     DrugRecordValidator,
     DrugValidationError,
-    DrugValidationRules,
 )
 from cn_health_compiler.sources.nhsa_drugs.workbook import (
     NhsaDrugWorkbookConfig,
@@ -22,77 +22,13 @@ from cn_health_compiler.sources.nhsa_drugs.workbook import (
 from openpyxl import Workbook
 
 
-def _source_values(*, code: str = "XA01") -> list[str | None]:
-    return [
-        code,
-        "第一批",
-        "测试药品",
-        "无",
-        "片剂",
-        "片剂",
-        "0.5g",
-        "0.5g",
-        "铝塑",
-        "10",
-        "片",
-        "盒",
-        "测试药品企业",
-        None,
-        "测试生产企业",
-        "国药准字TEST",
-        None,
-        "86900000000000",
-        None,
-        "上市",
-        "测试药品",
-        "乙",
-        "口服常释剂型",
-        "1",
-        None,
-        "OLD01",
-    ]
-
-
-def _raw_row(*, source_row: int = 2, code: str = "XA01") -> RawDrugRow:
-    return RawDrugRow.from_values(source_row, _source_values(code=code))
-
-
-def _rules(*, baseline: int = 2) -> DrugValidationRules:
-    return DrugValidationRules.model_validate(
-        {
-            "source": {
-                "sha256": "a" * 64,
-                "worksheet": "总表",
-                "header_columns": 26,
-                "formula_cells": 0,
-            },
-            "record_count": {
-                "baseline": baseline,
-                "min": 1,
-                "max_relative_decrease": 0.05,
-                "max_relative_increase": 0.10,
-            },
-            "required": ["code", "registered_name", "data_source", "market_status"],
-            "max_null_rate": {
-                "code": 0,
-                "registered_name": 0,
-                "data_source": 0,
-                "market_status": 0,
-            },
-            "unique": ["code"],
-            "code": {"pattern": "^[A-Z0-9]+$", "allowed_lengths": [4]},
-            "allowed_values": {"market_status": ["上市", "停产", "未上市"]},
-        }
-    )
-
-
 def test_iter_raw_drug_rows_maps_the_declared_columns(tmp_path: Path) -> None:
     source_path = tmp_path / "drugs.xlsx"
     workbook = Workbook()
     total = workbook.active
     total.title = "总表"
     total.append(SOURCE_HEADERS)
-    total.append(_source_values())
+    total.append(source_values())
     workbook.save(source_path)
     source_sha256 = sha256(source_path.read_bytes()).hexdigest()
     snapshot = SourceSnapshot(
@@ -149,7 +85,7 @@ def test_iter_raw_drug_rows_maps_the_declared_columns(tmp_path: Path) -> None:
 
 
 def test_normalize_raw_drug_row_preserves_literals_and_normalizes_text() -> None:
-    values = _source_values(code="  XA01\t")
+    values = source_values(code="  XA01\t")
     values[2] = "  Cafe\u0301  "
     values[13] = "   "
     raw = RawDrugRow.from_values(2, values)
@@ -165,7 +101,7 @@ def test_normalize_raw_drug_row_preserves_literals_and_normalizes_text() -> None
 
 
 def test_normalize_raw_drug_row_rejects_missing_required_text() -> None:
-    values = _source_values()
+    values = source_values()
     values[2] = " "
 
     with pytest.raises(RecordNormalizationError, match="registered_name is required"):
@@ -177,10 +113,10 @@ def test_normalize_raw_drug_row_rejects_missing_required_text() -> None:
 
 
 def test_streaming_validator_accepts_valid_records() -> None:
-    validator = DrugRecordValidator(_rules())
+    validator = DrugRecordValidator(validation_rules())
     records = [
-        normalize_raw_drug_row(_raw_row(code="XA01"), "2026-01-09", "a" * 64),
-        normalize_raw_drug_row(_raw_row(source_row=3, code="XA02"), "2026-01-09", "a" * 64),
+        normalize_raw_drug_row(raw_drug_row(code="XA01"), "2026-01-09", "a" * 64),
+        normalize_raw_drug_row(raw_drug_row(source_row=3, code="XA02"), "2026-01-09", "a" * 64),
     ]
 
     for record in records:
@@ -193,20 +129,20 @@ def test_streaming_validator_accepts_valid_records() -> None:
 
 
 def test_streaming_validator_rejects_duplicate_code() -> None:
-    validator = DrugRecordValidator(_rules())
-    validator.consume(normalize_raw_drug_row(_raw_row(code="XA01"), "2026-01-09", "a" * 64))
+    validator = DrugRecordValidator(validation_rules())
+    validator.consume(normalize_raw_drug_row(raw_drug_row(code="XA01"), "2026-01-09", "a" * 64))
 
     with pytest.raises(DrugValidationError, match="duplicate code XA01"):
         validator.consume(
-            normalize_raw_drug_row(_raw_row(source_row=3, code="XA01"), "2026-01-09", "a" * 64)
+            normalize_raw_drug_row(raw_drug_row(source_row=3, code="XA01"), "2026-01-09", "a" * 64)
         )
 
 
 def test_streaming_validator_rejects_invalid_code_and_record_count() -> None:
-    validator = DrugRecordValidator(_rules())
+    validator = DrugRecordValidator(validation_rules())
 
     with pytest.raises(DrugValidationError, match="invalid code"):
-        validator.consume(normalize_raw_drug_row(_raw_row(code="xa01"), "2026-01-09", "a" * 64))
+        validator.consume(normalize_raw_drug_row(raw_drug_row(code="xa01"), "2026-01-09", "a" * 64))
 
     with pytest.raises(DrugValidationError, match="record count"):
-        DrugRecordValidator(_rules(baseline=2)).finish()
+        DrugRecordValidator(validation_rules(baseline=2)).finish()

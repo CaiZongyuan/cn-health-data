@@ -35,7 +35,8 @@ def _hash_stream(stream: BinaryIO) -> tuple[str, int]:
     return digest.hexdigest(), size_bytes
 
 
-def _hash_file(path: Path) -> tuple[str, int]:
+def hash_file(path: Path) -> tuple[str, int]:
+    """Return the SHA256 and byte length of a file."""
     with path.open("rb") as stream:
         return _hash_stream(stream)
 
@@ -54,7 +55,7 @@ def snapshot_local_source(
     if not source_path.is_file():
         raise FileNotFoundError(f"source is not a regular file: {source_path}")
 
-    source_sha256, source_size = _hash_file(source_path)
+    source_sha256, source_size = hash_file(source_path)
     if source_sha256 != expected_sha256:
         raise SourceIntegrityError(
             f"source SHA256 mismatch: expected {expected_sha256}, found {source_sha256}"
@@ -65,7 +66,7 @@ def snapshot_local_source(
     suffix = source_path.suffix.lower()
     snapshot_path = snapshot_dir / f"source{suffix}"
     if snapshot_path.exists():
-        snapshot_sha256, snapshot_size = _hash_file(snapshot_path)
+        snapshot_sha256, snapshot_size = hash_file(snapshot_path)
         if (snapshot_sha256, snapshot_size) != (expected_sha256, source_size):
             raise SourceIntegrityError(f"existing source snapshot is corrupt: {snapshot_path}")
     else:
