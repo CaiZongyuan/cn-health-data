@@ -40,7 +40,9 @@ uv run cn-health-build synthea translation project \
 The CLI option is named for the least-reviewed stage it can permit; this catalog
 currently has no machine-draft records. The runtime service exposes a separate explicit experimental seam. It requires
 `CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH` and
-`CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`, accepts `approved`,
+`CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`, plus the content-binding
+`CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256`. Startup fails unless the expected
+hash exactly matches the loaded catalog's canonical SHA-256. The service accepts `approved`,
 `human-reviewed`, and `machine-checked` (never `machine-draft`), and fails the
 request closed on any translation gap. It removes `Claim` and
 `ExplanationOfBenefit`. The request path loads only the local catalog and has no

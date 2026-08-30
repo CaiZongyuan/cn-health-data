@@ -6,6 +6,7 @@ import argparse
 import copy
 import json
 import os
+import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -47,21 +48,26 @@ class SyntheaClinicalDisplayLocalizer:
         identity_localizer: _BundleLocalizer,
         *,
         catalog_path: Path,
+        expected_catalog_sha256: str,
         projection_id: str,
     ) -> None:
         if not projection_id:
             raise ValueError("clinical display projection ID must not be empty")
+        if re.fullmatch(r"[0-9a-f]{64}", expected_catalog_sha256) is None:
+            raise ValueError("expected catalog SHA-256 must be 64 lowercase hexadecimal digits")
         catalog = load_catalog(catalog_path)
+        if catalog.sha256 != expected_catalog_sha256:
+            raise SyntheaLocalizationError("Synthea translation catalog SHA-256 mismatch")
         self._identity_localizer = identity_localizer
         self._lookup = CatalogDisplayLookup(
             catalog, accepted_review_statuses=_RUNTIME_REVIEW_STATUSES
         )
         self._projection_id = projection_id
-        self._catalog_sha256 = catalog.sha256
+        self._catalog_sha256 = expected_catalog_sha256
         self._provenance = identity_localizer.provenance
         self._provenance["clinicalDisplay"] = {
             "projectionId": projection_id,
-            "catalogSha256": catalog.sha256,
+            "catalogSha256": expected_catalog_sha256,
             "language": "zh-CN",
             "recordCount": len(catalog.records),
             "reviewMode": "experimental-preview",
@@ -246,6 +252,12 @@ def _path_argument(parser: argparse.ArgumentParser, name: str, environment: str)
     parser.add_argument(name, default=default, required=default is None, type=Path)
 
 
+def _sha256_argument(value: str) -> str:
+    if re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise argparse.ArgumentTypeError("must be 64 lowercase hexadecimal digits")
+    return value
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Serve deterministic cn-health Synthea localization"
@@ -264,6 +276,15 @@ def main() -> None:
         default=os.environ.get("CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID"),
         required=os.environ.get("CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID") is None,
     )
+    expected_catalog_sha256 = os.environ.get(
+        "CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256"
+    )
+    parser.add_argument(
+        "--expected-catalog-sha256",
+        default=expected_catalog_sha256,
+        required=expected_catalog_sha256 is None,
+        type=_sha256_argument,
+    )
     parser.add_argument("--host", default=os.environ.get("CN_HEALTH_LOCALIZER_HOST", "0.0.0.0"))
     parser.add_argument(
         "--port",
@@ -280,6 +301,7 @@ def main() -> None:
     localizer = SyntheaClinicalDisplayLocalizer(
         identity_localizer,
         catalog_path=arguments.translation_catalog,
+        expected_catalog_sha256=arguments.expected_catalog_sha256,
         projection_id=arguments.clinical_display_projection_id,
     )
     server = create_synthea_service_server(localizer, host=arguments.host, port=arguments.port)

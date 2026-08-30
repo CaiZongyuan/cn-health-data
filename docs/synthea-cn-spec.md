@@ -242,7 +242,11 @@ Python 库的 `SyntheaBundleLocalizer` 默认只执行身份本地化。HTTP ser
 执行 display 投影，且启动时必须显式提供
 `CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH`（或 `--translation-catalog`）与
 `CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`（或
-`--clinical-display-projection-id`）；不得从仓库布局、文件名或日期猜测。
+`--clinical-display-projection-id`），以及
+`CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256`（或
+`--expected-catalog-sha256`）；不得从仓库布局、文件名或日期猜测。expected hash 必须为
+64 位小写十六进制，并在 service 启动时与 catalog 的 canonical SHA-256 严格相等；不匹配
+必须阻止启动，避免同一 projection ID 在重启后指向不同内容。
 
 投影只接受 `approved`、`human-reviewed` 和 `machine-checked`，不接受
 `machine-draft`。任何 allowlisted clinical display 缺失翻译时，整个请求以

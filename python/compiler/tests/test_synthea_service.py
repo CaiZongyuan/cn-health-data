@@ -5,12 +5,20 @@ from http.client import HTTPConnection
 from pathlib import Path
 from typing import Any
 
-from cn_health_compiler.synthetic.synthea_localizer import LocalizedSyntheaBundle
+import pytest
+from cn_health_compiler.synthetic.synthea_localizer import (
+    LocalizedSyntheaBundle,
+    SyntheaLocalizationError,
+)
 from cn_health_compiler.synthetic.synthea_service import (
     SyntheaClinicalDisplayLocalizer,
     create_synthea_service_server,
 )
-from cn_health_compiler.synthetic.translation.catalog import TranslationRecord, translation_id
+from cn_health_compiler.synthetic.translation.catalog import (
+    TranslationRecord,
+    load_catalog,
+    translation_id,
+)
 
 
 class _StubLocalizer:
@@ -183,6 +191,7 @@ def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
     assert "COPY tmp" not in dockerfile
     assert '"pyyaml>=6.0.2,<7"' in dockerfile
     assert "pydantic pyyaml rfc8785" in dockerfile
+    assert "CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256" in dockerfile
     assert "dist/" in dockerignore
     assert "tmp/" in dockerignore
 
@@ -192,8 +201,12 @@ def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenanc
 ) -> None:
     catalog_path = tmp_path / "catalog.jsonl"
     _write_catalog(catalog_path)
+    expected_catalog_sha256 = load_catalog(catalog_path).sha256
     localizer = SyntheaClinicalDisplayLocalizer(
-        _StubLocalizer(), catalog_path=catalog_path, projection_id="synthea-zh-cn@test.r1"
+        _StubLocalizer(),
+        catalog_path=catalog_path,
+        expected_catalog_sha256=expected_catalog_sha256,
+        projection_id="synthea-zh-cn@test.r1",
     )
     bundle = {
         "resourceType": "Bundle",
@@ -234,7 +247,7 @@ def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenanc
             clinical_display = health["localization"]["clinicalDisplay"]
             assert clinical_display == {
                 "projectionId": "synthea-zh-cn@test.r1",
-                "catalogSha256": localizer.provenance["clinicalDisplay"]["catalogSha256"],
+                "catalogSha256": expected_catalog_sha256,
                 "language": "zh-CN",
                 "recordCount": 1,
                 "reviewMode": "experimental-preview",
@@ -262,7 +275,10 @@ def test_runtime_fails_closed_when_clinical_display_is_missing(tmp_path: Path) -
     catalog_path = tmp_path / "catalog.jsonl"
     _write_catalog(catalog_path, code="other")
     localizer = SyntheaClinicalDisplayLocalizer(
-        _StubLocalizer(), catalog_path=catalog_path, projection_id="synthea-zh-cn@test.r1"
+        _StubLocalizer(),
+        catalog_path=catalog_path,
+        expected_catalog_sha256=load_catalog(catalog_path).sha256,
+        projection_id="synthea-zh-cn@test.r1",
     )
     bundle = {
         "resourceType": "Bundle",
@@ -301,3 +317,18 @@ def test_runtime_fails_closed_when_clinical_display_is_missing(tmp_path: Path) -
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_runtime_rejects_catalog_that_does_not_match_expected_sha256(tmp_path: Path) -> None:
+    catalog_path = tmp_path / "catalog.jsonl"
+    _write_catalog(catalog_path)
+    expected_catalog_sha256 = load_catalog(catalog_path).sha256
+    _write_catalog(catalog_path, display="高血压")
+
+    with pytest.raises(SyntheaLocalizationError, match="catalog SHA-256 mismatch"):
+        SyntheaClinicalDisplayLocalizer(
+            _StubLocalizer(),
+            catalog_path=catalog_path,
+            expected_catalog_sha256=expected_catalog_sha256,
+            projection_id="synthea-zh-cn@test.r1",
+        )

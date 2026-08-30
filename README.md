@@ -299,6 +299,7 @@ an explicit catalog path and clinical display projection ID; neither is guessed:
 ```bash
 CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH=translations/synthea-zh-cn/catalog.jsonl \
 CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID=synthea-zh-cn@2026-08-30.r1 \
+CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256=d7a25fc414d4008cf59145fd8fc3448556635dd2d5ab8e1e7974bc236f825811 \
 uv run cn-health-synthea-service \
   --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
   --geography-release dist/geography-cn/releases/2026-08-29.r1 \
@@ -306,8 +307,10 @@ uv run cn-health-synthea-service \
   --population-release dist/population-cn/releases/WPP2024.r1
 ```
 
-The service applies identity localization first, then projects displays from
-the pinned local catalog. It accepts `approved`, `human-reviewed`, and
+The service loads the catalog only when its canonical SHA-256 exactly matches
+the required expected hash, binding the projection ID to the deployed content
+instead of trusting a mutable path. It then applies identity localization first
+and projects displays from the verified catalog. It accepts `approved`, `human-reviewed`, and
 `machine-checked`, fails closed on any translation gap, and removes `Claim` and
 `ExplanationOfBenefit` with their reference dependents. Health and successful
 responses report the projection ID, catalog hash, language, record count, and
