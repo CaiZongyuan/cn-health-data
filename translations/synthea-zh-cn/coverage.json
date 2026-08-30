@@ -1,6 +1,6 @@
 {
-  "catalogHash": "f0ec29be7bc295f73c7e22dbf33b6dd45f312d2484975aaaeee61b37066f7167",
-  "catalogRecords": 2176,
+  "catalogHash": "d7a25fc414d4008cf59145fd8fc3448556635dd2d5ab8e1e7974bc236f825811",
+  "catalogRecords": 2180,
   "corpusValidation": {
     "displayOccurrences": 1532,
     "gaps": 0,
@@ -45,8 +45,13 @@
     "upstreamModuleIssues": 18
   },
   "reviewStatus": {
-    "approved": 18,
+    "approved": 22,
     "machine-checked": 2158
+  },
+  "runtimeProjection": {
+    "covered": 4,
+    "gaps": 0,
+    "records": 4
   },
   "schemaVersion": 1,
   "syntheaCommit": "d9d07a6eef91ee5144293b42ab64224d84d124f8"

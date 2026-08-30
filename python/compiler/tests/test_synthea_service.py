@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from cn_health_compiler.synthetic.synthea_localizer import LocalizedSyntheaBundle
-from cn_health_compiler.synthetic.synthea_service import create_synthea_service_server
+from cn_health_compiler.synthetic.synthea_service import (
+    SyntheaClinicalDisplayLocalizer,
+    create_synthea_service_server,
+)
+from cn_health_compiler.synthetic.translation.catalog import TranslationRecord, translation_id
 
 
 class _StubLocalizer:
@@ -55,6 +59,23 @@ class _StubLocalizer:
             profile_content_hash="1" * 64,
             profile_id="synthea-cn@test.r1",
         )
+
+
+def _write_catalog(path: Path, *, code: str = "1234-5", display: str = "血压") -> None:
+    record = TranslationRecord(
+        translation_id=translation_id("LOINC", None, code),
+        source_system="LOINC",
+        source_version=None,
+        source_code=code,
+        source_display="Blood pressure",
+        display_zh=display,
+        domains=("observation",),
+        method="machine-checked",
+        review_status="machine-checked",
+        needs_review=False,
+        provenance_id="test",
+    )
+    path.write_text(record.model_dump_json(by_alias=True) + "\n", encoding="utf-8")
 
 
 def _request(
@@ -160,5 +181,123 @@ def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
     assert '"rfc8785>=0.1.4,<1"' in dockerfile
     assert "COPY dist" not in dockerfile
     assert "COPY tmp" not in dockerfile
+    assert '"pyyaml>=6.0.2,<7"' in dockerfile
+    assert "pydantic pyyaml rfc8785" in dockerfile
     assert "dist/" in dockerignore
     assert "tmp/" in dockerignore
+
+
+def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenance(
+    tmp_path: Path,
+) -> None:
+    catalog_path = tmp_path / "catalog.jsonl"
+    _write_catalog(catalog_path)
+    localizer = SyntheaClinicalDisplayLocalizer(
+        _StubLocalizer(), catalog_path=catalog_path, projection_id="synthea-zh-cn@test.r1"
+    )
+    bundle = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Patient",
+                    "id": "patient-1",
+                    "birthDate": "1988-03-16",
+                    "gender": "female",
+                }
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-1",
+                    "code": {
+                        "coding": [{
+                            "system": "http://loinc.org",
+                            "code": "1234-5",
+                            "display": "Blood pressure",
+                        }]
+                    },
+                }
+            },
+            {"resource": {"resourceType": "Claim", "id": "claim-1"}},
+            {"resource": {"resourceType": "ExplanationOfBenefit", "id": "eob-1"}},
+        ],
+    }
+    server = create_synthea_service_server(localizer, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with closing(HTTPConnection("127.0.0.1", server.server_port, timeout=2)) as connection:
+            status, health = _request(connection, "GET", "/health")
+            assert status == 200
+            clinical_display = health["localization"]["clinicalDisplay"]
+            assert clinical_display == {
+                "projectionId": "synthea-zh-cn@test.r1",
+                "catalogSha256": localizer.provenance["clinicalDisplay"]["catalogSha256"],
+                "language": "zh-CN",
+                "recordCount": 1,
+                "reviewMode": "experimental-preview",
+            }
+
+            status, response = _request(
+                connection, "POST", "/v1/localize", {"bundle": bundle, "seed": "seed"}
+            )
+            assert status == 200
+            assert response["metadata"] == localizer.provenance
+            resources = [entry["resource"] for entry in response["bundle"]["entry"]]
+            assert [resource["resourceType"] for resource in resources] == [
+                "Patient",
+                "Observation",
+            ]
+            assert resources[1]["code"]["coding"][0]["display"] == "血压"
+            assert resources[1]["code"]["text"] == "血压"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_runtime_fails_closed_when_clinical_display_is_missing(tmp_path: Path) -> None:
+    catalog_path = tmp_path / "catalog.jsonl"
+    _write_catalog(catalog_path, code="other")
+    localizer = SyntheaClinicalDisplayLocalizer(
+        _StubLocalizer(), catalog_path=catalog_path, projection_id="synthea-zh-cn@test.r1"
+    )
+    bundle = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [{
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-1",
+                "code": {"coding": [{
+                    "system": "http://loinc.org",
+                    "code": "missing",
+                    "display": "Untranslated",
+                }]},
+            }
+        }],
+    }
+    server = create_synthea_service_server(localizer, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with closing(HTTPConnection("127.0.0.1", server.server_port, timeout=2)) as connection:
+            status, response = _request(
+                connection, "POST", "/v1/localize", {"bundle": bundle, "seed": "seed"}
+            )
+            assert status == 422
+            assert response["error"]["code"] == "TRANSLATION_GAP"
+            assert response["error"]["gapCount"] == 1
+            assert response["error"]["gaps"] == [{
+                "resourceType": "Observation",
+                "path": "code.coding[0]",
+                "system": "http://loinc.org",
+                "version": None,
+                "code": "missing",
+            }]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)

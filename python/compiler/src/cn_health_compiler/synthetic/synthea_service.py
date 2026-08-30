@@ -1,6 +1,9 @@
 """Bounded internal HTTP service for the cn-health Synthea Bundle localizer."""
 
+from __future__ import annotations
+
 import argparse
+import copy
 import json
 import os
 from http import HTTPStatus
@@ -15,8 +18,76 @@ from cn_health_compiler.synthetic.synthea_localizer import (
     SyntheaBundleLocalizer,
     SyntheaLocalizationError,
 )
+from cn_health_compiler.synthetic.translation.catalog import (
+    CatalogDisplayLookup,
+    ReviewStatus,
+    load_catalog,
+)
+from cn_health_compiler.synthetic.translation.projector import TranslationGap, project_bundle
 
 _MAX_BODY_BYTES = 64 * 1024 * 1024
+_RUNTIME_REVIEW_STATUSES: frozenset[ReviewStatus] = frozenset(
+    {"approved", "human-reviewed", "machine-checked"}
+)
+
+
+class SyntheaClinicalDisplayError(SyntheaLocalizationError):
+    """Raised when the reviewed catalog cannot fully project a localized Bundle."""
+
+    def __init__(self, gaps: tuple[TranslationGap, ...]) -> None:
+        super().__init__(f"clinical display projection has {len(gaps)} translation gaps")
+        self.gaps = gaps
+
+
+class SyntheaClinicalDisplayLocalizer:
+    """Compose identity localization with fail-closed Chinese display projection."""
+
+    def __init__(
+        self,
+        identity_localizer: _BundleLocalizer,
+        *,
+        catalog_path: Path,
+        projection_id: str,
+    ) -> None:
+        if not projection_id:
+            raise ValueError("clinical display projection ID must not be empty")
+        catalog = load_catalog(catalog_path)
+        self._identity_localizer = identity_localizer
+        self._lookup = CatalogDisplayLookup(
+            catalog, accepted_review_statuses=_RUNTIME_REVIEW_STATUSES
+        )
+        self._projection_id = projection_id
+        self._catalog_sha256 = catalog.sha256
+        self._provenance = identity_localizer.provenance
+        self._provenance["clinicalDisplay"] = {
+            "projectionId": projection_id,
+            "catalogSha256": catalog.sha256,
+            "language": "zh-CN",
+            "recordCount": len(catalog.records),
+            "reviewMode": "experimental-preview",
+        }
+
+    @property
+    def provenance(self) -> dict[str, object]:
+        return copy.deepcopy(self._provenance)
+
+    def localize(
+        self, raw_bundle: dict[str, Any], *, seed: str
+    ) -> LocalizedSyntheaBundle:
+        localized = self._identity_localizer.localize(raw_bundle, seed=seed)
+        projected = project_bundle(
+            localized.bundle,
+            self._lookup,
+            release_id=self._projection_id,
+            content_hash=self._catalog_sha256,
+        )
+        if projected.gaps:
+            raise SyntheaClinicalDisplayError(projected.gaps)
+        return LocalizedSyntheaBundle(
+            bundle=projected.bundle,
+            profile_content_hash=localized.profile_content_hash,
+            profile_id=localized.profile_id,
+        )
 
 
 class _LocalizationRequest(BaseModel):
@@ -84,6 +155,28 @@ class _SyntheaServiceHandler(BaseHTTPRequestHandler):
                 HTTPStatus.BAD_REQUEST,
                 "REQUEST_INVALID",
                 "The localization request is invalid",
+            )
+            return
+        except SyntheaClinicalDisplayError as error:
+            self._json(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                {
+                    "error": {
+                        "code": "TRANSLATION_GAP",
+                        "message": "The Synthea Bundle has untranslated clinical displays",
+                        "gapCount": len(error.gaps),
+                        "gaps": [
+                            {
+                                "resourceType": gap.resource_type,
+                                "path": gap.path,
+                                "system": gap.system,
+                                "version": gap.version,
+                                "code": gap.code,
+                            }
+                            for gap in error.gaps[:20]
+                        ],
+                    }
+                },
             )
             return
         except SyntheaLocalizationError:
@@ -161,6 +254,16 @@ def main() -> None:
     _path_argument(parser, "--names-release", "CN_HEALTH_NAMES_RELEASE_PATH")
     _path_argument(parser, "--geography-release", "CN_HEALTH_GEOGRAPHY_RELEASE_PATH")
     _path_argument(parser, "--population-release", "CN_HEALTH_POPULATION_RELEASE_PATH")
+    _path_argument(
+        parser,
+        "--translation-catalog",
+        "CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH",
+    )
+    parser.add_argument(
+        "--clinical-display-projection-id",
+        default=os.environ.get("CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID"),
+        required=os.environ.get("CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID") is None,
+    )
     parser.add_argument("--host", default=os.environ.get("CN_HEALTH_LOCALIZER_HOST", "0.0.0.0"))
     parser.add_argument(
         "--port",
@@ -168,11 +271,16 @@ def main() -> None:
         type=int,
     )
     arguments = parser.parse_args()
-    localizer = SyntheaBundleLocalizer(
+    identity_localizer = SyntheaBundleLocalizer(
         profile_dir=arguments.profile,
         names_release_dir=arguments.names_release,
         geography_release_dir=arguments.geography_release,
         population_release_dir=arguments.population_release,
+    )
+    localizer = SyntheaClinicalDisplayLocalizer(
+        identity_localizer,
+        catalog_path=arguments.translation_catalog,
+        projection_id=arguments.clinical_display_projection_id,
     )
     server = create_synthea_service_server(localizer, host=arguments.host, port=arguments.port)
     try:

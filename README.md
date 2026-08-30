@@ -293,10 +293,26 @@ uv run cn-health-build synthea localize \
 
 Long-running consumers can build `Dockerfile.synthea-localizer` or run
 `cn-health-synthea-service`. The service verifies the profile content, files,
-and three Candidate dependencies at startup and returns the same provenance on
-every response. The localizer changes only Patient, Practitioner, and
-Organization identity presentation while preserving clinical IDs, codings,
-dates, values, units, and reference closure. See
+three Candidate dependencies, and translation catalog at startup. It requires
+an explicit catalog path and clinical display projection ID; neither is guessed:
+
+```bash
+CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH=translations/synthea-zh-cn/catalog.jsonl \
+CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID=synthea-zh-cn@2026-08-30.r1 \
+uv run cn-health-synthea-service \
+  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
+  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
+  --names-release dist/names-cn/releases/40.37.0.r1 \
+  --population-release dist/population-cn/releases/WPP2024.r1
+```
+
+The service applies identity localization first, then projects displays from
+the pinned local catalog. It accepts `approved`, `human-reviewed`, and
+`machine-checked`, fails closed on any translation gap, and removes `Claim` and
+`ExplanationOfBenefit` with their reference dependents. Health and successful
+responses report the projection ID, catalog hash, language, record count, and
+`experimental-preview` review mode. No external translation API is called. The
+Python library localizer remains identity-only unless explicitly composed. See
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md) for the full contract and
 Docker acceptance criteria.
 
@@ -312,12 +328,15 @@ uv run cn-health-build synthea translation project \
   --allow-machine-draft
 ```
 
-The catalog covers all 2,149 terms discovered in the pinned 242 modules plus 27
-exporter displays. Eighteen curated LOINC records are `approved`; 2,158 records
+The catalog covers all 2,149 terms discovered in the pinned 242 modules, 27
+exporter displays, and four runtime projection gaps found by the all-module smoke. Twenty-two records are `approved`; 2,158 records
 are independently `machine-checked`. Evidence review resolved all 51 original
-flags and records 18 Synthea module context or code-selection issues. Strict mode
-uses only approved records. Translation APIs are never called by CI, Bundle
-projection, or runtime services. See
+flags and records 18 Synthea module context or code-selection issues. Strict CLI
+mode uses only approved records. The CLI experimental switch is named for the
+least-reviewed stage it permits; this catalog currently has no machine-draft records.
+The runtime service accepts human-reviewed and machine-checked records, but never machine-draft records,
+under an explicit experimental distribution boundary. Translation APIs are
+never called by CI, Bundle projection, or runtime services. See
 [`translations/synthea-zh-cn/coverage.json`](translations/synthea-zh-cn/coverage.json).
 
 ## Curated Laboratory Concepts

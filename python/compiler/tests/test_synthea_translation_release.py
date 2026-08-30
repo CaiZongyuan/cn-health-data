@@ -14,7 +14,7 @@ def test_committed_synthea_translation_catalog_matches_coverage_contract() -> No
     overrides = load_catalog(TRANSLATION_ROOT / "overrides.jsonl")
     coverage = json.loads((TRANSLATION_ROOT / "coverage.json").read_text(encoding="utf-8"))
 
-    assert len(catalog.records) == coverage["catalogRecords"] == 2_176
+    assert len(catalog.records) == coverage["catalogRecords"] == 2_180
     assert catalog.sha256 == coverage["catalogHash"]
     assert coverage["moduleInventory"] == {
         "moduleCount": 242,
@@ -24,7 +24,7 @@ def test_committed_synthea_translation_catalog_matches_coverage_contract() -> No
     }
     assert coverage["exporterInventory"] == {"records": 27, "covered": 27, "gaps": 0}
     assert Counter(record.review_status for record in catalog.records) == {
-        "approved": 18,
+        "approved": 22,
         "machine-checked": 2_158,
     }
     assert sum(record.needs_review for record in catalog.records) == 0

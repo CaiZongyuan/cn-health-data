@@ -4,8 +4,8 @@ This directory owns versioned Simplified Chinese display designations for the
 pinned Synthea consumer profile. It does not map source codes to Chinese coding
 systems and does not alter clinical values, dates, units, or references.
 
-The pinned catalog contains 2,176 displays: 18 project-curated LOINC records
-are `approved`, and 2,158 API-generated records received an independent agent
+The pinned catalog contains 2,180 displays: 22 reviewed records are `approved`
+(including 18 project-curated LOINC records), and 2,158 API-generated records received an independent agent
 review and are marked `machine-checked`. A subsequent evidence review resolved
 all 51 flagged records; 18 resolutions identify Synthea module context or code
 selection issues while retaining the display of the actual coded concept. See
@@ -37,5 +37,13 @@ uv run cn-health-build synthea translation project \
   --allow-machine-draft
 ```
 
-The experimental option also accepts the safer `machine-checked` stage. It is
-named for the least-reviewed stage it permits.
+The CLI option is named for the least-reviewed stage it can permit; this catalog
+currently has no machine-draft records. The runtime service exposes a separate explicit experimental seam. It requires
+`CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH` and
+`CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`, accepts `approved`,
+`human-reviewed`, and `machine-checked` (never `machine-draft`), and fails the
+request closed on any translation gap. It removes `Claim` and
+`ExplanationOfBenefit`. The request path loads only the local catalog and has no
+external translation API. Provenance labels this boundary
+`reviewMode: experimental-preview`; that is not a claim that this catalog is
+release-eligible for distribution.

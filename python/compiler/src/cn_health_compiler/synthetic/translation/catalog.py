@@ -21,6 +21,7 @@ TranslationMethod = Literal[
 ]
 CatalogKey = tuple[str, str | None, str]
 _SYSTEM_ALIASES = {
+    "http://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_29.html": "DICOM-DCM",
     "http://hl7.org/fhir/sid/cvx": "CVX",
     "http://loinc.org": "LOINC",
     "http://snomed.info/sct": "SNOMED-CT",

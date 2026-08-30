@@ -236,6 +236,25 @@ Synthea 当前 demographics schema 的 race/ethnicity 列是美国兼容接口�
 本地化器删除美国 SSN、驾照和护照标识，保留 Synthea 自身 UUID 作为来源标识，并增加
 明确的 synthetic person/MRN identifier。
 
+### 7.1 Runtime clinical display projection
+
+Python 库的 `SyntheaBundleLocalizer` 默认只执行身份本地化。HTTP service 在此之后必须
+执行 display 投影，且启动时必须显式提供
+`CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH`（或 `--translation-catalog`）与
+`CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`（或
+`--clinical-display-projection-id`）；不得从仓库布局、文件名或日期猜测。
+
+投影只接受 `approved`、`human-reviewed` 和 `machine-checked`，不接受
+`machine-draft`。任何 allowlisted clinical display 缺失翻译时，整个请求以
+`TRANSLATION_GAP` 失败，不返回英中混合 Bundle。`Claim`、
+`ExplanationOfBenefit` 及依赖它们的引用闭包由 projector 删除。
+
+`/health` 和成功响应 metadata 均包含 `clinicalDisplay`，其字段为
+`projectionId`、`catalogSha256`、固定 `language: zh-CN`、`recordCount` 和固定
+`reviewMode: experimental-preview`。请求路径只读取固定本地 catalog，不调用外部翻译
+API。该 review mode 是明确的 experimental distribution boundary：术语权利复核完成且
+`translation.yaml` 允许发布前，不得把输出描述为 release-eligible 公开发行物。
+
 ## 8. ClinMesh 接入
 
 ### 8.1 人口与身份
