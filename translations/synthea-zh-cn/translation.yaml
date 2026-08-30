@@ -1,0 +1,32 @@
+schema_version: 1
+id: synthea-zh-cn
+language: zh-CN
+supported_synthea_commit: d9d07a6eef91ee5144293b42ab64224d84d124f8
+scope: clinical-display-only
+source_code_policy: preserve
+runtime_api_access: false
+rights:
+  release_eligible: false
+  distribution_review_required: true
+  notice: Third-party terminology identifiers and source displays retain their applicable terms.
+excluded_resources:
+  - Claim
+  - ExplanationOfBenefit
+deferred:
+  - chinese-code-mapping
+  - claims-and-reimbursement
+  - free-text-clinical-notes
+review_policy:
+  strict_release_status:
+    - approved
+  experimental_preview_status:
+    - approved
+    - human-reviewed
+    - machine-checked
+    - machine-draft
+translation_pipeline:
+  prompt_version: synthea-clinical-display-zh-v1
+  batch_max_records: 30
+  batch_max_source_characters: 6000
+  provider_model: gpt-5.6-sol
+  reasoning_effort: low

@@ -1,0 +1,38 @@
+schemaVersion: 1
+entries:
+  - source: "(disorder)"
+    target: "（疾病）"
+    domains: [clinical]
+  - source: "(finding)"
+    target: "（临床所见）"
+    domains: [clinical]
+  - source: "(procedure)"
+    target: "（医疗操作）"
+    domains: [clinical]
+  - source: "(regime/therapy)"
+    target: "（治疗方案）"
+    domains: [clinical]
+  - source: "(record artifact)"
+    target: "（临床记录）"
+    domains: [clinical]
+  - source: "(physical object)"
+    target: "（实体物品）"
+    domains: [clinical]
+  - source: "(substance)"
+    target: "（物质）"
+    domains: [clinical]
+  - source: "(qualifier value)"
+    target: "（限定值）"
+    domains: [clinical]
+  - source: "(occupation)"
+    target: "（职业）"
+    domains: [clinical]
+  - source: screening
+    target: 筛查
+    domains: [clinical]
+  - source: encounter
+    target: 就诊
+    domains: [clinical]
+  - source: care plan
+    target: 照护计划
+    domains: [clinical]

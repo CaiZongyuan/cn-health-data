@@ -13,6 +13,7 @@
 | `laboratory-cn` | Project-authored catalog of 18 Chinese laboratory/vital-sign concepts with exact LOINC 2.83 and preferred UCUM crosswalks |
 | Synthetic identity | Deterministic Chinese name/address, `100` phone, `.test` email, project MRN, and `990000` simulated resident ID |
 | Synthea support | Fixed-commit profile `2026-08-29.r3`, Bundle localizer, bounded non-root HTTP service, and three-module Docker corpus validation |
+| Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
 | Native runtime | Rust local install, dual hashes, bounded decompression, integrity check, list/info/versions/use, drug/diagnosis/LOINC get/search, JSON contract |
 | Remote distribution | Ed25519 Registry builder and verifier, key pinning, same-origin HTTPS, Manifest/artifact verification |
@@ -27,6 +28,7 @@
 - `population-cn@WPP2024.r1`
 - `laboratory-cn@2026-08-30.r1`
 - `synthea-cn@2026-08-29.r3` (supported consumer projection)
+- `synthea-zh-cn@2026-08-30.r1` (experimental display catalog; zero unresolved flags)
 
 These are locally built Candidates and are not bundled with the repository.
 Their Manifests preserve the source provenance and current distribution metadata;

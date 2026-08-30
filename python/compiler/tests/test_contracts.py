@@ -10,7 +10,16 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 def test_json_schemas_are_valid_draft_2020_12() -> None:
     schema_paths = sorted((REPO_ROOT / "schemas").glob("*.schema.json"))
 
-    assert len(schema_paths) == 5
+    assert {path.name for path in schema_paths} == {
+        "cli-output.schema.json",
+        "dataset.schema.json",
+        "manifest.schema.json",
+        "mapping.schema.json",
+        "registry.schema.json",
+        "translation-record.schema.json",
+        "translation-release.schema.json",
+        "translation-review-resolution.schema.json",
+    }
     for schema_path in schema_paths:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)

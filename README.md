@@ -300,6 +300,26 @@ dates, values, units, and reference closure. See
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md) for the full contract and
 Docker acceptance criteria.
 
+After identity localization, apply the pinned Chinese clinical display catalog:
+
+```bash
+uv run cn-health-build synthea translation project \
+  --input .work/localized-bundle.json \
+  --catalog translations/synthea-zh-cn/catalog.jsonl \
+  --output .work/localized-bundle.zh-CN.json \
+  --report .work/localized-bundle.zh-CN.report.json \
+  --release-id synthea-zh-cn@2026-08-30.r1 \
+  --allow-machine-draft
+```
+
+The catalog covers all 2,149 terms discovered in the pinned 242 modules plus 27
+exporter displays. Eighteen curated LOINC records are `approved`; 2,158 records
+are independently `machine-checked`. Evidence review resolved all 51 original
+flags and records 18 Synthea module context or code-selection issues. Strict mode
+uses only approved records. Translation APIs are never called by CI, Bundle
+projection, or runtime services. See
+[`translations/synthea-zh-cn/coverage.json`](translations/synthea-zh-cn/coverage.json).
+
 ## Curated Laboratory Concepts
 
 `laboratory-cn@2026-08-30.r1` contains 18 laboratory and vital-sign concepts
@@ -489,6 +509,9 @@ publishing any dataset.
   Chinese linguistic variant.
 - Building `loinc-zh-cn` still requires an operator-supplied official package
   with a confirmed member layout, version, and applicable terms.
+- `synthea-zh-cn` covers the pinned Synthea version and all 51 ambiguities have
+  evidence resolutions, but 2,158 displays remain machine-checked rather than
+  clinician-approved; it is not an official terminology language package.
 
 ## Documentation
 
@@ -498,6 +521,8 @@ publishing any dataset.
   implementation handbook
 - [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md): executable specification
   for Chinese datasets, Synthea projection, and consumer integration
+- [`docs/synthea-zh-localization-plan.md`](docs/synthea-zh-localization-plan.md):
+  implementation plan for Chinese clinical displays and bounded API translation
 - [`docs/architecture.md`](docs/architecture.md): concise component architecture
 - [`docs/dataset-format.md`](docs/dataset-format.md): Dataset Contract layout
 - [`docs/source-inventory.md`](docs/source-inventory.md): source inventory and status

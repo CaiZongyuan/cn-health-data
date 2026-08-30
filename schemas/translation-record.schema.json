@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cn-health-data.example/schemas/translation-record.schema.json",
+  "title": "Synthea Chinese Translation Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "translationId", "sourceSystem", "sourceVersion",
+    "sourceCode", "sourceDisplay", "language", "displayZh", "domains",
+    "method", "reviewStatus", "needsReview", "provenanceId",
+    "promptVersion", "model", "reviewer", "reviewedAt", "notes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "translationId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sourceSystem": { "type": "string", "minLength": 1 },
+    "sourceVersion": { "type": ["string", "null"], "minLength": 1 },
+    "sourceCode": { "type": "string", "minLength": 1 },
+    "sourceDisplay": { "type": "string", "minLength": 1 },
+    "language": { "const": "zh-CN" },
+    "displayZh": { "type": "string", "minLength": 1, "pattern": "[\\u3400-\\u9fff]" },
+    "domains": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "method": {
+      "enum": ["machine", "machine-checked", "human-reviewed", "project-curated", "manual-override"]
+    },
+    "reviewStatus": {
+      "enum": ["pending", "machine-draft", "machine-checked", "human-reviewed", "approved", "rejected"]
+    },
+    "needsReview": { "type": "boolean" },
+    "provenanceId": { "type": "string", "minLength": 1 },
+    "promptVersion": { "type": ["string", "null"], "minLength": 1 },
+    "model": { "type": ["string", "null"], "minLength": 1 },
+    "reviewer": { "type": ["string", "null"], "minLength": 1 },
+    "reviewedAt": { "type": ["string", "null"], "format": "date-time" },
+    "notes": { "type": ["string", "null"], "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "reviewStatus": { "const": "approved" } }, "required": ["reviewStatus"] },
+      "then": {
+        "properties": {
+          "method": { "enum": ["project-curated", "manual-override"] },
+          "needsReview": { "const": false }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "method": { "const": "machine" } }, "required": ["method"] },
+      "then": { "properties": { "reviewStatus": { "const": "machine-draft" } } }
+    }
+  ]
+}

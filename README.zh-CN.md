@@ -284,6 +284,26 @@ uv run cn-health-synthea-service --host 127.0.0.1
 编码、日期、数值、单位与引用闭包。完整合同与 Docker 验收见
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)。
 
+在身份本地化后，可以应用固定 Synthea commit 的临床中文显示目录：
+
+```bash
+uv run cn-health-build synthea translation project \
+  --input .work/localized-bundle.json \
+  --catalog translations/synthea-zh-cn/catalog.jsonl \
+  --output .work/localized-bundle.zh-CN.json \
+  --report .work/localized-bundle.zh-CN.report.json \
+  --release-id synthea-zh-cn@2026-08-30.r1 \
+  --allow-machine-draft
+```
+
+当前目录覆盖固定版本全部 242 个 module：2,149 个 module 术语和 27 个 exporter 补充
+术语均无缺口。18 条项目精选 LOINC 显示为 `approved`，其余 2,158 条已经第二个 Agent
+复核并标记为 `machine-checked`。原有 51 条复核标志均已完成证据复核并解决，其中 18 条
+确认是 Synthea module 上下文或选码问题，中文显示继续忠实表达实际编码。实验开关必须
+显式提供，严格模式只采用 `approved` 记录。构建和运行时均不调用翻译 API。机器可读
+结果见
+[`translations/synthea-zh-cn/coverage.json`](translations/synthea-zh-cn/coverage.json)。
+
 ## 精选检验概念
 
 `laboratory-cn@2026-08-30.r1` 包含当前已验证消费者所需的 18 个检验与生命体征概念。
@@ -450,6 +470,8 @@ MIT **不会**自动覆盖：
 - 即使本地存在工作簿，手术操作分类仍按当前计划暂缓开发。
 - `laboratory-cn` 是项目精选目录，不是官方完整 LOINC 中文语言包。
 - 构建 `loinc-zh-cn` 仍需运维方提供官方来源包，并确认成员布局、版本和适用条款。
+- `synthea-zh-cn` 已覆盖固定 Synthea 版本，51 条歧义均有证据 resolution，但 2,158 条
+  仍是机器复核而非临床专家批准，不能表示为官方术语语言包。
 
 ## 文档索引
 
@@ -457,6 +479,8 @@ MIT **不会**自动覆盖：
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md)：规范性实施手册
 - [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)：中国人口数据、Synthea 投影与消费者
   接入的可执行规格
+- [`docs/synthea-zh-localization-plan.md`](docs/synthea-zh-localization-plan.md)：Synthea
+  临床内容中文显示、API 分批翻译与验收计划
 - [`docs/architecture.md`](docs/architecture.md)：组件架构概览
 - [`docs/dataset-format.md`](docs/dataset-format.md)：Dataset Contract 结构
 - [`docs/source-inventory.md`](docs/source-inventory.md)：数据来源清单与状态

@@ -1,0 +1,53 @@
+{
+  "catalogHash": "f0ec29be7bc295f73c7e22dbf33b6dd45f312d2484975aaaeee61b37066f7167",
+  "catalogRecords": 2176,
+  "corpusValidation": {
+    "displayOccurrences": 1532,
+    "gaps": 0,
+    "modules": [
+      "fever",
+      "hypertension",
+      "type-2-diabetes"
+    ],
+    "patientBundles": 30,
+    "removedResources": {
+      "Claim": 330,
+      "ExplanationOfBenefit": 330
+    },
+    "translated": 1532
+  },
+  "exporterInventory": {
+    "covered": 27,
+    "gaps": 0,
+    "records": 27
+  },
+  "invariants": [
+    "Coding.system/version/code",
+    "clinical dates and statuses",
+    "Observation values",
+    "Quantity values and UCUM codes",
+    "dosage values and frequency codes",
+    "kept-resource references"
+  ],
+  "moduleInventory": {
+    "covered": 2149,
+    "gaps": 0,
+    "moduleCount": 242,
+    "records": 2149
+  },
+  "needsReview": {
+    "bySystem": {},
+    "total": 0
+  },
+  "reviewResolutions": {
+    "total": 51,
+    "unresolved": 0,
+    "upstreamModuleIssues": 18
+  },
+  "reviewStatus": {
+    "approved": 18,
+    "machine-checked": 2158
+  },
+  "schemaVersion": 1,
+  "syntheaCommit": "d9d07a6eef91ee5144293b42ab64224d84d124f8"
+}

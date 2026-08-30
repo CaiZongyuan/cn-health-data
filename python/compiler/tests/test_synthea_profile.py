@@ -200,6 +200,7 @@ def test_profile_projects_versioned_datasets_to_synthea_resources(tmp_path: Path
     )
     properties = (result.profile_dir / "synthea.properties").read_text(encoding="utf-8")
     assert "generate.geography.country_code = CN" in properties
+    assert "exporter.fhir.excluded_resources = Claim,ExplanationOfBenefit" in properties
     assert "generate.demographics.default_file = geography/demographics.csv" in properties
     assert "generate.geography.sdoh.default_file = geography/sdoh.csv" in properties
     payer = next(

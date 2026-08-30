@@ -319,6 +319,7 @@ def _properties() -> str:
         "exporter.fhir_dstu2.export": "false",
         "exporter.fhir.use_us_core_ig": "false",
         "exporter.fhir.transaction_bundle": "false",
+        "exporter.fhir.excluded_resources": "Claim,ExplanationOfBenefit",
         "exporter.hospital.fhir.export": "false",
         "exporter.practitioner.fhir.export": "false",
         "exporter.csv.export": "false",

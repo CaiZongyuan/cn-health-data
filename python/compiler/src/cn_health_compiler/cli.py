@@ -1,8 +1,9 @@
 """Command-line entry point for compiler operations."""
 
 import json
+from dataclasses import asdict
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any, cast
 
 import typer
 
@@ -19,12 +20,28 @@ from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidat
 from cn_health_compiler.sources.population.build import build_population_candidate
 from cn_health_compiler.synthetic.synthea_localizer import localize_synthea_bundle
 from cn_health_compiler.synthetic.synthea_profile import build_synthea_profile
+from cn_health_compiler.synthetic.translation.batches import TranslationBatch
+from cn_health_compiler.synthetic.translation.catalog import (
+    CatalogDisplayLookup,
+    ReviewStatus,
+    load_catalog,
+)
+from cn_health_compiler.synthetic.translation.inventory import build_translation_inventory
+from cn_health_compiler.synthetic.translation.projector import project_bundle
+from cn_health_compiler.synthetic.translation.validation import validate_projection
+from cn_health_compiler.synthetic.translation.workflow import (
+    batches_from_inventory,
+    merge_draft_responses,
+    write_catalog_jsonl,
+)
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 registry_app = typer.Typer(no_args_is_help=True)
 synthea_app = typer.Typer(no_args_is_help=True)
+synthea_translation_app = typer.Typer(no_args_is_help=True)
 app.add_typer(registry_app, name="registry")
 app.add_typer(synthea_app, name="synthea")
+synthea_app.add_typer(synthea_translation_app, name="translation")
 
 
 def _version_callback(value: bool) -> None:
@@ -231,6 +248,204 @@ def localize_synthea_r4_bundle(
     sha256, _ = write_json_atomic(output_path, localized.bundle)
     typer.echo(output_path)
     typer.echo(sha256)
+
+
+@synthea_translation_app.command("inventory")
+def synthea_translation_inventory(
+    module_dir: Annotated[
+        Path,
+        typer.Option(
+            "--module-dir", exists=True, file_okay=False, readable=True, resolve_path=True
+        ),
+    ],
+    output: Annotated[Path, typer.Option("--output", dir_okay=False, resolve_path=True)],
+    bundle: Annotated[
+        list[Path] | None,
+        typer.Option("--bundle", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ] = None,
+) -> None:
+    """Inventory translatable displays in pinned Synthea modules and FHIR Bundles."""
+    if output.exists():
+        raise typer.BadParameter(
+            "refusing to overwrite translation inventory", param_hint="--output"
+        )
+    inventory = build_translation_inventory(
+        module_dir=module_dir, fhir_bundle_paths=bundle or ()
+    )
+    write_json_atomic(output, inventory.as_dict())
+    typer.echo(output)
+    typer.echo(
+        f"modules={inventory.module_count} records={len(inventory.records)} "
+        f"conflicts={len(inventory.conflicts)} hash={inventory.content_hash}"
+    )
+
+
+@synthea_translation_app.command("make-batches")
+def synthea_translation_make_batches(
+    module_dir: Annotated[
+        Path,
+        typer.Option(
+            "--module-dir", exists=True, file_okay=False, readable=True, resolve_path=True
+        ),
+    ],
+    output_dir: Annotated[Path, typer.Option("--output-dir", file_okay=False, resolve_path=True)],
+    prompt_version: Annotated[str, typer.Option("--prompt-version")],
+    bundle: Annotated[
+        list[Path] | None,
+        typer.Option("--bundle", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ] = None,
+    max_records: Annotated[int, typer.Option("--max-records", min=1, max=100)] = 30,
+    max_source_characters: Annotated[
+        int, typer.Option("--max-source-characters", min=1)
+    ] = 6_000,
+) -> None:
+    """Create deterministic, bounded translation request batches."""
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise typer.BadParameter(
+            "translation batch directory is not empty", param_hint="--output-dir"
+        )
+    inventory = build_translation_inventory(
+        module_dir=module_dir, fhir_bundle_paths=bundle or ()
+    )
+    batches = batches_from_inventory(
+        inventory,
+        prompt_version=prompt_version,
+        max_records=max_records,
+        max_source_characters=max_source_characters,
+    )
+    write_json_atomic(output_dir / "inventory.json", inventory.as_dict())
+    pending_dir = output_dir / "batches" / "pending"
+    for batch_value in batches:
+        write_json_atomic(
+            pending_dir / f"{batch_value.batch_id}.json",
+            batch_value.model_dump(by_alias=True),
+        )
+    write_json_atomic(
+        output_dir / "batch-index.json",
+        {
+            "schemaVersion": 1,
+            "inventoryHash": inventory.content_hash,
+            "recordCount": len(inventory.records),
+            "batchCount": len(batches),
+            "batches": [
+                {
+                    "batchId": value.batch_id,
+                    "recordCount": len(value.records),
+                    "path": f"batches/pending/{value.batch_id}.json",
+                }
+                for value in batches
+            ],
+        },
+    )
+    typer.echo(output_dir / "batch-index.json")
+    typer.echo(f"records={len(inventory.records)} batches={len(batches)}")
+
+
+@synthea_translation_app.command("merge-drafts")
+def synthea_translation_merge_drafts(
+    batches_dir: Annotated[
+        Path,
+        typer.Option(
+            "--batches-dir", exists=True, file_okay=False, readable=True, resolve_path=True
+        ),
+    ],
+    responses_dir: Annotated[
+        Path,
+        typer.Option(
+            "--responses-dir", exists=True, file_okay=False, readable=True, resolve_path=True
+        ),
+    ],
+    inventory_path: Annotated[
+        Path,
+        typer.Option("--inventory", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    output: Annotated[Path, typer.Option("--output", dir_okay=False, resolve_path=True)],
+    model_id: Annotated[str, typer.Option("--model-id")],
+) -> None:
+    """Validate exact batch responses and merge them into a machine-draft catalog."""
+    if output.exists():
+        raise typer.BadParameter("refusing to overwrite translation catalog", param_hint="--output")
+    batch_values = tuple(
+        TranslationBatch.model_validate_json(path.read_text(encoding="utf-8"))
+        for path in sorted(batches_dir.glob("*.json"))
+    )
+    raw_responses: dict[str, dict[str, object]] = {}
+    for path in sorted(responses_dir.glob("*.json")):
+        raw: object = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict) or not isinstance(raw.get("batchId"), str):
+            raise typer.BadParameter(
+                f"invalid draft response: {path}", param_hint="--responses-dir"
+            )
+        raw_responses[str(raw["batchId"])] = cast(dict[str, object], raw)
+    inventory_raw: object = json.loads(inventory_path.read_text(encoding="utf-8"))
+    if not isinstance(inventory_raw, dict) or not isinstance(inventory_raw.get("conflicts"), list):
+        raise typer.BadParameter("invalid translation inventory", param_hint="--inventory")
+    conflicts: set[tuple[str, str | None, str]] = set()
+    for value in inventory_raw["conflicts"]:
+        if not isinstance(value, dict):
+            raise typer.BadParameter("invalid inventory conflict", param_hint="--inventory")
+        system, version, code = (
+            value.get("sourceSystem"),
+            value.get("sourceVersion"),
+            value.get("sourceCode"),
+        )
+        if not isinstance(system, str) or not isinstance(code, str):
+            raise typer.BadParameter("invalid inventory conflict key", param_hint="--inventory")
+        conflicts.add((system, version if isinstance(version, str) else None, code))
+    catalog = merge_draft_responses(
+        batch_values,
+        raw_responses,
+        model_id=model_id,
+        conflicts=frozenset(conflicts),
+    )
+    catalog_hash, _ = write_catalog_jsonl(output, catalog)
+    typer.echo(output)
+    typer.echo(f"records={len(catalog.records)} hash={catalog_hash}")
+
+
+@synthea_translation_app.command("project")
+def synthea_translation_project(
+    input_path: Annotated[
+        Path,
+        typer.Option("--input", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    catalog_path: Annotated[
+        Path,
+        typer.Option("--catalog", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    output_path: Annotated[Path, typer.Option("--output", dir_okay=False, resolve_path=True)],
+    report_path: Annotated[Path, typer.Option("--report", dir_okay=False, resolve_path=True)],
+    release_id: Annotated[str, typer.Option("--release-id")],
+    allow_machine_draft: Annotated[bool, typer.Option("--allow-machine-draft")] = False,
+) -> None:
+    """Apply a reviewed or explicit experimental display catalog to one Bundle."""
+    if output_path.exists() or report_path.exists():
+        raise typer.BadParameter("refusing to overwrite translation output")
+    raw: object = json.loads(input_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("input Bundle must be a JSON object", param_hint="--input")
+    source_bundle = cast(dict[str, Any], raw)
+    catalog = load_catalog(catalog_path)
+    accepted: frozenset[ReviewStatus] = (
+        frozenset({"approved", "human-reviewed", "machine-checked", "machine-draft"})
+        if allow_machine_draft
+        else frozenset({"approved"})
+    )
+    lookup = CatalogDisplayLookup(catalog, accepted_review_statuses=accepted)
+    projected = project_bundle(
+        source_bundle,
+        lookup,
+        release_id=release_id,
+        content_hash=catalog.sha256,
+    )
+    validation = validate_projection(source_bundle, projected.bundle, review_lookup=lookup)
+    write_json_atomic(output_path, projected.bundle)
+    write_json_atomic(report_path, asdict(validation))
+    typer.echo(output_path)
+    typer.echo(
+        f"translated={validation.translated} gaps={validation.gap} "
+        f"removed={len(validation.removed_resources)}"
+    )
 
 
 @registry_app.command("keygen")
