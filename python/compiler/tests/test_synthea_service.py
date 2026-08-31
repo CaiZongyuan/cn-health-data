@@ -143,6 +143,7 @@ def test_synthea_service_exposes_bounded_health_and_localization_contract() -> N
                     },
                 },
                 "metadata": localizer.provenance,
+                "warnings": [],
             }
             assert localizer.calls == [(bundle, "4242:7331:0")]
 
@@ -258,6 +259,7 @@ def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenanc
             )
             assert status == 200
             assert response["metadata"] == localizer.provenance
+            assert response["warnings"] == []
             resources = [entry["resource"] for entry in response["bundle"]["entry"]]
             assert [resource["resourceType"] for resource in resources] == [
                 "Patient",
@@ -271,7 +273,9 @@ def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenanc
         thread.join(timeout=2)
 
 
-def test_runtime_fails_closed_when_clinical_display_is_missing(tmp_path: Path) -> None:
+def test_runtime_preserves_source_display_and_warns_when_translation_is_missing(
+    tmp_path: Path,
+) -> None:
     catalog_path = tmp_path / "catalog.jsonl"
     _write_catalog(catalog_path, code="other")
     localizer = SyntheaClinicalDisplayLocalizer(
@@ -303,15 +307,24 @@ def test_runtime_fails_closed_when_clinical_display_is_missing(tmp_path: Path) -
             status, response = _request(
                 connection, "POST", "/v1/localize", {"bundle": bundle, "seed": "seed"}
             )
-            assert status == 422
-            assert response["error"]["code"] == "TRANSLATION_GAP"
-            assert response["error"]["gapCount"] == 1
-            assert response["error"]["gaps"] == [{
-                "resourceType": "Observation",
-                "path": "code.coding[0]",
-                "system": "http://loinc.org",
-                "version": None,
-                "code": "missing",
+            assert status == 200
+            assert response["bundle"]["entry"][0]["resource"]["code"]["coding"][0][
+                "display"
+            ] == "Untranslated"
+            assert response["warnings"] == [{
+                "code": "TRANSLATION_GAP",
+                "message": "The Synthea Bundle contains untranslated clinical displays",
+                "gapCount": 1,
+                "gaps": [{
+                    "resourceType": "Observation",
+                    "resourceId": "obs-1",
+                    "path": "code.coding[0]",
+                    "system": "http://loinc.org",
+                    "version": None,
+                    "code": "missing",
+                    "sourceDisplay": "Untranslated",
+                }],
+                "truncated": False,
             }]
     finally:
         server.shutdown()

@@ -7,6 +7,7 @@ import copy
 import json
 import os
 import re
+from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -27,17 +28,18 @@ from cn_health_compiler.synthetic.translation.catalog import (
 from cn_health_compiler.synthetic.translation.projector import TranslationGap, project_bundle
 
 _MAX_BODY_BYTES = 64 * 1024 * 1024
+_MAX_TRANSLATION_GAPS = 100
 _RUNTIME_REVIEW_STATUSES: frozenset[ReviewStatus] = frozenset(
     {"approved", "human-reviewed", "machine-checked"}
 )
 
 
-class SyntheaClinicalDisplayError(SyntheaLocalizationError):
-    """Raised when the reviewed catalog cannot fully project a localized Bundle."""
-
-    def __init__(self, gaps: tuple[TranslationGap, ...]) -> None:
-        super().__init__(f"clinical display projection has {len(gaps)} translation gaps")
-        self.gaps = gaps
+@dataclass(frozen=True, slots=True)
+class LocalizedSyntheaProjection:
+    bundle: dict[str, Any]
+    gaps: tuple[TranslationGap, ...]
+    profile_content_hash: str
+    profile_id: str
 
 
 class SyntheaClinicalDisplayLocalizer:
@@ -45,7 +47,7 @@ class SyntheaClinicalDisplayLocalizer:
 
     def __init__(
         self,
-        identity_localizer: _BundleLocalizer,
+        identity_localizer: _IdentityLocalizer,
         *,
         catalog_path: Path,
         expected_catalog_sha256: str,
@@ -79,7 +81,7 @@ class SyntheaClinicalDisplayLocalizer:
 
     def localize(
         self, raw_bundle: dict[str, Any], *, seed: str
-    ) -> LocalizedSyntheaBundle:
+    ) -> LocalizedSyntheaProjection:
         localized = self._identity_localizer.localize(raw_bundle, seed=seed)
         projected = project_bundle(
             localized.bundle,
@@ -87,10 +89,9 @@ class SyntheaClinicalDisplayLocalizer:
             release_id=self._projection_id,
             content_hash=self._catalog_sha256,
         )
-        if projected.gaps:
-            raise SyntheaClinicalDisplayError(projected.gaps)
-        return LocalizedSyntheaBundle(
+        return LocalizedSyntheaProjection(
             bundle=projected.bundle,
+            gaps=projected.gaps,
             profile_content_hash=localized.profile_content_hash,
             profile_id=localized.profile_id,
         )
@@ -103,7 +104,7 @@ class _LocalizationRequest(BaseModel):
     seed: str = Field(min_length=1, max_length=256)
 
 
-class _BundleLocalizer(Protocol):
+class _IdentityLocalizer(Protocol):
     @property
     def provenance(self) -> dict[str, object]: ...
 
@@ -112,9 +113,41 @@ class _BundleLocalizer(Protocol):
     ) -> LocalizedSyntheaBundle: ...
 
 
+class _ServiceLocalizer(Protocol):
+    @property
+    def provenance(self) -> dict[str, object]: ...
+
+    def localize(
+        self, raw_bundle: dict[str, Any], *, seed: str
+    ) -> LocalizedSyntheaBundle | LocalizedSyntheaProjection: ...
+
+
+def _translation_warnings(gaps: tuple[TranslationGap, ...]) -> list[dict[str, object]]:
+    if not gaps:
+        return []
+    return [{
+        "code": "TRANSLATION_GAP",
+        "message": "The Synthea Bundle contains untranslated clinical displays",
+        "gapCount": len(gaps),
+        "gaps": [
+            {
+                "resourceType": gap.resource_type,
+                "resourceId": gap.resource_id,
+                "path": gap.path,
+                "system": gap.system,
+                "version": gap.version,
+                "code": gap.code,
+                "sourceDisplay": gap.source_display,
+            }
+            for gap in gaps[:_MAX_TRANSLATION_GAPS]
+        ],
+        "truncated": len(gaps) > _MAX_TRANSLATION_GAPS,
+    }]
+
+
 class _SyntheaServiceHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    _localizer: _BundleLocalizer
+    _localizer: _ServiceLocalizer
 
     def do_GET(self) -> None:
         if self.path != "/health":
@@ -163,28 +196,6 @@ class _SyntheaServiceHandler(BaseHTTPRequestHandler):
                 "The localization request is invalid",
             )
             return
-        except SyntheaClinicalDisplayError as error:
-            self._json(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                {
-                    "error": {
-                        "code": "TRANSLATION_GAP",
-                        "message": "The Synthea Bundle has untranslated clinical displays",
-                        "gapCount": len(error.gaps),
-                        "gaps": [
-                            {
-                                "resourceType": gap.resource_type,
-                                "path": gap.path,
-                                "system": gap.system,
-                                "version": gap.version,
-                                "code": gap.code,
-                            }
-                            for gap in error.gaps[:20]
-                        ],
-                    }
-                },
-            )
-            return
         except SyntheaLocalizationError:
             self._error(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -192,10 +203,12 @@ class _SyntheaServiceHandler(BaseHTTPRequestHandler):
                 "The Synthea Bundle cannot be localized",
             )
             return
-        self._json(
-            HTTPStatus.OK,
-            {"bundle": localized.bundle, "metadata": self._localizer.provenance},
-        )
+        gaps = localized.gaps if isinstance(localized, LocalizedSyntheaProjection) else ()
+        self._json(HTTPStatus.OK, {
+            "bundle": localized.bundle,
+            "metadata": self._localizer.provenance,
+            "warnings": _translation_warnings(gaps),
+        })
 
     def do_PUT(self) -> None:
         self._method_not_allowed()
@@ -236,7 +249,7 @@ class _SyntheaServiceHandler(BaseHTTPRequestHandler):
 
 
 def create_synthea_service_server(
-    localizer: _BundleLocalizer,
+    localizer: _ServiceLocalizer,
     *,
     host: str,
     port: int,

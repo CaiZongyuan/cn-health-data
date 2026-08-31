@@ -311,11 +311,14 @@ The service loads the catalog only when its canonical SHA-256 exactly matches
 the required expected hash, binding the projection ID to the deployed content
 instead of trusting a mutable path. It then applies identity localization first
 and projects displays from the verified catalog. It accepts `approved`, `human-reviewed`, and
-`machine-checked`, fails closed on any translation gap, and removes `Claim` and
-`ExplanationOfBenefit` with their reference dependents. Health and successful
-responses report the projection ID, catalog hash, language, record count, and
-`experimental-preview` review mode. No external translation API is called. The
-Python library localizer remains identity-only unless explicitly composed. See
+`machine-checked`, preserves a source display when its translation is missing,
+and returns a bounded `TRANSLATION_GAP` warning without rejecting the Bundle. It
+still fails closed for invalid requests, Bundle localization failures, catalog
+hash drift, and provenance errors. `Claim` and `ExplanationOfBenefit` are removed
+with their reference dependents. Health and successful responses report the
+projection ID, catalog hash, language, record count, and `experimental-preview`
+review mode. No external translation API is called. The Python library localizer
+remains identity-only unless explicitly composed. See
 [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md) for the full contract and
 Docker acceptance criteria.
 

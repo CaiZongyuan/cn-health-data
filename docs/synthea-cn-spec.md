@@ -249,9 +249,12 @@ Python 库的 `SyntheaBundleLocalizer` 默认只执行身份本地化。HTTP ser
 必须阻止启动，避免同一 projection ID 在重启后指向不同内容。
 
 投影只接受 `approved`、`human-reviewed` 和 `machine-checked`，不接受
-`machine-draft`。任何 allowlisted clinical display 缺失翻译时，整个请求以
-`TRANSLATION_GAP` 失败，不返回英中混合 Bundle。`Claim`、
-`ExplanationOfBenefit` 及依赖它们的引用闭包由 projector 删除。
+`machine-draft`。allowlisted clinical display 缺失翻译时保留来源 display，HTTP service
+仍以 `200` 返回 Bundle，并在 `warnings` 中返回一个 `TRANSLATION_GAP`。warning 包含实际
+`gapCount`、`truncated`，以及最多 100 条 `resourceType`、`resourceId`、FHIR `path`、
+`system`、`version`、`code` 和 `sourceDisplay`；没有缺口时 `warnings` 是空数组。无效请求、
+Bundle 身份本地化失败、catalog hash 不匹配或 provenance 无法验证仍然 fail closed。
+`Claim`、`ExplanationOfBenefit` 及依赖它们的引用闭包由 projector 删除。
 
 `/health` 和成功响应 metadata 均包含 `clinicalDisplay`，其字段为
 `projectionId`、`catalogSha256`、固定 `language: zh-CN`、`recordCount` 和固定
