@@ -36,18 +36,24 @@ that it does not hold.
 
 The current drug and diagnosis baselines are built from explicitly supplied local
 workbooks. Their Candidate Manifests preserve the authority role, acquisition
-method, source fingerprint, source version, and distribution metadata. These
-record-level Candidates are local build outputs and are not bundled with the
-repository's MIT-licensed software.
+method, source fingerprint, source version, and distribution metadata. The
+project distributes normalized SQLite/zstd and Parquet projections under their
+Dataset-specific Manifest terms; it does not distribute the source workbooks.
 
 Raw files under `tmp/` are ignored by Git and are never release artifacts.
 Source authority, acquisition evidence, retention, and distribution metadata are
 recorded independently for every dataset.
 
-The signed public starter Registry is a narrow exception to the default local
-Candidate policy. It contains only the project-authored `laboratory-cn` catalog
-whose Manifest records `redistribution: public` and `releaseEligible: true`.
-LOINC and UCUM identifiers continue to identify their respective external
-standards; the starter is not the complete official LOINC Chinese package.
+The signed public Registry contains the current normalized Releases for all
+seven implemented Datasets. Public staging excludes raw sources, uncompressed
+SQLite transport copies, historical duplicate revisions, caches, and logs. Each
+public Manifest records its independent redistribution decision, evidence,
+attribution, source identity, and exact artifact hashes. LOINC and UCUM
+identifiers continue to identify their respective external standards.
+
+The maintainer publication decision and operational conditions are recorded in
+[`docs/publication-decision.md`](docs/publication-decision.md). That decision
+does not relicense third-party material under MIT or remove source-specific
+notices.
 
 See [`docs/data-rights.md`](docs/data-rights.md) for the project policy.

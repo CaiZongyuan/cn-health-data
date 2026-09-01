@@ -37,7 +37,8 @@ def stage_public_releases(
     if output_root.exists():
         raise FileExistsError(f"refusing to replace existing distribution root: {output_root}")
     output_root.parent.mkdir(parents=True, exist_ok=True)
-    temporary_root = Path(mkdtemp(prefix=f".{output_root.name}-", dir=output_root.parent))
+    staging_root = Path(mkdtemp(prefix=f".{output_root.name}-", dir=output_root.parent))
+    cleanup_root: Path | None = staging_root
     staged_identities: list[tuple[str, str, str]] = []
     seen_datasets: set[str] = set()
     try:
@@ -68,7 +69,7 @@ def stage_public_releases(
                 raise ValueError(f"multiple recommended Candidates supplied for {dataset_id}")
             seen_datasets.add(dataset_id)
 
-            target_dir = temporary_root / "releases" / dataset_id / storage_key
+            target_dir = staging_root / "releases" / dataset_id / storage_key
             target_dir.mkdir(parents=True)
             public_artifacts: list[dict[str, Any]] = []
             has_compressed_sqlite = False
@@ -111,11 +112,11 @@ def stage_public_releases(
             write_json_atomic(target_dir / "manifest.json", manifest)
             staged_identities.append((dataset_id, release_id, storage_key))
 
-        os.replace(temporary_root, output_root)
-        temporary_root = Path()
+        os.replace(staging_root, output_root)
+        cleanup_root = None
     finally:
-        if temporary_root != Path() and temporary_root.exists():
-            shutil.rmtree(temporary_root)
+        if cleanup_root is not None and cleanup_root.exists():
+            shutil.rmtree(cleanup_root)
 
     return [
         StagedRelease(

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-private_key=${1:?usage: scripts/sign-starter-registry.sh PRIVATE_KEY [PUBLIC_BASE_URL]}
+private_key=${1:?usage: scripts/sign-public-registry.sh PRIVATE_KEY [PUBLIC_BASE_URL]}
 base_url=${2:-https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases}
 
 cd "$repo_root"

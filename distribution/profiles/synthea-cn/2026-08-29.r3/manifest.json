@@ -1,0 +1,133 @@
+{
+  "compiler": {
+    "adapter": "synthea-cn-profile",
+    "adapterVersion": 1,
+    "gitCommit": "238d31a0e89de1f09f25f7b4fb090f02c910b510",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "contentHash": "d8a4ef19561434cb66c8a391aebfcf6a4dc5f14baf4d4171eac3b8c340b5dd12",
+  "createdAt": "2026-08-29T15:37:44Z",
+  "dependencies": [
+    {
+      "canonicalSha256": "3c632be160c5a3d6e3196b8e95a0b33a25e9f35bcee506b25d7305345c50957a",
+      "datasetId": "geography-cn",
+      "releaseId": "geography-cn@2026-08-29.r1",
+      "sqliteSha256": "5ca7121046d49a80b0da38e2b3413a1bc1a7b1040382903ba1d516793e5c5bc7"
+    },
+    {
+      "canonicalSha256": "4f66c18be0ab19e515927953bd741a1476584f2bdac3d8e6d67221232a31468d",
+      "datasetId": "names-cn",
+      "releaseId": "names-cn@40.37.0.r1",
+      "sqliteSha256": "20fc1bc0a0c38b7122635d00aecb710a0ecf1892d91d3c3c190cc9213c2bb0ae"
+    },
+    {
+      "canonicalSha256": "371dde5944505c426a8ad39be21f647921e754366cb410c0529176d2b6ebfb8a",
+      "datasetId": "population-cn",
+      "releaseId": "population-cn@WPP2024.r1",
+      "sqliteSha256": "89858f25d5e898df32f896e8f12b7daf2bc569abb55f8bf69b3f21e988a50a05"
+    }
+  ],
+  "files": [
+    {
+      "path": "classpath/geography/demographics.csv",
+      "sha256": "af310cdc7982af0067b549ac6d5cb92e7a409c1764341f517b3e95cef01cd647",
+      "sizeBytes": 182115
+    },
+    {
+      "path": "classpath/geography/foreign_birthplace.json",
+      "sha256": "fefb3195b316ea9a9c9723c9b4f38831d53796d4efe4b8108a22526d67279deb",
+      "sizeBytes": 95
+    },
+    {
+      "path": "classpath/geography/sdoh.csv",
+      "sha256": "316fbcdc3fd7df7ef741672ff24301a43ae1512421aecfc0b58fb61f43826936",
+      "sizeBytes": 38
+    },
+    {
+      "path": "classpath/geography/timezones.csv",
+      "sha256": "b70688af2ac25ab1dd7d5cf37c4ee316a350ccb2273cf9243ec7dc97f2c3ba6a",
+      "sizeBytes": 65
+    },
+    {
+      "path": "classpath/geography/zipcodes.csv",
+      "sha256": "c4a4a76ef3bb2a40dd27883abfc5e9a7d30bf635a790bd3eb19a428804e33122",
+      "sizeBytes": 21453
+    },
+    {
+      "path": "classpath/names.yml",
+      "sha256": "8220c810e0307a54e81ffeb253ee0d73e0b789c563b2254c4ff6cd9eb055bf9e",
+      "sizeBytes": 78700
+    },
+    {
+      "path": "classpath/payers/insurance_companies.csv",
+      "sha256": "fe101d8fd9534489a91e804726697e51ce4a72f522d9eb9c461c7b78dd373e15",
+      "sizeBytes": 186
+    },
+    {
+      "path": "classpath/payers/insurance_eligibilities.csv",
+      "sha256": "d7216bd2ef716fd16595af82adfe6a27b5232df0f0fd65525b6b00af40a076af",
+      "sizeBytes": 218
+    },
+    {
+      "path": "classpath/payers/insurance_plans.csv",
+      "sha256": "49cb486980d2c92ca20124be91b06901425253223d9b8a6279cca17ca1621092",
+      "sizeBytes": 245
+    },
+    {
+      "path": "classpath/providers/hospitals.csv",
+      "sha256": "ff9650d25077c0720305be0daf226836b068f91153a5489f2558b2dff688f9f9",
+      "sizeBytes": 60364
+    },
+    {
+      "path": "classpath/providers/primary_care_facilities.csv",
+      "sha256": "42a4464a844c15235a6105f6e8b5dfd85e6db34dc579f92502c5448c2e08bb81",
+      "sizeBytes": 63664
+    },
+    {
+      "path": "classpath/providers/urgent_care_facilities.csv",
+      "sha256": "26f1b1b6441c0723a04f3ce1b686084cf4c06e864988a0f708fb7c29cfbd7a8d",
+      "sizeBytes": 59704
+    },
+    {
+      "path": "classpath/version.txt",
+      "sha256": "50032b9f87bd71f339c44ba64be67168f0f97545269250534187bdb52ee02f12",
+      "sizeBytes": 41
+    },
+    {
+      "path": "synthea.properties",
+      "sha256": "cae92ada806e40c3ce35ff7a2a6ffbece681ecc2bc72def0ed1d856be52acd9a",
+      "sizeBytes": 1967
+    }
+  ],
+  "profileId": "synthea-cn@2026-08-29.r3",
+  "projectionPolicy": {
+    "demographicsCompatibility": "synthetic",
+    "educationDistribution": [
+      0.2,
+      0.3,
+      0.3,
+      0.2
+    ],
+    "identityAlgorithm": "synthetic-identity-v1",
+    "incomeDistribution": [
+      0.02,
+      0.03,
+      0.08,
+      0.15,
+      0.22,
+      0.24,
+      0.15,
+      0.08,
+      0.02,
+      0.01
+    ],
+    "raceProjection": {
+      "ASIAN": 1
+    },
+    "referenceYear": 2026
+  },
+  "schemaVersion": 1,
+  "storageKey": "2026-08-29.r3",
+  "supportedSyntheaCommit": "d9d07a6eef91ee5144293b42ab64224d84d124f8"
+}

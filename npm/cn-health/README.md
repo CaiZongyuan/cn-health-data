@@ -9,7 +9,7 @@ data or reimplement queries in JavaScript.
 Node.js 22 or newer is required for the launcher:
 
 ```bash
-npm install --global cn-health@0.2.1
+npm install --global cn-health@0.3.0
 cn-health --version
 ```
 
@@ -24,7 +24,7 @@ Supported packages are selected automatically:
 
 Do not install with `--omit=optional`; the launcher needs the matching native
 package. Version `0.2.0` had incorrect Unix executable permissions and is
-superseded by `0.2.1`.
+superseded by current releases.
 
 ## First Query
 
@@ -35,10 +35,10 @@ cn-health laboratory get 2339-0 --json
 cn-health doctor
 ```
 
-`init` verifies and installs the signed public starter Release. The starter
-currently contains 18 project-authored laboratory and vital-sign records; it
-does not include the repository's local-only drug, diagnosis, complete LOINC,
-geography, name, or population Candidates.
+`init` verifies and installs all seven current public Datasets: drug, diagnosis,
+complete Chinese LOINC, geography, names, population, and the curated laboratory
+catalog. Use `--only DATASET_ID[,DATASET_ID...]` for selective installation.
+Raw source workbooks and archives are not distributed.
 
 After initialization, queries and `doctor` work offline. Use
 `cn-health doctor --json` to inspect the effective data directory and Registry.

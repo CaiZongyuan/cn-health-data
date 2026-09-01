@@ -85,3 +85,23 @@ def test_full_registry_is_signed_complete_and_installable(tmp_path: Path) -> Non
 
     assert total_compressed == 78_991_543
     assert total_uncompressed == 822_198_272
+
+
+def test_public_synthea_profile_matches_its_manifest() -> None:
+    profile_root = REPO_ROOT / "distribution/profiles/synthea-cn/2026-08-29.r3"
+    manifest = json.loads((profile_root / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["profileId"] == "synthea-cn@2026-08-29.r3"
+    assert manifest["supportedSyntheaCommit"] == "d9d07a6eef91ee5144293b42ab64224d84d124f8"
+    assert {item["datasetId"] for item in manifest["dependencies"]} == {
+        "geography-cn",
+        "names-cn",
+        "population-cn",
+    }
+    for declared in manifest["files"]:
+        relative = Path(declared["path"])
+        assert not relative.is_absolute()
+        assert ".." not in relative.parts
+        assert hash_file(profile_root / relative) == (
+            declared["sha256"],
+            declared["sizeBytes"],
+        )

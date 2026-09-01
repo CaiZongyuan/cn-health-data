@@ -19,18 +19,19 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 
 | Dataset | 当前实现 | 已验证构建 | 记录数 | 公众可获取性 |
 |---|---|---:|---:|---|
-| `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r3` | 269,110 | 仅本地 Candidate；不在公共 Registry |
-| `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r3` | 37,294 | 仅本地 Candidate；不在公共 Registry |
-| `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r1` | 24,731 | 仅本地 Candidate；不在公共 Registry |
-| `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 | 仅本地 Candidate；不在公共 Registry |
-| `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 | 仅本地 Candidate；不在公共 Registry |
-| `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 | 公共 starter Registry；`cn-health init` 可安装 |
-| `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r1` | 365,722 | 仅本地 Candidate；等待逐产物权利审查 |
+| `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r4` | 269,110 | 公共 Registry；默认安装 |
+| `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r4` | 37,294 | 公共 Registry；默认安装 |
+| `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r2` | 24,731 | 公共 Registry；默认安装 |
+| `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r2` | 530 | 公共 Registry；默认安装 |
+| `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r2` | 3,171 | 公共 Registry；默认安装 |
+| `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r2` | 18 | 公共 Registry；默认安装 |
+| `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r2` | 365,722 | 公共 Registry；默认安装 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 | 未实现 |
 
 表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时、
-合成测试 Fixture，以及允许公开分发的 `laboratory-cn` starter Release。`tmp/`、`.work/`
-和 `dist/` 均被 Git 忽略，因此克隆仓库不会附带私有来源工作簿或其他本地 Candidate。
+合成测试 Fixture，以及七个已实现 Dataset 的规范化公共 Release。`tmp/`、`.work/` 和
+`dist/` 均被 Git 忽略，因此克隆仓库不会附带私有来源文件、构建缓存或历史 Candidate；
+最新压缩 SQLite、Parquet、Manifest 和报告位于 `distribution/`。
 
 当前已经实现的基础设施包括：
 
@@ -45,7 +46,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 - 项目自行编写的中文检验/生命体征目录，以及精选 LOINC 2.83/UCUM 交叉引用；
 - 中国合成姓名、地址、`100` 电话和 `990000` 模拟居民号码的确定性生成；
 - 固定 Synthea commit 的 profile 投影、FHIR R4 身份本地化和内部 HTTP 服务；
-- Ed25519 签名公共 starter Registry、默认信任根、`init` 和离线 `doctor`；
+- Ed25519 签名完整公共 Registry、默认全量 `init`、选择性 `--only` 和离线 `doctor`；
 - 四个平台原生包的 tag 构建，以及只负责调用原生二进制文件的 npm 启动器。
 
 准确的已实现边界见
@@ -93,7 +94,7 @@ npm/               原生 CLI 的轻量启动器
 python/compiler/   Python 编译器、来源适配器和测试
 rust/cn-health/    原生安装与查询运行时
 schemas/           Contract、Manifest、Registry 和 CLI 输出的 JSON Schema
-distribution/      签名公共 Registry 与允许公开分发的 starter Release
+distribution/      签名公共 Registry 与七个最新规范化 Release
 tmp/               本地原始输入，Git 忽略
 .work/             来源快照与本地工作数据，Git 忽略
 dist/              不可变的本地 Candidate，Git 忽略
@@ -105,7 +106,7 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 | 安装方式 | 运行要求 | 支持平台 |
 |---|---|---|
-| npm `cn-health@0.2.1` | Node.js 22 或更高版本 | Linux x64、macOS x64/arm64、Windows x64 |
+| npm `cn-health@0.3.0` | Node.js 22 或更高版本 | Linux x64、macOS x64/arm64、Windows x64 |
 | GitHub 原生归档 | 无额外语言运行时 | Linux x64、macOS x64/arm64、Windows x64 |
 
 两种方式运行的是同一个 Rust CLI。npm 包只是平台二进制解析器，不包含第二套查询逻辑。
@@ -129,53 +130,53 @@ dist/              不可变的本地 Candidate，Git 忽略
 这是最简单的跨平台安装方式：
 
 ```bash
-npm install --global cn-health@0.2.1
+npm install --global cn-health@0.3.0
 cn-health --version
 ```
 
 版本命令应输出：
 
 ```text
-cn-health 0.2.1
+cn-health 0.3.0
 ```
 
 npm 会根据当前操作系统只安装一个可选平台包。例如 Linux x64 安装
 `@cn-health/cli-linux-x64`；其他平台包显示为未满足的 optional dependency 是正常行为。
 
-临时试用也可以使用 `npx --yes cn-health@0.2.1 --version`，但日常查询建议全局安装，避免
+临时试用也可以使用 `npx --yes cn-health@0.3.0 --version`，但日常查询建议全局安装，避免
 每次重新解析包。
 
 ### 使用原生发行包
 
 不希望安装 Node.js 时，可从
-[`v0.2.1` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.2.1)
+[`v0.3.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.3.0)
 下载对应归档：
 
 | 系统 | Release 资产 |
 |---|---|
-| Linux x64 | `cn-health-v0.2.1-linux-x64.tar.gz` |
-| macOS Intel | `cn-health-v0.2.1-darwin-x64.tar.gz` |
-| macOS Apple Silicon | `cn-health-v0.2.1-darwin-arm64.tar.gz` |
-| Windows x64 | `cn-health-v0.2.1-win32-x64.tar.gz` |
+| Linux x64 | `cn-health-v0.3.0-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.3.0-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.3.0-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.3.0-win32-x64.tar.gz` |
 
 Linux/macOS 解压并直接运行：
 
 ```bash
-tar -xzf cn-health-v0.2.1-linux-x64.tar.gz
-./cn-health-v0.2.1-linux-x64/cn-health --version
+tar -xzf cn-health-v0.3.0-linux-x64.tar.gz
+./cn-health-v0.3.0-linux-x64/cn-health --version
 ```
 
 Windows PowerShell 可以使用系统自带的 `tar`：
 
 ```powershell
-tar -xzf cn-health-v0.2.1-win32-x64.tar.gz
-.\cn-health-v0.2.1-win32-x64\cn-health.exe --version
+tar -xzf cn-health-v0.3.0-win32-x64.tar.gz
+.\cn-health-v0.3.0-win32-x64\cn-health.exe --version
 ```
 
 每个原生归档同时包含 `LICENSE` 和 `DATA-NOTICE.md`。macOS 产物目前未做 Apple
 notarization；运行方式受本机 Gatekeeper 和组织安全策略约束。
 
-### 初始化 starter 数据
+### 初始化完整数据
 
 安装 CLI 后执行：
 
@@ -183,14 +184,20 @@ notarization；运行方式受本机 Gatekeeper 和组织安全策略约束。
 cn-health init --json
 ```
 
-首次运行会从内置 HTTPS Registry 下载、验证并安装
-`laboratory-cn@2026-08-30.r1`。成功输出类似：
+首次运行会从内置 HTTPS Registry 下载、验证并安装七个已实现 Dataset。当前压缩下载约
+75.33MiB，解压后的 SQLite 合计约 784MiB。成功输出包含以下 Release：
 
 ```json
-{"command":"init","items":[{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-08-30.r1","status":"installed"}],"profile":"starter","schemaVersion":1}
+{"command":"init","items":[{"datasetId":"geography-cn","releaseId":"geography-cn@2026-08-29.r2","status":"installed"},{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-08-30.r2","status":"installed"},{"datasetId":"loinc-zh-cn","releaseId":"loinc-zh-cn@2.83.r2","status":"installed"},{"datasetId":"names-cn","releaseId":"names-cn@40.37.0.r2","status":"installed"},{"datasetId":"nhc-icd10-clinical","releaseId":"nhc-icd10-clinical@2022.r4","status":"installed"},{"datasetId":"nhsa-drugs","releaseId":"nhsa-drugs@2026-01-09.r4","status":"installed"},{"datasetId":"population-cn","releaseId":"population-cn@WPP2024.r2","status":"installed"}],"schemaVersion":2,"selection":"all"}
 ```
 
-`init` 是幂等命令；同一 Release 已存在时状态为 `already-installed`。安装路径会校验：
+`init` 是幂等命令；同一 Release 已存在时状态为 `already-installed`。只安装指定数据时：
+
+```bash
+cn-health init --only nhsa-drugs,nhc-icd10-clinical
+```
+
+未知 Dataset ID 会在网络访问前失败。每个 Dataset 的安装路径都会校验：
 
 - Registry Ed25519 签名和固定公钥 key ID；
 - Manifest 摘要、Dataset/Release 身份和撤回状态；
@@ -199,8 +206,8 @@ cn-health init --json
 - 解压大小上限、SQLite `integrity_check` 和 application ID；
 - Manifest 声明的最低 CLI 版本。
 
-> 当前公共 starter **只有 18 条**项目自有的精选检验/生命体征数据。安装 npm 包或执行
-> `init` 不会获得药品、国家临床诊断、完整 LOINC、地理、姓名或人口 Candidate。
+> 公共分发只包含规范化产物，不包含 `tmp/` 中的原始 XLSX、ZIP、PDF 或来源快照。
+> `nhc-procedure-clinical` 尚未实现编译器，因此不在默认七 Dataset 中。
 
 ### 查询和精确读取
 
@@ -208,6 +215,9 @@ cn-health init --json
 
 ```bash
 cn-health laboratory search 血糖 --limit 10 --json
+cn-health drug search 二甲双胍 --limit 10 --json
+cn-health diagnosis search 糖尿病 --limit 10 --json
+cn-health loinc search 葡萄糖 --limit 10 --json
 ```
 
 按 LOINC code 精确读取：
@@ -230,8 +240,9 @@ cn-health dataset info laboratory-cn --json
 cn-health dataset versions laboratory-cn --json
 ```
 
-`doctor` 检查 starter 是否已安装、是否来自签名 Registry，以及已安装 SQLite 是否能读取
-关键记录。`doctor --json` 还会显示实际 `dataDir` 和编译进 CLI 的默认 Registry URL。
+`doctor` 检查七个默认 Dataset 是否已安装、是否来自签名 Registry，并对药品、诊断、
+LOINC 和检验执行代表性精确读取。`doctor --json` 还会显示实际 `dataDir` 和编译进 CLI
+的默认 Registry URL。
 
 ### 数据目录和离线运行
 
@@ -405,6 +416,11 @@ synthea-cn@2026-08-29.r3
 Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
 ```
 
+已验证 profile 可从
+[`distribution/profiles/synthea-cn/2026-08-29.r3/`](distribution/profiles/synthea-cn/2026-08-29.r3/manifest.json)
+直接获取。它仍固定使用 Manifest 中记录的 r1 依赖哈希；canonical Dataset 当前推荐的 r2
+只是分发元数据 revision，不改变这份 profile 的已验证依赖身份。
+
 从三个 Candidate 构建 profile：
 
 ```bash
@@ -471,12 +487,12 @@ uv run cn-health-build synthea translation project \
 
 ## 精选检验概念
 
-`laboratory-cn@2026-08-30.r1` 包含当前已验证消费者所需的 18 个检验与生命体征概念。
+`laboratory-cn@2026-08-30.r2` 包含当前已验证消费者所需的 18 个检验与生命体征概念。
 它将项目自行编写的中文显示和目录元数据，与精确的 LOINC 2.83 编码及首选 UCUM 单位
 组合在一起，并使用与其他编译器相同的 Candidate Contract、确定性 SQLite/Parquet
 打包、Manifest 校验、FTS 和双字索引。
 
-这个小型目录不是官方完整 LOINC 中文语言包。独立的 `loinc-zh-cn@2.83.r1` Candidate
+这个小型目录不是官方完整 LOINC 中文语言包。独立的 `loinc-zh-cn@2.83.r2` Release
 包含全部 112,405 个核心概念和 96,518 条官方中文翻译；只需要项目精选小范围概念时，
 消费者仍可使用 `laboratory-cn`，无需加载完整术语库。详见
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md)。
@@ -533,9 +549,9 @@ target/debug/cn-health --data-dir .work/runtime dataset use \
 
 ## 签名 Registry 与远程安装
 
-仓库提供一个由 CLI 固定公钥验证的公共 starter Registry，目前只包含 Manifest 中明确
-设置 `releaseEligible: true` 的 `laboratory-cn@2026-08-30.r1`。其他 Candidate 不会因为
-本地已经构建就自动获得公开分发资格。
+仓库提供一个由 CLI 固定公钥验证的完整公共 Registry，包含七个已实现 Dataset 的当前
+推荐 Release。公共 Manifest 只声明实际托管的 zstd、Parquet、报告和许可证文件；未压缩
+SQLite 由客户端从 zstd 有界解压并按 Manifest 回验。
 
 当运维方已经根据相应来源条款和预期用途准备好分发元数据后，可以生成 Ed25519 原始
 密钥并构建签名 Registry。以下示例将开发密钥和产物放在 Git 忽略的 `.work/` 目录中；
@@ -584,7 +600,7 @@ target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
 3. 源码仓库内的 `target/release/cn-health` 开发构建。
 
 找不到实际文件时会明确报错，不会下载未经验证的可执行文件，也不会回退到 JavaScript
-实现。`0.2.0` 的 Unix 平台包缺少执行位，已经由 `0.2.1` 替代。
+实现。`0.2.0` 的 Unix 平台包缺少执行位，已经由 `0.2.1` 及后续版本替代。
 
 本地开发时，将它指向已经构建的二进制文件：
 
@@ -649,13 +665,15 @@ MIT **不会**自动覆盖：
 - 药品分类使用声明的工作簿 `总表`，未实现 PDF 同步链路。
 - 即使本地存在工作簿，手术操作分类仍按当前计划暂缓开发。
 - `laboratory-cn` 是项目精选目录，不是官方完整 LOINC 中文语言包。
-- `loinc-zh-cn@2.83.r1` 已通过本地验收，但仍为 `releaseEligible: false`；公开 Registry
-  分发前必须完成针对第三方版权通知的产物级复核。
+- 公共 Registry 分发七个最新规范化 Dataset；来源身份、版本、哈希、署名和适用声明
+  保留在各自 Manifest 中，原始来源文件不公开。
 - `synthea-zh-cn` 已覆盖固定 Synthea 版本，51 条歧义均有证据 resolution，但 2,158 条
   仍是机器复核而非临床专家批准，不能表示为官方术语语言包。
 
 ## 文档索引
 
+- [`docs/full-distribution-spec.md`](docs/full-distribution-spec.md)：完整公共分发与运行时契约
+- [`docs/publication-decision.md`](docs/publication-decision.md)：规范化产物发布决定与署名条件
 - [`docs/implementation-status.md`](docs/implementation-status.md)：实现边界与待完成项
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md)：规范性实施手册
 - [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)：中国人口数据、Synthea 投影与消费者

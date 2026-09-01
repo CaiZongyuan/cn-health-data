@@ -6,7 +6,7 @@ on:
       tag:
         description: Existing GitHub Release tag whose npm tarballs should be published
         required: true
-        default: v0.2.1
+        default: v0.3.0
         type: string
 
 permissions:

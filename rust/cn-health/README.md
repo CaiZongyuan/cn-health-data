@@ -7,3 +7,6 @@ Remote installation additionally verifies an Ed25519 Registry signature,
 Manifest digest, release eligibility, URL origin, and bounded response sizes.
 Version 0.2.0 adds a pinned public starter Registry, idempotent `init`, offline
 `doctor`, Manifest minimum CLI enforcement, and laboratory lookup/search.
+Version 0.3.0 makes all seven implemented normalized Datasets the default
+installation, adds `init --only`, and expands offline diagnostics across the
+complete installed set.
