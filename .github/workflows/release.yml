@@ -42,6 +42,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Verify tag and package versions
         shell: bash
         run: |
@@ -66,7 +67,7 @@ jobs:
           cp LICENSE "$npm_dir/LICENSE"
           tar -C artifacts -czf "artifacts/cn-health-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" "cn-health-${{ github.ref_name }}-${{ matrix.name }}"
           pnpm --filter "@cn-health/${{ matrix.npm_package }}" pack --pack-destination "$PWD/artifacts/npm"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: native-${{ matrix.name }}
           path: |
@@ -86,7 +87,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter cn-health test
       - run: mkdir -p artifacts && pnpm --filter cn-health pack --pack-destination "$PWD/artifacts"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: npm-launcher
           path: artifacts/*.tgz
