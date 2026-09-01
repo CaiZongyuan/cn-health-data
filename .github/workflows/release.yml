@@ -125,14 +125,4 @@ jobs:
       - name: Publish platform packages, then launcher
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -eu
-          test -n "$NODE_AUTH_TOKEN"
-          mapfile -d '' platform_packages < <(find artifacts -name 'cn-health-cli-*.tgz' -print0 | sort -z)
-          test "${#platform_packages[@]}" -eq 4
-          for package in "${platform_packages[@]}"; do
-            npm publish "$package" --access public
-          done
-          launcher=$(find artifacts -name 'cn-health-*.tgz' ! -name 'cn-health-cli-*.tgz' -print -quit)
-          test -n "$launcher"
-          npm publish "$launcher" --access public
+        run: scripts/publish-npm-packages.sh artifacts
