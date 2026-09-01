@@ -18,6 +18,7 @@ from cn_health_compiler.sources.laboratory.build import build_laboratory_candida
 from cn_health_compiler.sources.loinc.build import build_loinc_candidate
 from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
+from cn_health_compiler.sources.nhc_lab.build import build_nhc_laboratory_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
 from cn_health_compiler.sources.population.build import build_population_candidate
 from cn_health_compiler.synthetic.synthea_localizer import localize_synthea_bundle
@@ -102,6 +103,12 @@ def build_dataset(
             "--translation-source", exists=True, dir_okay=False, readable=True, resolve_path=True
         ),
     ] = None,
+    panel_source: Annotated[
+        Path | None,
+        typer.Option(
+            "--panel-source", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ] = None,
     repo_root: Annotated[
         Path | None,
         typer.Option("--repo-root", file_okay=False, resolve_path=True),
@@ -121,9 +128,9 @@ def build_dataset(
     root = repo_root or find_repository_root()
     target_output_root = output_root or root / "dist"
     if dataset_id == "geography-cn":
-        if translation_source is not None:
+        if translation_source is not None or panel_source is not None:
             raise typer.BadParameter(
-                "--translation-source is only valid for loinc-zh-cn",
+                "translation and panel sources are not valid for geography-cn",
                 param_hint="dataset_id",
             )
         if division_source is None or postal_source is None:
@@ -145,7 +152,7 @@ def build_dataset(
         typer.echo(result.manifest_path)
         return
     if dataset_id == "loinc-zh-cn":
-        if division_source is not None or postal_source is not None:
+        if division_source is not None or postal_source is not None or panel_source is not None:
             raise typer.BadParameter(
                 "geography sources are not valid for loinc-zh-cn",
                 param_hint="dataset_id",
@@ -154,6 +161,33 @@ def build_dataset(
             repo_root=root,
             core_source_path=source,
             translation_source_path=translation_source,
+            output_root=target_output_root,
+            build_revision=build_revision,
+            sequence=sequence,
+            base_release_dir=base_release,
+        )
+        typer.echo(result.release_dir)
+        typer.echo(result.manifest_path)
+        return
+    if dataset_id == "laboratory-cn":
+        if (
+            division_source is not None
+            or postal_source is not None
+            or translation_source is not None
+        ):
+            raise typer.BadParameter(
+                "geography and translation sources are not valid for laboratory-cn",
+                param_hint="dataset_id",
+            )
+        if panel_source is None:
+            raise typer.BadParameter(
+                "laboratory-cn requires --panel-source",
+                param_hint="dataset_id",
+            )
+        result = build_laboratory_candidate(
+            repo_root=root,
+            source_path=source,
+            panel_source_path=panel_source,
             output_root=target_output_root,
             build_revision=build_revision,
             sequence=sequence,
@@ -172,9 +206,14 @@ def build_dataset(
             "--translation-source is only valid for loinc-zh-cn",
             param_hint="dataset_id",
         )
+    if panel_source is not None:
+        raise typer.BadParameter(
+            "--panel-source is only valid for laboratory-cn",
+            param_hint="dataset_id",
+        )
     builders = {
-        "laboratory-cn": build_laboratory_candidate,
         "names-cn": build_names_candidate,
+        "nhc-lab-tests": build_nhc_laboratory_candidate,
         "nhsa-drugs": build_nhsa_drug_candidate,
         "nhc-icd10-clinical": build_diagnosis_candidate,
         "population-cn": build_population_candidate,

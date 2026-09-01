@@ -34,6 +34,7 @@ def test_dataset_contracts_validate() -> None:
         "loinc-zh-cn",
         "names-cn",
         "nhc-icd10-clinical",
+        "nhc-lab-tests",
         "nhc-procedure-clinical",
         "nhsa-drugs",
         "population-cn",

@@ -1,0 +1,12 @@
+{
+  "added": 399,
+  "baseRelease": null,
+  "baseSourceSha256": null,
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "targetRelease": "nhc-lab-tests@2026.r1",
+  "targetSourceSha256": "a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c",
+  "unchanged": 0
+}

@@ -10,3 +10,6 @@ Version 0.2.0 adds a pinned public starter Registry, idempotent `init`, offline
 Version 0.3.0 makes all seven implemented normalized Datasets the default
 installation, adds `init --only`, and expands offline diagnostics across the
 complete installed set.
+Version 0.4.0 adds the WS/T 886 authority Dataset, schema v1/v2 laboratory
+compatibility, adult reference/simulation metadata, and laboratory panel
+search/expansion.

@@ -14,7 +14,8 @@ use serde_json::json;
 
 use crate::query::{
     SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search, laboratory_get,
-    laboratory_search, loinc_get, loinc_search,
+    laboratory_health_check, laboratory_panel_get, laboratory_panel_search, laboratory_search,
+    loinc_get, loinc_search,
 };
 use crate::registry::{install_remote, install_remote_with_key};
 use crate::storage::{
@@ -22,12 +23,13 @@ use crate::storage::{
 };
 
 const STARTER_DATASET_ID: &str = "laboratory-cn";
-const DEFAULT_DATASET_IDS: [&str; 7] = [
+const DEFAULT_DATASET_IDS: [&str; 8] = [
     "geography-cn",
     "laboratory-cn",
     "loinc-zh-cn",
     "names-cn",
     "nhc-icd10-clinical",
+    "nhc-lab-tests",
     "nhsa-drugs",
     "population-cn",
 ];
@@ -56,7 +58,7 @@ enum Command {
     Drug(LookupArgs),
     Diagnosis(LookupArgs),
     Loinc(LookupArgs),
-    Laboratory(LookupArgs),
+    Laboratory(LaboratoryArgs),
 }
 
 #[derive(Args)]
@@ -126,6 +128,35 @@ struct LookupArgs {
     command: LookupCommand,
 }
 
+#[derive(Args)]
+struct LaboratoryArgs {
+    #[command(subcommand)]
+    command: LaboratoryCommand,
+}
+
+#[derive(Subcommand)]
+enum LaboratoryCommand {
+    Search {
+        query: String,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    Get {
+        code: String,
+        #[arg(long)]
+        json: bool,
+    },
+    Panel(LaboratoryPanelArgs),
+}
+
+#[derive(Args)]
+struct LaboratoryPanelArgs {
+    #[command(subcommand)]
+    command: LookupCommand,
+}
+
 #[derive(Subcommand)]
 enum LookupCommand {
     Search {
@@ -181,9 +212,16 @@ impl Cli {
             },
             Command::Drug(LookupArgs { command })
             | Command::Diagnosis(LookupArgs { command })
-            | Command::Loinc(LookupArgs { command })
-            | Command::Laboratory(LookupArgs { command }) => match command {
+            | Command::Loinc(LookupArgs { command }) => match command {
                 LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
+            },
+            Command::Laboratory(LaboratoryArgs { command }) => match command {
+                LaboratoryCommand::Search { json, .. } | LaboratoryCommand::Get { json, .. } => {
+                    *json
+                }
+                LaboratoryCommand::Panel(LaboratoryPanelArgs { command }) => match command {
+                    LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
+                },
             },
         }
     }
@@ -227,7 +265,7 @@ fn run(cli: Cli) -> Result<bool> {
             Ok(true)
         }
         Command::Laboratory(args) => {
-            run_lookup(&data_dir, STARTER_DATASET_ID, args.command)?;
+            run_laboratory(&data_dir, args.command)?;
             Ok(true)
         }
     }
@@ -323,8 +361,8 @@ fn run_doctor(data_dir: &Path, args: DoctorArgs) -> Result<bool> {
         .and_then(|(database, _)| loinc_get(&database, "2339-0"))
         .is_ok_and(|item| item.is_some());
     let laboratory_query_ok = current_database(data_dir, STARTER_DATASET_ID)
-        .and_then(|(database, _)| laboratory_get(&database, "2339-0"))
-        .is_ok_and(|item| item.is_some());
+        .and_then(|(database, _)| laboratory_health_check(&database))
+        .unwrap_or(false);
     checks.extend([
         DoctorCheck {
             id: "query:drug".to_owned(),
@@ -444,6 +482,52 @@ fn run_dataset(data_dir: &std::path::Path, command: DatasetCommand) -> Result<()
         }
     }
     Ok(())
+}
+
+fn run_laboratory(data_dir: &Path, command: LaboratoryCommand) -> Result<()> {
+    match command {
+        LaboratoryCommand::Search { query, limit, json } => run_lookup(
+            data_dir,
+            STARTER_DATASET_ID,
+            LookupCommand::Search { query, limit, json },
+        ),
+        LaboratoryCommand::Get { code, json } => run_lookup(
+            data_dir,
+            STARTER_DATASET_ID,
+            LookupCommand::Get { code, json },
+        ),
+        LaboratoryCommand::Panel(LaboratoryPanelArgs { command }) => {
+            run_laboratory_panel(data_dir, command)
+        }
+    }
+}
+
+fn run_laboratory_panel(data_dir: &Path, command: LookupCommand) -> Result<()> {
+    let (database, current) = current_database(data_dir, STARTER_DATASET_ID)?;
+    if let LookupCommand::Search { limit, .. } = &command
+        && !(1..=200).contains(limit)
+    {
+        anyhow::bail!("limit must be between 1 and 200");
+    }
+    match command {
+        LookupCommand::Search { query, limit, json } => {
+            let results = laboratory_panel_search(&database, &query, limit)?;
+            output_search(
+                STARTER_DATASET_ID,
+                &current.release_id,
+                "laboratory.panel.search",
+                query,
+                limit,
+                results,
+                json,
+            )
+        }
+        LookupCommand::Get { code, json } => {
+            let item = laboratory_panel_get(&database, &code)?
+                .context("laboratory panel code not found")?;
+            output_item(item, json)
+        }
+    }
 }
 
 fn run_lookup(data_dir: &std::path::Path, dataset_id: &str, command: LookupCommand) -> Result<()> {

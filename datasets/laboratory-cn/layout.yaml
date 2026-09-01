@@ -1,4 +1,17 @@
-version: 1
-format: csv
-encoding: utf-8
-header_row: 1
+version: 2
+terminology:
+  format: markdown-html-tables
+  standard_number: WS/T 886—2026
+runtime_catalog:
+  format: csv
+  encoding: utf-8
+  header_row: 1
+panel_catalog:
+  format: csv
+  encoding: utf-8
+  header_row: 1
+panel_evidence:
+  format: xlsx
+  worksheet: 映射关系表（试行）
+  header_rows: [4, 5]
+  data_rows: [6, 667]

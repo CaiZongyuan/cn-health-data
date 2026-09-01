@@ -1,0 +1,104 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "a4ee5c6ec5d3e41052173a7a82fba4876685b35d4ae87ffdc3673fec8b00dab2",
+      "sizeBytes": 52537,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "11cccd15a34373ccec268d622f206a728e4c51eaa64d0446659e9394f32325c1",
+      "uncompressedSizeBytes": 294912,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "fa001699284fd4b18f99d1648e4a8e8756be71cf322121f8360179062cc510da",
+      "sizeBytes": 16124,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 399,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "2332b0cf55d284c460d8692c2e862ab7a2a80feab7873c7fbf4e7fa128e6865e"
+  },
+  "compiler": {
+    "adapter": "nhc-lab-tests",
+    "adapterVersion": 1,
+    "buildInputSha256": "be60051590a43cca01877ea025557f63ee523c6dbd70ab479c101511be41b2c7",
+    "configSha256": "b5371517558e29bf9e49f72ac9e4b341614561c227af95bc971927592bb29ea9",
+    "datasetContractSha256": "84e1ef16c4cf507e9e5edae794bc7bbb230effbed48b40e5268937fa0213a8a1",
+    "datasetSchemaSha256": "deabeb2fd84b2e4b9f2940cf7de6e8590ed0b40d88f3dff07f7d6fb580e4ebb1",
+    "gitCommit": "6a57d529d0d82fef5f5accdc709007400e73df08",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "nhc-lab-tests",
+    "sourceVersion": "2026",
+    "status": "beta"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "6783576b8e75e7ddde78b0590dab04e45a572f56ea960fb39b7b7d0314110576"
+  },
+  "release": {
+    "buildRevision": 1,
+    "createdAt": "2026-09-01T14:59:21Z",
+    "id": "nhc-lab-tests@2026.r1",
+    "revoked": false,
+    "sequence": 1,
+    "storageKey": "2026.r1",
+    "supersedes": null
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Normalized from WS/T 886—2026, published by the National Health Commission of the People's Republic of China.\n",
+    "basis": "Maintainer decision to publish the normalized factual code/name projection while excluding the converted standard source from public Releases.\n",
+    "evidence": [
+      "DATA-NOTICE.md",
+      "docs/publication-decision.md",
+      "datasets/nhc-lab-tests/README.md"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "国家卫生健康委员会",
+      "authorityRole": "original-authority",
+      "authorityVerified": true,
+      "dataAsOf": "2026",
+      "format": "markdown",
+      "originalFilename": "WST_886—2026.md",
+      "recordCount": 399,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c",
+      "sizeBytes": 74253,
+      "sourceUrl": null,
+      "upstreamCommit": null
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "cb07b661ded6e7d6604593cc9fb100b2cf025c3c017e1bd7ad9a60cbfad80708"
+  }
+}

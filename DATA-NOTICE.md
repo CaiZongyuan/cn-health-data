@@ -45,7 +45,7 @@ Source authority, acquisition evidence, retention, and distribution metadata are
 recorded independently for every dataset.
 
 The signed public Registry contains the current normalized Releases for all
-seven implemented Datasets. Public staging excludes raw sources, uncompressed
+eight implemented Datasets. Public staging excludes raw sources, uncompressed
 SQLite transport copies, historical duplicate revisions, caches, and logs. Each
 public Manifest records its independent redistribution decision, evidence,
 attribution, source identity, and exact artifact hashes. LOINC and UCUM

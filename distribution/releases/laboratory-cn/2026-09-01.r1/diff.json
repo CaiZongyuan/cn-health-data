@@ -1,0 +1,13 @@
+{
+  "added": 84,
+  "baseRelease": "laboratory-cn@2026-08-30.r2",
+  "baseSourceSha256": "0ce998b45c921a06f2b1e016610afc83ea2886fc68c7ce7c5a69c8be6da43d2b",
+  "modified": 0,
+  "modifiedFields": {},
+  "note": "Primary identity changes from LOINC in schema v1 to WS/T 886 in schema v2.",
+  "removed": 18,
+  "schemaVersion": 1,
+  "targetRelease": "laboratory-cn@2026-09-01.r1",
+  "targetSourceSha256": "0aa9bf55bfc3c05af41a2c11347b43708095a1c8e0fa5a83dd1fee31029ae87e",
+  "unchanged": 0
+}
