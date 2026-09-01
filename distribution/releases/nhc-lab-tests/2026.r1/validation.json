@@ -1,0 +1,15 @@
+{
+  "category_count": 34,
+  "passed": true,
+  "record_count": 399,
+  "scale_counts": {
+    "A": 296,
+    "B": 75,
+    "C": 13,
+    "D": 15
+  },
+  "schemaVersion": 1,
+  "source_standard": "WS/T 886—2026",
+  "source_version": "2026",
+  "specimen_count": 27
+}

@@ -1,0 +1,198 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "1622dd64b0bdf8f9a1e52ecdb0d70861f2b1fc481a6565dae7595285dbeb00c0",
+      "sizeBytes": 19859,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "6d11f377d1adcdbeb8ac334da07d7c3d4cf86df5d3017de185e9776953c7911a",
+      "uncompressedSizeBytes": 163840,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "laboratory-tests.parquet",
+      "sha256": "e15376c5814f28b12f0d1b9aa4043adbff9ab385bb636c828a8ab242d1d6e587",
+      "sizeBytes": 8373,
+      "url": "laboratory-tests.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "laboratory-references.parquet",
+      "sha256": "d5b210af81df5deebc0c77a2eade0eb2ad9863b3d15071e84a532e54ba5e51bb",
+      "sizeBytes": 7238,
+      "url": "laboratory-references.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "laboratory-panels.parquet",
+      "sha256": "3aab241c13df890511824303b93d5a63a559362dbf35538cdc087889fc4c592d",
+      "sizeBytes": 4610,
+      "url": "laboratory-panels.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "laboratory-panel-members.parquet",
+      "sha256": "841d267ab3a36bf370c69e1f062e58805bc62db1b2c4bc760c7a34d8c4e3884d",
+      "sizeBytes": 1843,
+      "url": "laboratory-panel-members.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 84,
+    "serialization": "canonical-multitable-ndjson-v1",
+    "sha256": "430983cb9e849160350f4a1e0d96967a2d886bda8058fd43a8730a4010a6e912",
+    "tables": [
+      {
+        "recordCount": 84,
+        "sha256": "9c8ed5d6d86945fc37cb0d1ec693c2c5538e1bd8370008ee74c04a27e73c05df",
+        "table": "laboratory_test"
+      },
+      {
+        "recordCount": 96,
+        "sha256": "05372b5e320fd3a42a65ed086b02969f5fb1fa887b5499d55f0290cfcb9bf6da",
+        "table": "laboratory_reference"
+      },
+      {
+        "recordCount": 15,
+        "sha256": "28cbfc8ba6aa58bb50d11a85f0256e0fef59dad901e96c1f977878d30890a46d",
+        "table": "laboratory_panel"
+      },
+      {
+        "recordCount": 88,
+        "sha256": "e1f7482fa326f9000c6901a5185070c22ae7200d6dcfabd2fa27daf7d3caf77c",
+        "table": "laboratory_panel_member"
+      }
+    ]
+  },
+  "compiler": {
+    "adapter": "laboratory-cn",
+    "adapterVersion": 2,
+    "buildInputSha256": "de5e94817d517b957722388b42c3d9e6426483a14262e07dd4bc02e37cf5da5a",
+    "configSha256": "6aa95ae13237c5ea93c32b072f894d1e4927594c56e8c35cdd6995bebfa324c7",
+    "datasetContractSha256": "15c33907723496b86152e796033a3c2faff7376d712a2a363b7a830742026a5d",
+    "datasetSchemaSha256": "93efc5425829362236393bb5b474816ca9087798e77583f0f2b05314bc610ec4",
+    "gitCommit": "869051a929437c635015d822a524e055b451c8a5",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "polarsVersion": "1.44.1",
+    "pythonVersion": "3.12.3",
+    "sqliteVersion": "3.45.1",
+    "version": "0.1.0",
+    "zstandardVersion": "0.25.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 2,
+    "id": "laboratory-cn",
+    "sourceVersion": "2026-09-01",
+    "status": "beta"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "3c26643fe59472e0ecaeabd5e0cfc7d555c41ae238b275eeff5887e243864d2d"
+  },
+  "release": {
+    "buildRevision": 1,
+    "createdAt": "2026-09-01T14:33:31Z",
+    "id": "laboratory-cn@2026-09-01.r1",
+    "revoked": false,
+    "sequence": 3,
+    "storageKey": "2026-09-01.r1",
+    "supersedes": "laboratory-cn@2026-08-30.r2"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "WS/T 886—2026 terminology facts are attributed to the National Health Commission. Adult simulation metadata and panel definitions are maintained by CN Health Data contributors; external identifiers retain their sources.\n",
+    "basis": "Project-authored simulation metadata and normalized factual terminology are published while the converted standard and evidence workbook are excluded.\n",
+    "evidence": [
+      "LICENSE",
+      "DATA-NOTICE.md",
+      "datasets/laboratory-cn/README.md",
+      "docs/publication-decision.md"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.4.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "国家卫生健康委员会",
+      "authorityRole": "original-authority",
+      "authorityVerified": true,
+      "dataAsOf": "2026",
+      "format": "markdown",
+      "originalFilename": "WST_886—2026.md",
+      "publishedAt": "2026-05-25",
+      "recordCount": 399,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c",
+      "sizeBytes": 74253,
+      "sourceUrl": "https://www.nhc.gov.cn/wjw/s9492/202605/088bb2fe143d44ae8fbee328226d377b.shtml"
+    },
+    {
+      "acquisition": "manual-local",
+      "authority": "国家医疗保障局",
+      "authorityRole": "panel-evidence-authority",
+      "authorityVerified": true,
+      "dataAsOf": "2026-08-13",
+      "format": "xlsx",
+      "originalFilename": "检验类医疗服务价格项目立项指南映射关系表.xlsx",
+      "recordCount": 662,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "4625a6f73e2eab2f76a47434b4aabfa7bb9b9328ac2462d36c1bd97c6e7de861",
+      "sizeBytes": 126861,
+      "sourceUrl": null,
+      "worksheet": "映射关系表（试行）"
+    },
+    {
+      "acquisition": "repository",
+      "authority": "CN Health Data contributors",
+      "authorityRole": "project-author",
+      "authorityVerified": true,
+      "dataAsOf": "2026-09-01",
+      "format": "csv",
+      "originalFilename": "runtime.csv",
+      "recordCount": 96,
+      "reproducibleFromSource": true,
+      "retention": "repository",
+      "sha256": "0aa9bf55bfc3c05af41a2c11347b43708095a1c8e0fa5a83dd1fee31029ae87e",
+      "sizeBytes": 15570,
+      "sourceUrl": "https://github.com/CaiZongyuan/cn-health-data/blob/main/datasets/laboratory-cn/runtime.csv"
+    },
+    {
+      "acquisition": "repository",
+      "authority": "CN Health Data contributors",
+      "authorityRole": "project-author",
+      "authorityVerified": true,
+      "dataAsOf": "2026-09-01",
+      "format": "csv",
+      "originalFilename": "panels.csv",
+      "recordCount": 88,
+      "reproducibleFromSource": true,
+      "retention": "repository",
+      "sha256": "f2e723817ddde2f8dcab87394cd147cd43675a4f94ca18aee6caae01b1a5ade6",
+      "sizeBytes": 10579,
+      "sourceUrl": "https://github.com/CaiZongyuan/cn-health-data/blob/main/datasets/laboratory-cn/panels.csv"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "cfc5c8422cec450e094e9cc60bb68606a45c9209f4648de2ebb297c6c0b0acab"
+  }
+}

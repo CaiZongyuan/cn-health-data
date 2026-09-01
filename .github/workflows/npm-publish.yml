@@ -3,6 +3,14 @@ name: Publish npm release
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Maintenance operation to run
+        required: true
+        default: publish-npm
+        type: choice
+        options:
+          - publish-npm
+          - sign-registry
       tag:
         description: Existing GitHub Release tag whose npm tarballs should be published
         required: true
@@ -14,7 +22,7 @@ permissions:
 
 jobs:
   npm-publish:
-    if: ${{ vars.NPM_PUBLISH_ENABLED == 'true' }}
+    if: ${{ inputs.operation == 'publish-npm' && vars.NPM_PUBLISH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     environment: npm
     steps:
@@ -38,3 +46,43 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: scripts/publish-npm-packages.sh artifacts
+
+  registry-sign:
+    if: ${{ inputs.operation == 'sign-registry' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Build signed Registry with the pinned trust root
+        env:
+          REGISTRY_PRIVATE_KEY_HEX: ${{ secrets.CN_HEALTH_REGISTRY_PRIVATE_KEY_HEX }}
+        run: |
+          set -euo pipefail
+          test "${#REGISTRY_PRIVATE_KEY_HEX}" -eq 64
+          mkdir -p .work/registry signed-registry
+          printf '%s' "$REGISTRY_PRIVATE_KEY_HEX" | xxd -r -p > .work/registry/registry.key
+          chmod 600 .work/registry/registry.key
+          mapfile -t manifests < <(find distribution/releases -name manifest.json -print | sort)
+          uv run cn-health-build registry build "${manifests[@]}" \
+            --manifest-base-url https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases \
+            --private-key .work/registry/registry.key \
+            --output signed-registry/registry.json \
+            --signature signed-registry/registry.json.sig
+          uv run python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          expected = hashlib.sha256(Path('distribution/registry.pub').read_bytes()).hexdigest()[:16]
+          registry = json.loads(Path('signed-registry/registry.json').read_text())
+          assert registry['signature']['keyId'] == expected
+          PY
+          rm .work/registry/registry.key
+      - uses: actions/upload-artifact@v6
+        with:
+          name: signed-registry
+          path: signed-registry/
+          if-no-files-found: error
