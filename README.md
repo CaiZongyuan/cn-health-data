@@ -119,7 +119,7 @@ dist/              Immutable local Candidates; ignored by Git
 
 ## Requirements
 
-End users need only the `cn-health 0.2.0` native release for their platform;
+End users need only the `cn-health 0.2.1` native release for their platform;
 Python, Rust, and source workbooks are not runtime requirements. Source
 development requires:
 
@@ -135,7 +135,7 @@ require the third-party XLSX files.
 
 ## Quick Start
 
-After installing the `cn-health 0.2.0` archive for your platform from GitHub
+After installing the `cn-health 0.2.1` archive for your platform from GitHub
 Releases, initialize signed starter data and run a real query:
 
 ```bash
