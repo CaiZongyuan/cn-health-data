@@ -70,11 +70,11 @@
   "compiler": {
     "adapter": "laboratory-cn",
     "adapterVersion": 2,
-    "buildInputSha256": "de5e94817d517b957722388b42c3d9e6426483a14262e07dd4bc02e37cf5da5a",
+    "buildInputSha256": "aace020bfd47ef5bb58ec63df7beb1767e20c78f69ba06517fd1fd6fa209deb8",
     "configSha256": "6aa95ae13237c5ea93c32b072f894d1e4927594c56e8c35cdd6995bebfa324c7",
-    "datasetContractSha256": "15c33907723496b86152e796033a3c2faff7376d712a2a363b7a830742026a5d",
+    "datasetContractSha256": "a5089f1cee407ec1bcae28dd44a9e5ce5f8a17a4be20759d38815c52aa713cc8",
     "datasetSchemaSha256": "93efc5425829362236393bb5b474816ca9087798e77583f0f2b05314bc610ec4",
-    "gitCommit": "869051a929437c635015d822a524e055b451c8a5",
+    "gitCommit": "6a57d529d0d82fef5f5accdc709007400e73df08",
     "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
     "name": "cn-health-compiler",
     "polarsVersion": "1.44.1",
@@ -95,7 +95,7 @@
   },
   "release": {
     "buildRevision": 1,
-    "createdAt": "2026-09-01T14:33:31Z",
+    "createdAt": "2026-09-01T14:59:21Z",
     "id": "laboratory-cn@2026-09-01.r1",
     "revoked": false,
     "sequence": 3,
@@ -141,7 +141,7 @@
       "retention": "private-content-addressed",
       "sha256": "a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c",
       "sizeBytes": 74253,
-      "sourceUrl": "https://www.nhc.gov.cn/wjw/s9492/202605/088bb2fe143d44ae8fbee328226d377b.shtml"
+      "sourceUrl": null
     },
     {
       "acquisition": "manual-local",
