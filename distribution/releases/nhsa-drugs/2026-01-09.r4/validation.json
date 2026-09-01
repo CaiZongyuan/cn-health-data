@@ -1,0 +1,22 @@
+{
+  "marketStatusCounts": {
+    "上市": 228388,
+    "停产": 30808,
+    "未上市": 9914
+  },
+  "nullCounts": {
+    "former_code": 264095,
+    "insurance_dosage_form": 158863,
+    "insurance_name": 95256,
+    "insurance_number": 95256,
+    "marketing_authorization_holder": 42440,
+    "note": 258831,
+    "previous_approval_number": 267784,
+    "reimbursement_class_2025": 95256,
+    "repackaging_company": 267633
+  },
+  "passed": true,
+  "recordCount": 269110,
+  "schemaVersion": 1,
+  "uniqueCodes": 269110
+}

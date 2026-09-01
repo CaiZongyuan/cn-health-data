@@ -1,0 +1,115 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "66bfb585921587baecf9119020c719e901b58be6792dfdb3813d24483f2c5ffa",
+      "sizeBytes": 2774932,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "713fb5e88a4874c09181547545439620254fbc811d05f892bba49762123a83fb",
+      "uncompressedSizeBytes": 14282752,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "6d112ac09e6972827f681b8453417ab2a36cff105c855334600386f9b2ce9f2c",
+      "sizeBytes": 436799,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 37294,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "a3184a49d88c1474eea785558b30b6b449edcda07d796b09cab541ea111e7fdc"
+  },
+  "compiler": {
+    "adapter": "nhc-icd10-clinical",
+    "adapterVersion": 1,
+    "buildInputSha256": "b7cab11a172ef6a497c908f97350cb0b2c16ab34daa4ca2add96cf063df45ac9",
+    "configSha256": "ffc37ae6d80ce5a05edc4c3a6c90ea1c994c319775202e4a15d917406deca89f",
+    "datasetContractSha256": "93f55a6ac77e524dc7132a484ef34615b5963a552f6e53eb112d430cea6bfad6",
+    "datasetSchemaSha256": "2f42a64240bce096f1bc06ce4cadab8193d2929662b7a4fb9f0aa02ecbdfacff",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "polarsVersion": "1.44.1",
+    "pythonVersion": "3.12.3",
+    "sqliteVersion": "3.45.1",
+    "version": "0.1.0",
+    "zstandardVersion": "0.25.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "nhc-icd10-clinical",
+    "sourceVersion": "2022",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "2ca90739a8dd0b6b64320d474938fb36b957405e1e4e3a8fab03102f4f751a18"
+  },
+  "release": {
+    "buildRevision": 4,
+    "createdAt": "2026-09-01T11:30:49Z",
+    "id": "nhc-icd10-clinical@2022.r4",
+    "revoked": false,
+    "sequence": 4,
+    "storageKey": "2022.r4",
+    "supersedes": "nhc-icd10-clinical@2022.r3"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Normalized from the pinned clinical classification snapshot identified by authority, filename, version, worksheet, and SHA256 in the Release Manifest.\n",
+    "basis": "Maintainer decision to publish the normalized clinical code/name projection while excluding the source workbook and preserving factual provenance.\n",
+    "evidence": [
+      "docs/publication-decision.md",
+      "DATA-NOTICE.md"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquiredAt": null,
+      "acquisition": "manual-local",
+      "authority": "国家卫生健康委员会",
+      "authorityRole": "original-authority",
+      "authorityVerified": false,
+      "columnCount": 3,
+      "containerMetadata": {
+        "uncompressedSizeBytes": 16688910,
+        "zipEntryCount": 17
+      },
+      "dataAsOf": "2022",
+      "format": "xlsx",
+      "originalFilename": "疾病分类与代码国家临床版2.0(2022汇总版).xlsx",
+      "publishedAt": null,
+      "recordCount": 37294,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52",
+      "sizeBytes": 1979868,
+      "sourceReacquirable": false,
+      "sourceUrl": null,
+      "worksheet": "2.0（2022版）"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "6f04013623df4e1676b1eec016ec4299869f8389cd95cf83a962015e1254a64e"
+  }
+}

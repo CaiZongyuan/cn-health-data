@@ -1,0 +1,12 @@
+{
+  "added": 0,
+  "baseRelease": "nhsa-drugs@2026-01-09.r3",
+  "baseSourceSha256": "9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67",
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "targetRelease": "nhsa-drugs@2026-01-09.r4",
+  "targetSourceSha256": "9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67",
+  "unchanged": 269110
+}

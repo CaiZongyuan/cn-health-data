@@ -1,0 +1,115 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "fb9a94bf9d420b5e087a7df3f8c2bd6e67e84c2ef28ba60e12e8a1c97d836104",
+      "sizeBytes": 20015397,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "4fb606d1189d415f179e91581a527de0c2681aa5751ba3706a0d16b84a92ddd6",
+      "uncompressedSizeBytes": 236126208,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "0362006ee6edee9b8ddbdb29f99242f8fd024be2871dd434a5642d7a4ce46e20",
+      "sizeBytes": 6111938,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 269110,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "b68078c3970e6d79dbeeff48c121837ee750377a689bfa6e2f509f0c18185247"
+  },
+  "compiler": {
+    "adapter": "nhsa-drugs",
+    "adapterVersion": 1,
+    "buildInputSha256": "dd82bdc4738cb35b0b734308f6186af4f7c95e955671dbf8feb4433f67ccdb85",
+    "configSha256": "2710ebab3a0f1c261d08cce5714c121d0f115848a5279a607ce7a251977f8045",
+    "datasetContractSha256": "aac298c06c2d8f1409c0996653293bc1649acc168130412515bebf694cfd8a3a",
+    "datasetSchemaSha256": "91708f23f8cc190d292a09de0c7dce650ecbc17b7f7988aac214dfb8b90e5dd7",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "polarsVersion": "1.44.1",
+    "pythonVersion": "3.12.3",
+    "sqliteVersion": "3.45.1",
+    "version": "0.1.0",
+    "zstandardVersion": "0.25.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "nhsa-drugs",
+    "sourceVersion": "2026-01-09",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "9f58444928876ac0e8b9828731f88d39c1cdfccca0a08bad5c25696d8eeb71f9"
+  },
+  "release": {
+    "buildRevision": 4,
+    "createdAt": "2026-09-01T11:30:49Z",
+    "id": "nhsa-drugs@2026-01-09.r4",
+    "revoked": false,
+    "sequence": 4,
+    "storageKey": "2026-01-09.r4",
+    "supersedes": "nhsa-drugs@2026-01-09.r3"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Normalized from the pinned distribution snapshot identified by authority, filename, date, worksheet, and SHA256 in the Release Manifest.\n",
+    "basis": "Maintainer decision to publish the normalized code/reference projection while excluding the source workbook and preserving factual provenance.\n",
+    "evidence": [
+      "docs/publication-decision.md",
+      "DATA-NOTICE.md"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquiredAt": null,
+      "acquisition": "manual-local",
+      "authority": "江西省医疗保障局",
+      "authorityRole": "distribution-source",
+      "authorityVerified": false,
+      "columnCount": 26,
+      "containerMetadata": {
+        "uncompressedSizeBytes": 320670713,
+        "zipEntryCount": 20
+      },
+      "dataAsOf": "2026-01-09",
+      "format": "xlsx",
+      "originalFilename": "江西省医保药品分类与代码数据库更新表(数据更新至2026年1月9日).xlsx",
+      "publishedAt": null,
+      "recordCount": 269110,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67",
+      "sizeBytes": 39514965,
+      "sourceReacquirable": false,
+      "sourceUrl": null,
+      "worksheet": "总表"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "cf9e18021b0cd0f3884ecfba494e7576715b72029ea42da0cc1a499bc91f412c"
+  }
+}

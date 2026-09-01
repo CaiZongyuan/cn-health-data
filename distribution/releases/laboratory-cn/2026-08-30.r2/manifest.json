@@ -1,0 +1,104 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "0ba496249e41a911b0091653aaa552d363e2229e6f30536ff0c47938126e2d7e",
+      "sizeBytes": 3380,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "3af11c840fd2279e8ca9dc58549796e7b4cdbed7181a8bd50a527cc88f14c331",
+      "uncompressedSizeBytes": 53248,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "864c357e8428d2b9671272a96e32b36b77ddc0ffac38487146b49f1b3a600578",
+      "sizeBytes": 6312,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 18,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "396534fd091df699bba2211e10e71f0b5373f4fed6cebc48d0df4ab8030bdeaf"
+  },
+  "compiler": {
+    "adapter": "laboratory-cn",
+    "adapterVersion": 1,
+    "buildInputSha256": "f2fa5c6d9c53bf17e4bf217cd5bd8164f2e1908ad915f63693678bb67a3b2d0c",
+    "configSha256": "6f9481b0a410cb8055474b502ebf71a7b709b839dc15194248fea4770b19acd6",
+    "datasetContractSha256": "ba16a0e2787f74e6825157afdd9311964f6213da8d40c13c0d2c83f1bfc82f3a",
+    "datasetSchemaSha256": "b6feda9e4e5737b5b93489d332870e130e7993ef605fad8181e70e7adb2a5d2c",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "laboratory-cn",
+    "sourceVersion": "2026-08-30",
+    "status": "beta"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "5e2dee93ecdcfaf41bd9b777d5676afde90dbb180c2ecf0371c0852c58488eb8"
+  },
+  "release": {
+    "buildRevision": 2,
+    "createdAt": "2026-09-01T11:30:26Z",
+    "id": "laboratory-cn@2026-08-30.r2",
+    "revoked": false,
+    "sequence": 2,
+    "storageKey": "2026-08-30.r2",
+    "supersedes": "laboratory-cn@2026-08-30.r1"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "CN Health Data project-authored curated laboratory and vital-sign catalog; LOINC and UCUM identifiers identify their respective external standards.\n",
+    "basis": "Project-authored curated catalog published with external terminology identifiers and their source identities preserved.\n",
+    "evidence": [
+      "LICENSE",
+      "datasets/laboratory-cn/README.md",
+      "docs/publication-decision.md"
+    ],
+    "redistribution": "public",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "CN Health Data contributors",
+      "authorityRole": "project-author",
+      "authorityVerified": true,
+      "dataAsOf": "2026-08-30",
+      "format": "csv",
+      "originalFilename": "catalog.csv",
+      "recordCount": 18,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "0ce998b45c921a06f2b1e016610afc83ea2886fc68c7ce7c5a69c8be6da43d2b",
+      "sizeBytes": 2383,
+      "sourceUrl": "https://github.com/CaiZongyuan/cn-health-data/blob/main/datasets/laboratory-cn/catalog.csv",
+      "upstreamCommit": null
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "ab21b93656d1eec99b7e7d751818dd156cb560589047c44e7371cd8273c20ff9"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "added": 0,
+  "baseRelease": "nhc-icd10-clinical@2022.r3",
+  "baseSourceSha256": "e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52",
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "targetRelease": "nhc-icd10-clinical@2022.r4",
+  "targetSourceSha256": "e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52",
+  "unchanged": 37294
+}

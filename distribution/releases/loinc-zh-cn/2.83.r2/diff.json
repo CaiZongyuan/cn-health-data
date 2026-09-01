@@ -1,0 +1,42 @@
+{
+  "added": 0,
+  "baseRelease": "loinc-zh-cn@2.83.r1",
+  "baseSourceSha256": "31b23804d2fa1954cd98de3c016c43c62fc607133e4e7e6542e4cc5fd1b3a8e3",
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "tables": [
+    {
+      "added": 0,
+      "modified": 0,
+      "removed": 0,
+      "table": "loinc",
+      "unchanged": 112405
+    },
+    {
+      "added": 0,
+      "modified": 0,
+      "removed": 0,
+      "table": "loinc_unit",
+      "unchanged": 45207
+    },
+    {
+      "added": 0,
+      "modified": 0,
+      "removed": 0,
+      "table": "loinc_specimen",
+      "unchanged": 112405
+    },
+    {
+      "added": 0,
+      "modified": 0,
+      "removed": 0,
+      "table": "loinc_panel_member",
+      "unchanged": 95705
+    }
+  ],
+  "targetRelease": "loinc-zh-cn@2.83.r2",
+  "targetSourceSha256": "31b23804d2fa1954cd98de3c016c43c62fc607133e4e7e6542e4cc5fd1b3a8e3",
+  "unchanged": 365722
+}

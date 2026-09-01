@@ -9,6 +9,7 @@ import typer
 
 from cn_health_compiler import __version__
 from cn_health_compiler.core.dataset import find_repository_root
+from cn_health_compiler.core.distribution import stage_public_releases
 from cn_health_compiler.core.manifest import write_json_atomic
 from cn_health_compiler.core.registry import build_signed_registry, generate_signing_keypair
 from cn_health_compiler.core.validation import validate_dataset_contracts
@@ -511,3 +512,23 @@ def registry_build(
     )
     typer.echo(output)
     typer.echo(signature)
+
+
+@registry_app.command("stage")
+def registry_stage(
+    manifests: Annotated[list[Path], typer.Argument(exists=True, dir_okay=False)],
+    output_root: Annotated[Path, typer.Option("--output-root", file_okay=False)],
+    repo_root: Annotated[
+        Path | None,
+        typer.Option("--repo-root", file_okay=False, resolve_path=True),
+    ] = None,
+) -> None:
+    """Stage verified public artifacts from release-eligible Candidates."""
+    root = repo_root or find_repository_root()
+    staged = stage_public_releases(
+        manifests,
+        output_root=output_root,
+        manifest_schema_path=root / "schemas" / "manifest.schema.json",
+    )
+    for release in staged:
+        typer.echo(release.manifest_path)

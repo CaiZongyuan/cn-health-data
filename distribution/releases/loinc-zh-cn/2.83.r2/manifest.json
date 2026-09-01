@@ -1,0 +1,220 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "8c52a53b5f8477a3bb4a8eeb6f533d7bdc8a994d945e0e3de59695397a676b79",
+      "sizeBytes": 53957119,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "ad5558cedbc9e6705feb2b57e3949a574974d28eaa04fc5d4344a8b3a8977bb0",
+      "uncompressedSizeBytes": 560861184,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "loinc.parquet",
+      "sha256": "5c8e42c61a088a164e9e3e6f6e9497486c2c08327977882e9a5d5d4ebfea4a8b",
+      "sizeBytes": 15524681,
+      "url": "loinc.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "loinc-units.parquet",
+      "sha256": "7a74444be6d6df7aa872143550125f81f03ec0f95ffa0eeaa8a8fbbd22e22dfa",
+      "sizeBytes": 187769,
+      "url": "loinc-units.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "loinc-specimens.parquet",
+      "sha256": "2462417c7f29644699c337bcf1289cc56bad0333a6a95c571541991c48303b3d",
+      "sizeBytes": 564175,
+      "url": "loinc-specimens.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "loinc-panel-members.parquet",
+      "sha256": "1f2712a9b0d48f666d596690dc150265e7e8e3d9e8010b008998d81785b98c95",
+      "sizeBytes": 1603171,
+      "url": "loinc-panel-members.parquet"
+    },
+    {
+      "mediaType": "text/plain; charset=utf-8",
+      "name": "license.txt",
+      "sha256": "05eb5069f8352b0513fe8c911d8a432e8ddc2d09f999b6f153617f2afd16ad85",
+      "sizeBytes": 25709,
+      "url": "license.txt"
+    },
+    {
+      "mediaType": "text/plain; charset=utf-8",
+      "name": "LOINC_short_license.txt",
+      "sha256": "efdd9229524b8c0ff86222552cc8213c973f9455e195f7040784b793d9ae290b",
+      "sizeBytes": 340,
+      "url": "LOINC_short_license.txt"
+    }
+  ],
+  "canonical": {
+    "recordCount": 365722,
+    "serialization": "canonical-table-hashes-v1",
+    "sha256": "ba19b5f0f7556b2a191f8c463ab3c92b7ea777bb323d55fa5a5e300cf4c75f33",
+    "tables": [
+      {
+        "recordCount": 112405,
+        "sha256": "5589d67b8e987362838e4553cb22d2259a94dbca5dc80ae4d11498f1adea2994",
+        "table": "loinc"
+      },
+      {
+        "recordCount": 45207,
+        "sha256": "786e8876b03b6f59e5fefa5d3053318e98efd0ae0a783da41dcc607aba65334a",
+        "table": "loinc_unit"
+      },
+      {
+        "recordCount": 112405,
+        "sha256": "eb3e2775b9fcb1b6b31f63e54e91fc64007039c3412169648f78fbc8fc7019f6",
+        "table": "loinc_specimen"
+      },
+      {
+        "recordCount": 95705,
+        "sha256": "d1fb630e8bfe09b9cee7be2e5afc2deed3f06b1da599df75182c465f9115a8dd",
+        "table": "loinc_panel_member"
+      }
+    ]
+  },
+  "compiler": {
+    "adapter": "loinc-zh-cn",
+    "adapterVersion": 1,
+    "buildInputSha256": "d1edc6349252985a2c1a2192934d2ba3b38fbdada105cdbb9866babdda43d733",
+    "configSha256": "4e668dc7f6c4124beb06e3783a015f37ec7a1f3fb4ed98feb6a4c1ff75272954",
+    "datasetContractSha256": "b97af874b45ee426a9f3d992a5e4ca490c55b847843c5fe8d9977ddd135b6d50",
+    "datasetSchemaSha256": "48e60c50227f73d224ecd1e34c1c0dcb1109bfeebe998fb797a8f440ecb9df07",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "polarsVersion": "1.44.1",
+    "pythonVersion": "3.12.3",
+    "sqliteVersion": "3.45.1",
+    "ucumvertVersion": "0.3.2",
+    "version": "0.1.0",
+    "zstandardVersion": "0.25.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 2,
+    "id": "loinc-zh-cn",
+    "sourceVersion": "2.83",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "7318e0721790a83f943f06861c2624063ad3a5e4e466d25391c21f61f8eac28c"
+  },
+  "release": {
+    "buildRevision": 2,
+    "createdAt": "2026-09-01T11:34:48Z",
+    "id": "loinc-zh-cn@2.83.r2",
+    "revoked": false,
+    "sequence": 2,
+    "storageKey": "2.83.r2",
+    "supersedes": "loinc-zh-cn@2.83.r1"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "This material contains content from LOINC (http://loinc.org). LOINC is copyright © Regenstrief Institute, Inc. and the Logical Observation Identifiers Names and Codes (LOINC) Committee and is available at no cost under the license at http://loinc.org/license. LOINC® is a registered United States trademark of Regenstrief Institute, Inc.\n",
+    "basis": "LOINC License 5.8 permits use, copying, distribution, and incorporation subject to attribution, display-name, version, unchanged-content, and third-party copyright conditions. The maintainer publication decision keeps source-member provenance, notices, and license artifacts with the Release.\n",
+    "evidence": [
+      "datasets/loinc-zh-cn/source-review.md",
+      "datasets/loinc-zh-cn/LOINC_short_license.txt",
+      "source-member:LoincLicense_5.8.txt",
+      "docs/publication-decision.md"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.38.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "Regenstrief Institute, Inc. and the LOINC Committee",
+      "authorityRole": "original-authority",
+      "authorityVerified": true,
+      "dataAsOf": "2.83",
+      "format": "zip",
+      "members": [
+        {
+          "archiveRole": "core",
+          "member": "LoincTable/Loinc.csv",
+          "role": "core",
+          "rowCount": 112405,
+          "uncompressedSha256": "5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba",
+          "uncompressedSizeBytes": 84205426
+        },
+        {
+          "archiveRole": "core",
+          "member": "AccessoryFiles/LinguisticVariants/zhCN5LinguisticVariant.csv",
+          "role": "linguistic-variant",
+          "rowCount": 96518,
+          "uncompressedSha256": "94527f0d89c455c427ac75e2ae6f5f9b19a92534e2b206768375819734a186e5",
+          "uncompressedSizeBytes": 96195744
+        },
+        {
+          "archiveRole": "core",
+          "member": "AccessoryFiles/PanelsAndForms/PanelsAndForms.csv",
+          "role": "panel-members",
+          "rowCount": 98519,
+          "uncompressedSha256": "54451baebd4e6f116edfc44024fc5ea2a005e32a56ad72514c31278cff9ce7d4",
+          "uncompressedSizeBytes": 34791992
+        },
+        {
+          "archiveRole": "core",
+          "member": "AccessoryFiles/PartFile/Part.csv",
+          "role": "parts",
+          "rowCount": 74937,
+          "uncompressedSha256": "743dff07ad47bc5eeb4854864ebb2a5ed883112df8d49e21b0fad9bf60ad6c77",
+          "uncompressedSizeBytes": 8038858
+        },
+        {
+          "archiveRole": "core",
+          "member": "AccessoryFiles/PartFile/LoincPartLink_Primary.csv",
+          "role": "specimen-links",
+          "rowCount": 685901,
+          "uncompressedSha256": "31e2db4ad083c56829951464d521956fb3bbd6ab9f207b5e9f39423363617578",
+          "uncompressedSizeBytes": 118680671
+        },
+        {
+          "archiveRole": "core",
+          "member": "LoincTable/Loinc.csv",
+          "role": "unit:example",
+          "rowCount": 112405,
+          "uncompressedSha256": "5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba",
+          "uncompressedSizeBytes": 84205426
+        }
+      ],
+      "originalFilename": "Loinc_2.83.zip",
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "roles": [
+        "core",
+        "linguistic-variant"
+      ],
+      "sha256": "077a0718e87d8309ffe3a673f75b836a8e783dc36a646413ef97c71c12eab27e",
+      "sizeBytes": 92815327,
+      "sourceReacquirable": true,
+      "sourceUrl": "https://loinc.org/download/loinc-complete/"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "a18fa08ac7fd3da77182cf9bc7c0bbd79385d063a423b95e11723ffc53e7746d"
+  }
+}
