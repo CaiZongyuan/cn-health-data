@@ -108,7 +108,7 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 | 安装方式 | 运行要求 | 支持平台 |
 |---|---|---|
-| npm `cn-health@0.4.0` | Node.js 22 或更高版本 | Linux x64、macOS x64/arm64、Windows x64 |
+| npm `cn-health@0.5.0` | Node.js 22 或更高版本 | Linux x64、macOS x64/arm64、Windows x64 |
 | GitHub 原生归档 | 无额外语言运行时 | Linux x64、macOS x64/arm64、Windows x64 |
 
 两种方式运行的是同一个 Rust CLI。npm 包只是平台二进制解析器，不包含第二套查询逻辑。
@@ -132,47 +132,47 @@ dist/              不可变的本地 Candidate，Git 忽略
 这是最简单的跨平台安装方式：
 
 ```bash
-npm install --global cn-health@0.4.0
+npm install --global cn-health@0.5.0
 cn-health --version
 ```
 
 版本命令应输出：
 
 ```text
-cn-health 0.4.0
+cn-health 0.5.0
 ```
 
 npm 会根据当前操作系统只安装一个可选平台包。例如 Linux x64 安装
 `@cn-health/cli-linux-x64`；其他平台包显示为未满足的 optional dependency 是正常行为。
 
-临时试用也可以使用 `npx --yes cn-health@0.4.0 --version`，但日常查询建议全局安装，避免
+临时试用也可以使用 `npx --yes cn-health@0.5.0 --version`，但日常查询建议全局安装，避免
 每次重新解析包。
 
 ### 使用原生发行包
 
 不希望安装 Node.js 时，可从
-[`v0.4.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.4.0)
+[`v0.5.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.5.0)
 下载对应归档：
 
 | 系统 | Release 资产 |
 |---|---|
-| Linux x64 | `cn-health-v0.4.0-linux-x64.tar.gz` |
-| macOS Intel | `cn-health-v0.4.0-darwin-x64.tar.gz` |
-| macOS Apple Silicon | `cn-health-v0.4.0-darwin-arm64.tar.gz` |
-| Windows x64 | `cn-health-v0.4.0-win32-x64.tar.gz` |
+| Linux x64 | `cn-health-v0.5.0-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.5.0-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.5.0-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.5.0-win32-x64.tar.gz` |
 
 Linux/macOS 解压并直接运行：
 
 ```bash
-tar -xzf cn-health-v0.4.0-linux-x64.tar.gz
-./cn-health-v0.4.0-linux-x64/cn-health --version
+tar -xzf cn-health-v0.5.0-linux-x64.tar.gz
+./cn-health-v0.5.0-linux-x64/cn-health --version
 ```
 
 Windows PowerShell 可以使用系统自带的 `tar`：
 
 ```powershell
-tar -xzf cn-health-v0.4.0-win32-x64.tar.gz
-.\cn-health-v0.4.0-win32-x64\cn-health.exe --version
+tar -xzf cn-health-v0.5.0-win32-x64.tar.gz
+.\cn-health-v0.5.0-win32-x64\cn-health.exe --version
 ```
 
 每个原生归档同时包含 `LICENSE` 和 `DATA-NOTICE.md`。macOS 产物目前未做 Apple
@@ -248,6 +248,23 @@ cn-health dataset versions laboratory-cn --json
 `doctor` 检查八个默认 Dataset 是否已安装、是否来自签名 Registry，并对药品、诊断、
 LOINC 和检验执行代表性精确读取。`doctor --json` 还会显示实际 `dataDir` 和编译进 CLI
 的默认 Registry URL。
+
+### Materialize 精确 Release
+
+构建和 CI consumer 可以请求一个精确的签名 Release，而不读取 runtime 的私有数据目录：
+
+```bash
+cn-health dataset materialize laboratory-cn laboratory-cn@2026-09-01.r1 \
+  --registry https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/registry.json \
+  --public-key ./distribution/registry.pub \
+  --output ./staging/laboratory-cn \
+  --json
+```
+
+输出目录必须不存在或为空。成功时原子发布原始 `manifest.json`、已验证的 `data.sqlite`
+和 `materialization.json`。JSON 结果固定 CLI、Dataset/Release/Schema、Registry key ID 和
+信任状态、Manifest hash 及 SQLite hash/大小。相同 Release 已安装时仍重新验证 Registry
+和 Manifest，但复用已验证的本地 SQLite。失败不会留下可消费输出，也不会覆盖非空目标。
 
 ### 数据目录和离线运行
 

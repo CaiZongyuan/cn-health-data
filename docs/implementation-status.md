@@ -16,7 +16,7 @@
 | Synthea support | Fixed-commit profile `2026-08-29.r3`, Bundle localizer, bounded non-root HTTP service, and three-module Docker corpus validation |
 | Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
-| Native runtime | Rust full/default and selective remote install, minimum CLI compatibility, complete doctor, schema v1/v2 laboratory get/search, and panel get/search |
+| Native runtime | Rust full/default and selective remote install, exact-release atomic materialization, minimum CLI compatibility, complete doctor, schema v1/v2 laboratory get/search, and panel get/search |
 | Remote distribution | Eight-Dataset signed public Registry, laboratory v1 history, normalized artifact staging, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
 | npm | Thin native binary resolver, four optional platform packages, and tag-driven package/archive builds |
 

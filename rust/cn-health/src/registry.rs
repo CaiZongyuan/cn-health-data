@@ -12,9 +12,15 @@ use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 
 use crate::manifest::Manifest;
-use crate::storage::{InstalledDataset, install_manifest};
+use crate::storage::{InstalledDataset, install_manifest, list_versions};
 
 const MAX_METADATA_BYTES: u64 = 10 * 1024 * 1024;
+
+pub struct VerifiedRemoteRelease {
+    pub installed: InstalledDataset,
+    pub manifest_sha256: String,
+    pub registry_key_id: String,
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,6 +70,36 @@ pub fn install_remote_with_key(
     registry_url: &str,
     public_bytes: &[u8],
 ) -> Result<InstalledDataset> {
+    Ok(
+        install_remote_release_with_key(data_dir, dataset_id, None, registry_url, public_bytes)?
+            .installed,
+    )
+}
+
+pub fn install_remote_release(
+    data_dir: &Path,
+    dataset_id: &str,
+    release_id: &str,
+    registry_url: &str,
+    public_key_path: &Path,
+) -> Result<VerifiedRemoteRelease> {
+    let public_bytes = fs::read(public_key_path)?;
+    install_remote_release_with_key(
+        data_dir,
+        dataset_id,
+        Some(release_id),
+        registry_url,
+        &public_bytes,
+    )
+}
+
+fn install_remote_release_with_key(
+    data_dir: &Path,
+    dataset_id: &str,
+    requested_release_id: Option<&str>,
+    registry_url: &str,
+    public_bytes: &[u8],
+) -> Result<VerifiedRemoteRelease> {
     let client = Client::builder().redirect(Policy::none()).build()?;
     let registry_url = Url::parse(registry_url)?;
     require_secure_or_loopback(&registry_url)?;
@@ -89,17 +125,20 @@ pub fn install_remote_with_key(
         .datasets
         .get(dataset_id)
         .with_context(|| format!("Dataset {dataset_id} is not present in Registry"))?;
-    let recommended = dataset
-        .recommended_release
-        .as_deref()
-        .context("Dataset has no recommended Release")?;
+    let selected_release_id = match requested_release_id {
+        Some(release_id) => release_id,
+        None => dataset
+            .recommended_release
+            .as_deref()
+            .context("Dataset has no recommended Release")?,
+    };
     let release = dataset
         .releases
         .iter()
-        .find(|release| release.id == recommended)
-        .context("recommended Release is missing from Registry")?;
+        .find(|release| release.id == selected_release_id)
+        .with_context(|| format!("Release {selected_release_id} is missing from Registry"))?;
     if release.revoked {
-        bail!("recommended Release is revoked");
+        bail!("Release {} is revoked", release.id);
     }
     let manifest_url = Url::parse(&release.manifest_url)?;
     require_secure_or_loopback(&manifest_url)?;
@@ -115,19 +154,30 @@ pub fn install_remote_with_key(
     if !manifest.rights.release_eligible {
         bail!("remote Manifest is not release-eligible");
     }
-    let artifact = manifest.compressed_sqlite()?;
-    let artifact_url = manifest_url.join(&artifact.url)?;
-    require_same_origin(&manifest_url, &artifact_url)?;
     let temporary = TempDir::new()?;
     let manifest_path = temporary.path().join("manifest.json");
-    let artifact_path = temporary.path().join(&artifact.name);
     write_synced(&manifest_path, &manifest_bytes)?;
-    download_exact(&client, artifact_url, &artifact_path, artifact.size_bytes)?;
-    install_manifest(
+    let already_installed = list_versions(data_dir, dataset_id)?
+        .iter()
+        .any(|version| version.release_id == release.id);
+    if !already_installed {
+        let artifact = manifest.compressed_sqlite()?;
+        let artifact_url = manifest_url.join(&artifact.url)?;
+        require_same_origin(&manifest_url, &artifact_url)?;
+        let artifact_path = temporary.path().join(&artifact.name);
+        download_exact(&client, artifact_url, &artifact_path, artifact.size_bytes)?;
+    }
+    let installed = install_manifest(
         data_dir,
         &manifest_path,
         &format!("signed-registry:{}", registry.signature.key_id),
-    )
+        !already_installed,
+    )?;
+    Ok(VerifiedRemoteRelease {
+        installed,
+        manifest_sha256: release.manifest_sha256.clone(),
+        registry_key_id: registry.signature.key_id,
+    })
 }
 
 fn fetch_bytes(client: &Client, url: Url, maximum: u64) -> Result<Vec<u8>> {

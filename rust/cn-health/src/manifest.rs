@@ -33,6 +33,8 @@ pub struct Release {
 pub struct Dataset {
     pub id: String,
     pub source_version: String,
+    #[serde(default)]
+    pub dataset_schema_version: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

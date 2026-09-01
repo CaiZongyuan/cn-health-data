@@ -13,3 +13,5 @@ complete installed set.
 Version 0.4.0 adds the WS/T 886 authority Dataset, schema v1/v2 laboratory
 compatibility, adult reference/simulation metadata, and laboratory panel
 search/expansion.
+Version 0.5.0 adds exact signed-Registry Release materialization with verified,
+atomic Manifest/SQLite output and a machine-readable consumer receipt.

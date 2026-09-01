@@ -1,4 +1,5 @@
 mod manifest;
+mod materialize;
 mod query;
 mod registry;
 mod storage;
@@ -12,6 +13,7 @@ use directories::ProjectDirs;
 use serde::Serialize;
 use serde_json::json;
 
+use crate::materialize::materialize_release;
 use crate::query::{
     SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search, laboratory_get,
     laboratory_health_check, laboratory_panel_get, laboratory_panel_search, laboratory_search,
@@ -103,6 +105,18 @@ enum DatasetCommand {
         public_key: Option<PathBuf>,
     },
     List {
+        #[arg(long)]
+        json: bool,
+    },
+    Materialize {
+        dataset_id: String,
+        release_id: String,
+        #[arg(long)]
+        registry: String,
+        #[arg(long)]
+        public_key: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
         #[arg(long)]
         json: bool,
     },
@@ -207,7 +221,8 @@ impl Cli {
             Command::Dataset(DatasetArgs { command }) => match command {
                 DatasetCommand::List { json }
                 | DatasetCommand::Info { json, .. }
-                | DatasetCommand::Versions { json, .. } => *json,
+                | DatasetCommand::Versions { json, .. }
+                | DatasetCommand::Materialize { json, .. } => *json,
                 DatasetCommand::Install { .. } | DatasetCommand::Use { .. } => false,
             },
             Command::Drug(LookupArgs { command })
@@ -433,6 +448,28 @@ fn run_dataset(data_dir: &std::path::Path, command: DatasetCommand) -> Result<()
                 for dataset in installed {
                     println!("{}\t{}\t{}", dataset.id, dataset.release_id, dataset.trust);
                 }
+            }
+        }
+        DatasetCommand::Materialize {
+            dataset_id,
+            release_id,
+            registry,
+            public_key,
+            output,
+            json: json_output,
+        } => {
+            let receipt = materialize_release(
+                data_dir,
+                &dataset_id,
+                &release_id,
+                &registry,
+                &public_key,
+                &output,
+            )?;
+            if json_output {
+                print_json(&receipt)?;
+            } else {
+                println!("{} {} {}", dataset_id, release_id, output.display());
             }
         }
         DatasetCommand::Info {
