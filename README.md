@@ -127,7 +127,7 @@ End users can install through npm or use a native release archive:
 
 | Installation | Runtime requirement | Supported platforms |
 |---|---|---|
-| npm `cn-health@0.4.0` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
+| npm `cn-health@0.5.0` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
 | GitHub native archive | No language runtime | Linux x64, macOS x64/arm64, Windows x64 |
 
 Both options run the same Rust CLI. The npm package only resolves a platform
@@ -153,48 +153,48 @@ require the third-party XLSX files.
 This is the simplest cross-platform installation method:
 
 ```bash
-npm install --global cn-health@0.4.0
+npm install --global cn-health@0.5.0
 cn-health --version
 ```
 
 The version command should print:
 
 ```text
-cn-health 0.4.0
+cn-health 0.5.0
 ```
 
 npm installs only the optional package matching the current operating system.
 For example, Linux x64 installs `@cn-health/cli-linux-x64`; unmet optional
 dependencies for the other platforms are expected.
 
-For a temporary check, `npx --yes cn-health@0.4.0 --version` also works. A global
+For a temporary check, `npx --yes cn-health@0.5.0 --version` also works. A global
 installation is preferable for repeated queries because it avoids resolving the
 package every time.
 
 ### Install a Native Archive
 
 To run without Node.js, download the matching archive from the
-[`v0.4.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.4.0):
+[`v0.5.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.5.0):
 
 | System | Release asset |
 |---|---|
-| Linux x64 | `cn-health-v0.4.0-linux-x64.tar.gz` |
-| macOS Intel | `cn-health-v0.4.0-darwin-x64.tar.gz` |
-| macOS Apple Silicon | `cn-health-v0.4.0-darwin-arm64.tar.gz` |
-| Windows x64 | `cn-health-v0.4.0-win32-x64.tar.gz` |
+| Linux x64 | `cn-health-v0.5.0-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.5.0-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.5.0-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.5.0-win32-x64.tar.gz` |
 
 Extract and run on Linux or macOS:
 
 ```bash
-tar -xzf cn-health-v0.4.0-linux-x64.tar.gz
-./cn-health-v0.4.0-linux-x64/cn-health --version
+tar -xzf cn-health-v0.5.0-linux-x64.tar.gz
+./cn-health-v0.5.0-linux-x64/cn-health --version
 ```
 
 Windows PowerShell can use the system `tar` command:
 
 ```powershell
-tar -xzf cn-health-v0.4.0-win32-x64.tar.gz
-.\cn-health-v0.4.0-win32-x64\cn-health.exe --version
+tar -xzf cn-health-v0.5.0-win32-x64.tar.gz
+.\cn-health-v0.5.0-win32-x64\cn-health.exe --version
 ```
 
 Every native archive also contains `LICENSE` and `DATA-NOTICE.md`. macOS
@@ -275,6 +275,27 @@ cn-health dataset versions laboratory-cn --json
 `doctor` checks all eight default Datasets, signed-Registry trust, and
 representative exact lookups for drug, diagnosis, LOINC, and laboratory query
 surfaces. `doctor --json` also shows the effective `dataDir` and default Registry.
+
+### Materialize an Exact Release
+
+Build and CI consumers can request one exact signed Release without depending
+on the runtime's private data-directory layout:
+
+```bash
+cn-health dataset materialize laboratory-cn laboratory-cn@2026-09-01.r1 \
+  --registry https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/registry.json \
+  --public-key ./distribution/registry.pub \
+  --output ./staging/laboratory-cn \
+  --json
+```
+
+The output directory must be absent or empty. Success atomically publishes the
+original `manifest.json`, verified `data.sqlite`, and `materialization.json`.
+The JSON result fixes the CLI, Dataset/Release/Schema, Registry key ID and
+trust, Manifest hash, and SQLite hash/size. Repeating the command for an already
+installed Release revalidates Registry and Manifest metadata but reuses the
+verified local SQLite. Failure leaves no consumable output and never overwrites
+a non-empty target.
 
 ### Data Directory and Offline Operation
 

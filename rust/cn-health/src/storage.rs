@@ -50,14 +50,21 @@ pub struct InstalledVersion {
     pub trust: String,
 }
 
+pub struct InstalledReleaseFiles {
+    pub database_path: PathBuf,
+    pub manifest_path: PathBuf,
+    pub trust: String,
+}
+
 pub fn install_local(data_dir: &Path, manifest_path: &Path) -> Result<InstalledDataset> {
-    install_manifest(data_dir, manifest_path, "local-untrusted")
+    install_manifest(data_dir, manifest_path, "local-untrusted", true)
 }
 
 pub(crate) fn install_manifest(
     data_dir: &Path,
     manifest_path: &Path,
     trust: &str,
+    verify_source_artifact: bool,
 ) -> Result<InstalledDataset> {
     let manifest_path = manifest_path.canonicalize()?;
     let manifest = Manifest::read(&manifest_path)?;
@@ -69,11 +76,6 @@ pub(crate) fn install_manifest(
 
     let final_dir = releases_dir.join(&manifest.release.storage_key);
     let compressed = manifest.compressed_sqlite()?;
-    let compressed_path = artifact_path(&manifest_path, compressed)?;
-    let (compressed_hash, compressed_size) = sha256_file(&compressed_path)?;
-    if compressed_hash != compressed.sha256 || compressed_size != compressed.size_bytes {
-        bail!("compressed artifact SHA256 or size does not match Manifest");
-    }
     let expected_hash = compressed
         .uncompressed_sha256
         .as_deref()
@@ -81,6 +83,11 @@ pub(crate) fn install_manifest(
     let expected_size = compressed
         .uncompressed_size_bytes
         .context("Manifest has no uncompressedSizeBytes")?;
+    let compressed_path = if verify_source_artifact {
+        Some(verified_compressed_path(&manifest_path, compressed)?)
+    } else {
+        None
+    };
 
     if final_dir.exists() {
         let existing_manifest_path = final_dir.join("manifest.json");
@@ -123,6 +130,11 @@ pub(crate) fn install_manifest(
         return Ok(installed_dataset(manifest.dataset.id, pointer));
     }
 
+    let compressed_path = match compressed_path {
+        Some(path) => path,
+        None => verified_compressed_path(&manifest_path, compressed)?,
+    };
+
     let temporary = tempdir_in(&releases_dir)?;
     let database_path = temporary.path().join("data.sqlite");
     decompress_bounded(&compressed_path, &database_path, expected_size)?;
@@ -144,6 +156,18 @@ pub(crate) fn install_manifest(
     write_json_atomic(&dataset_dir.join("current.json"), &pointer)?;
     FileExt::unlock(&lock)?;
     Ok(installed_dataset(manifest.dataset.id, pointer))
+}
+
+fn verified_compressed_path(
+    manifest_path: &Path,
+    compressed: &crate::manifest::Artifact,
+) -> Result<PathBuf> {
+    let compressed_path = artifact_path(manifest_path, compressed)?;
+    let (compressed_hash, compressed_size) = sha256_file(&compressed_path)?;
+    if compressed_hash != compressed.sha256 || compressed_size != compressed.size_bytes {
+        bail!("compressed artifact SHA256 or size does not match Manifest");
+    }
+    Ok(compressed_path)
 }
 
 fn installed_dataset(id: String, pointer: CurrentPointer) -> InstalledDataset {
@@ -182,6 +206,47 @@ pub fn list_versions(data_dir: &Path, dataset_id: &str) -> Result<Vec<InstalledV
     }
     versions.sort_by_key(|version| version.sequence);
     Ok(versions)
+}
+
+pub fn installed_release_files(
+    data_dir: &Path,
+    dataset_id: &str,
+    release_id: &str,
+) -> Result<InstalledReleaseFiles> {
+    validate_segment(dataset_id, "Dataset ID")?;
+    let version = list_versions(data_dir, dataset_id)?
+        .into_iter()
+        .find(|version| version.release_id == release_id)
+        .with_context(|| format!("Release {release_id} is not installed"))?;
+    let release_dir = data_dir
+        .join("datasets")
+        .join(dataset_id)
+        .join("releases")
+        .join(&version.storage_key);
+    let manifest_path = release_dir.join("manifest.json");
+    let manifest = Manifest::read(&manifest_path)?;
+    if manifest.dataset.id != dataset_id || manifest.release.id != release_id {
+        bail!("installed Release identity does not match requested Release");
+    }
+    let compressed = manifest.compressed_sqlite()?;
+    let expected_hash = compressed
+        .uncompressed_sha256
+        .as_deref()
+        .context("Manifest has no uncompressedSha256")?;
+    let expected_size = compressed
+        .uncompressed_size_bytes
+        .context("Manifest has no uncompressedSizeBytes")?;
+    let database_path = release_dir.join("data.sqlite");
+    let (database_hash, database_size) = sha256_file(&database_path)?;
+    if database_hash != expected_hash || database_size != expected_size {
+        bail!("installed SQLite SHA256 or size does not match Manifest");
+    }
+    verify_database(&database_path)?;
+    Ok(InstalledReleaseFiles {
+        database_path,
+        manifest_path,
+        trust: version.trust,
+    })
 }
 
 pub fn activate_release(

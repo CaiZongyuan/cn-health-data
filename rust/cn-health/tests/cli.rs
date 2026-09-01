@@ -561,6 +561,36 @@ fn rejects_corrupt_compressed_artifact_without_installing() {
 }
 
 #[test]
+fn rejects_a_corrupt_local_reinstall_source_without_damaging_the_installed_release() {
+    let temporary = TempDir::new().unwrap();
+    let manifest = fixture_release(&temporary.path().join("fixtures"), "nhsa-drugs");
+    let data_dir = temporary.path().join("data");
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(&manifest)
+        .assert()
+        .success();
+    fs::OpenOptions::new()
+        .append(true)
+        .open(manifest.parent().unwrap().join("data.sqlite.zst"))
+        .unwrap()
+        .write_all(b"corrupt")
+        .unwrap();
+
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(&manifest)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("SHA256"));
+    command(&data_dir)
+        .args(["drug", "get", "XA01", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("盐酸二甲双胍片"));
+}
+
+#[test]
 fn initializes_queries_and_diagnoses_from_a_signed_registry() {
     let temporary = TempDir::new().unwrap();
     let manifest_path = fixture_release(&temporary.path().join("fixtures"), "laboratory-cn");
@@ -601,7 +631,7 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
     let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
     let compressed_bytes = fs::read(compressed).unwrap();
     let server_thread = std::thread::spawn(move || {
-        for _ in 0..8 {
+        for _ in 0..7 {
             let request = server.recv().unwrap();
             let body = match request.url() {
                 "/registry.json" => registry_bytes.clone(),
@@ -654,6 +684,154 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
         .assert()
         .success()
         .stdout(predicate::str::contains("signed-registry"));
+}
+
+#[test]
+fn materializes_an_exact_signed_release_atomically_and_reuses_installed_content() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_laboratory_v2(&temporary.path().join("fixtures"));
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["dataset"]["datasetSchemaVersion"] = Value::from(2);
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    fs::write(&manifest_path, &manifest_bytes).unwrap();
+    let compressed_bytes =
+        fs::read(manifest_path.parent().unwrap().join("data.sqlite.zst")).unwrap();
+    let database_bytes = fs::read(manifest_path.parent().unwrap().join("data.sqlite")).unwrap();
+
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let manifest_sha256 = hex::encode(Sha256::digest(&manifest_bytes));
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@not-selected.r2",
+                "releases": [{
+                    "id": "laboratory-cn@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": manifest_sha256,
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[9_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let server_thread = std::thread::spawn(move || {
+        for _ in 0..7 {
+            let request = server.recv().unwrap();
+            let body = match request.url() {
+                "/registry.json" => registry_bytes.clone(),
+                "/registry.json.sig" => signature_bytes.clone(),
+                "/manifest.json" => manifest_bytes.clone(),
+                "/data.sqlite.zst" => compressed_bytes.clone(),
+                path => panic!("unexpected request {path}"),
+            };
+            request.respond(Response::from_data(body)).unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+    let data_dir = temporary.path().join("data");
+    let outputs = [
+        temporary.path().join("materialized-first"),
+        temporary.path().join("materialized-second"),
+    ];
+
+    let mut results = Vec::new();
+    for output_dir in &outputs {
+        let output = command(&data_dir)
+            .args([
+                "dataset",
+                "materialize",
+                "laboratory-cn",
+                "laboratory-cn@fixture.r1",
+                "--registry",
+            ])
+            .arg(format!("{base_url}/registry.json"))
+            .arg("--public-key")
+            .arg(&public_key_path)
+            .arg("--output")
+            .arg(output_dir)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(result["schemaVersion"], 1);
+        assert_eq!(result["command"], "dataset.materialize");
+        assert_eq!(result["cliVersion"], env!("CARGO_PKG_VERSION"));
+        assert_eq!(result["dataset"]["id"], "laboratory-cn");
+        assert_eq!(result["dataset"]["releaseId"], "laboratory-cn@fixture.r1");
+        assert_eq!(result["dataset"]["datasetSchemaVersion"], 2);
+        assert_eq!(
+            result["registry"]["url"],
+            format!("{base_url}/registry.json")
+        );
+        assert_eq!(result["registry"]["keyId"], &key_id[..16]);
+        assert_eq!(result["registry"]["trust"], "signed-registry");
+        assert_eq!(result["manifest"]["path"], "manifest.json");
+        assert_eq!(result["manifest"]["sha256"], manifest_sha256);
+        assert_eq!(result["sqlite"]["path"], "data.sqlite");
+        assert_eq!(
+            result["sqlite"]["sha256"],
+            sha256(&manifest_path.parent().unwrap().join("data.sqlite"))
+        );
+        assert_eq!(result["sqlite"]["sizeBytes"], database_bytes.len());
+        assert_eq!(
+            fs::read(output_dir.join("manifest.json")).unwrap(),
+            fs::read(&manifest_path).unwrap()
+        );
+        assert_eq!(
+            fs::read(output_dir.join("data.sqlite")).unwrap(),
+            database_bytes
+        );
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(output_dir.join("materialization.json")).unwrap())
+                .unwrap();
+        assert_eq!(receipt, result);
+        results.push(result);
+    }
+    assert_eq!(results[0]["manifest"], results[1]["manifest"]);
+    assert_eq!(results[0]["sqlite"], results[1]["sqlite"]);
+    server_thread.join().unwrap();
+
+    let nonempty = temporary.path().join("nonempty");
+    fs::create_dir(&nonempty).unwrap();
+    fs::write(nonempty.join("keep.txt"), b"keep").unwrap();
+    command(&data_dir)
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+            "http://127.0.0.1:1/unused",
+            "--public-key",
+        ])
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(&nonempty)
+        .arg("--json")
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("output directory must be empty"));
+    assert_eq!(fs::read(nonempty.join("keep.txt")).unwrap(), b"keep");
 }
 
 #[test]

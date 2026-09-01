@@ -9,7 +9,7 @@ data or reimplement queries in JavaScript.
 Node.js 22 or newer is required for the launcher:
 
 ```bash
-npm install --global cn-health@0.4.0
+npm install --global cn-health@0.5.0
 cn-health --version
 ```
 
@@ -41,6 +41,18 @@ complete Chinese LOINC, WS/T 886 terminology, geography, names, population, and
 the adult laboratory runtime. Use `--only DATASET_ID[,DATASET_ID...]` for
 selective installation.
 Raw source workbooks and archives are not distributed.
+
+Consumers that need an exact immutable Release can materialize its original
+Manifest and verified uncompressed SQLite without depending on the runtime data
+directory layout:
+
+```bash
+cn-health dataset materialize laboratory-cn laboratory-cn@2026-09-01.r1 \
+  --registry https://example.test/registry.json \
+  --public-key ./registry.pub \
+  --output ./staging/laboratory-cn \
+  --json
+```
 
 After initialization, queries and `doctor` work offline. Use
 `cn-health doctor --json` to inspect the effective data directory and Registry.

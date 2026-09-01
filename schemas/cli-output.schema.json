@@ -4,6 +4,7 @@
   "oneOf": [
     { "$ref": "#/$defs/search" },
     { "$ref": "#/$defs/init" },
+    { "$ref": "#/$defs/materialize" },
     { "$ref": "#/$defs/doctor" },
     { "$ref": "#/$defs/error" }
   ],
@@ -59,6 +60,56 @@
             "additionalProperties": false
           }
         }
+      },
+      "additionalProperties": false
+    },
+    "materialize": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "command",
+        "cliVersion",
+        "dataset",
+        "registry",
+        "manifest",
+        "sqlite"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "command": { "const": "dataset.materialize" },
+        "cliVersion": { "type": "string", "minLength": 1 },
+        "dataset": {
+          "type": "object",
+          "required": ["id", "releaseId", "datasetSchemaVersion"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "releaseId": { "type": "string", "minLength": 1 },
+            "datasetSchemaVersion": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "registry": {
+          "type": "object",
+          "required": ["url", "keyId", "trust"],
+          "properties": {
+            "url": { "type": "string", "format": "uri" },
+            "keyId": { "type": "string", "minLength": 1 },
+            "trust": { "const": "signed-registry" }
+          },
+          "additionalProperties": false
+        },
+        "manifest": { "$ref": "#/$defs/materializedFile" },
+        "sqlite": { "$ref": "#/$defs/materializedFile" }
+      },
+      "additionalProperties": false
+    },
+    "materializedFile": {
+      "type": "object",
+      "required": ["path", "sha256", "sizeBytes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 1 }
       },
       "additionalProperties": false
     },

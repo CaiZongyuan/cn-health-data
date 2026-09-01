@@ -13,6 +13,9 @@ atomic current pointer, and provides exact/FTS/bigram queries. It can also
 verify an Ed25519-signed Registry, pin a public key, enforce same-origin HTTPS,
 and install a release-eligible remote artifact. npm remains a thin binary
 distribution layer.
+Exact-release materialization reuses that trust boundary and atomically emits
+the original Manifest, verified uncompressed SQLite, and a consumer receipt;
+consumers never inspect the runtime's private data-directory layout.
 
 See [`implementation-handbook.md`](implementation-handbook.md) for the complete
 architecture and invariants.
