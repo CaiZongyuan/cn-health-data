@@ -6,7 +6,7 @@
 |---|---|
 | `nhsa-drugs` compiler | Real XLSX snapshot, fingerprint, streaming normalize/validate, SQLite, FTS, bigram, Parquet, zstd, Diff, Manifest |
 | `nhc-icd10-clinical` compiler | Real 2022 XLSX snapshot with main/additional/morphology codes, SQLite, FTS, bigram, Parquet, zstd, Diff, Manifest |
-| `loinc-zh-cn` compiler | Source-intake-gated multi-ZIP Candidate builder with bounded archive validation, complete core/Chinese joins, UCUM, SYSTEM parts, panels, Schema v2 SQLite/FTS/bigram, Parquet, Diff, Manifest, and synthetic end-to-end tests |
+| `loinc-zh-cn` compiler | Verified LOINC 2.83 Candidate with 112,405 core concepts, 96,518 official Chinese displays, UCUM, SYSTEM Parts, panels, Schema v2 SQLite/FTS/bigram, Parquet, Diff, Manifest, licenses, and reproducibility evidence |
 | `geography-cn` | Real administrative-division, GeoNames place, and postal Candidate with 24,731 rows |
 | `names-cn` | Faker `zh_CN` AST-only adapter and 530 weighted name components |
 | `population-cn` | UN WPP 2024 Medium projection with 3,171 age/sex rows |
@@ -27,6 +27,7 @@
 - `names-cn@40.37.0.r1`
 - `population-cn@WPP2024.r1`
 - `laboratory-cn@2026-08-30.r1`
+- `loinc-zh-cn@2.83.r1`
 - `synthea-cn@2026-08-29.r3` (supported consumer projection)
 - `synthea-zh-cn@2026-08-30.r1` (experimental display catalog; zero unresolved flags)
 
@@ -41,11 +42,10 @@ sharing record-level artifacts.
 - `laboratory-cn` is the verified project-authored subset used by current
   consumers; it is not represented as the official complete LOINC Chinese
   linguistic variant.
-- The separate `loinc-zh-cn` compiler is implemented and tested end to end with
-  project-generated source packages. It deliberately refuses the current
-  planned contract until an official source package, exact layout/version/counts,
-  and rights review are pinned. No such package is present in the current local
-  inputs, so that Dataset reports no verified Candidate.
+- `loinc-zh-cn@2.83.r1` is verified locally from the authenticated official
+  Complete archive. It remains `releaseEligible: false`: source and panel
+  third-party copyright notices are preserved, but public Registry distribution
+  requires a separate artifact-specific terms review.
 - No signing private key or public hosting endpoint is committed. Registry
   keygen/build capabilities are implemented, but production key custody and
   deployment remain an operator responsibility.

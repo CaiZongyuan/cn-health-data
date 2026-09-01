@@ -30,7 +30,7 @@ provide a production clinical system.
 | `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r1` | 530 |
 | `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r1` | 3,171 |
 | `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | Source-gated complete Candidate compiler and Rust queries tested with synthetic packages | None | None |
+| `loinc-zh-cn` | Complete LOINC 2.83 core plus official Chinese variant, UCUM examples, SYSTEM Parts, and panels | `2.83.r1` | 365,722 |
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
 The build identifiers above describe Candidates verified in the current
@@ -48,6 +48,8 @@ Implemented infrastructure includes:
   bounded decompression, and SQLite integrity checks;
 - installed-version listing, activation, and rollback;
 - exact and literal search commands for drugs, diagnoses, and LOINC;
+- complete LOINC 2.83 compilation with 112,405 core concepts and 96,518
+  official Chinese displays;
 - a project-authored laboratory/vital-sign catalog with Chinese displays and
   curated LOINC 2.83/UCUM crosswalks;
 - deterministic Chinese synthetic names, addresses, `100` phones, and `990000`
@@ -168,6 +170,13 @@ The catalog's Chinese displays, selection, categories, result types, preferred
 UCUM units, and curation notes are project-authored. Its LOINC and UCUM
 identifiers continue to identify their respective external standards.
 
+`loinc-zh-cn` uses the authenticated, operator-supplied official
+`tmp/Loinc_2.83.zip`. The same archive contains the complete table, Chinese
+`zhCN5` linguistic variant, Part files, panels, and LOINC License 5.8. The source
+archive is private and ignored by Git; its exact hash, selected member hashes,
+layout, counts, attribution, and rights decision are pinned under
+[`datasets/loinc-zh-cn/`](datasets/loinc-zh-cn/).
+
 You can verify inputs before building:
 
 ```bash
@@ -204,6 +213,11 @@ uv run cn-health-build build nhc-icd10-clinical \
 
 uv run cn-health-build build laboratory-cn \
   --source datasets/laboratory-cn/catalog.csv \
+  --build-revision 1 \
+  --sequence 1
+
+uv run cn-health-build build loinc-zh-cn \
+  --source tmp/Loinc_2.83.zip \
   --build-revision 1 \
   --sequence 1
 ```
@@ -355,9 +369,10 @@ Manifest verification, FTS, and bigram indexing used by the other compilers
 apply to this catalog.
 
 This focused catalog is not the official complete LOINC Chinese linguistic
-variant. `loinc-zh-cn` remains a separate adapter for an operator-supplied
-official package; consumers that only need the reviewed subset can use
-`laboratory-cn` without representing it as that language package. See
+variant. The separate `loinc-zh-cn@2.83.r1` Candidate contains all 112,405 core
+concepts and 96,518 official Chinese translations. Consumers that only need the
+reviewed project subset can still use `laboratory-cn` without loading the full
+terminology. See
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md).
 
 ## Install and Query Locally
@@ -532,8 +547,9 @@ publishing any dataset.
   present.
 - `laboratory-cn` is a curated project catalog, not the complete official LOINC
   Chinese linguistic variant.
-- Building `loinc-zh-cn` still requires an operator-supplied official package
-  with a confirmed member layout, version, and applicable terms.
+- `loinc-zh-cn@2.83.r1` is verified locally but remains
+  `releaseEligible: false`; its third-party copyright notices require an
+  artifact-specific review before public Registry distribution.
 - `synthea-zh-cn` covers the pinned Synthea version and all 51 ambiguities have
   evidence resolutions, but 2,158 displays remain machine-checked rather than
   clinician-approved; it is not an official terminology language package.

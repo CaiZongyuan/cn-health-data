@@ -10,6 +10,6 @@ Candidate path:
 - reproducible SQLite/canonical hashes and atomic failure behavior;
 - the `cn-health-build build loinc-zh-cn --translation-source ...` entry point.
 
-The committed fixtures contain only project-generated records. A real Candidate
-remains blocked until the official source packages, exact layout/version/counts,
-and applicable rights are supplied and reviewed.
+The committed fixtures contain only project-generated records. The same pipeline
+has been verified locally against the pinned official LOINC 2.83 Complete archive;
+the source ZIP and generated Candidate remain Git-ignored.

@@ -46,8 +46,8 @@ source fields remain unchanged in `translation_metadata_json`.
 - ORDER_OBS: Order 5,466; Observation 34,517; Both 56,304; Subset 878; null 15,240
 - Candidate UCUM links: 45,207 links across 44,521 LOINC codes
 - Primary SYSTEM Part links: 112,405, one for every core code
-- Panel/member links: 95,705 after excluding 2,814 source rows where
-  `ParentLoinc == Loinc`; these rows represent panel roots rather than member edges
+- Panel/member links: 95,705 after excluding 2,814 structural self-link rows where
+  `ParentLoinc == Loinc` (including 2,791 explicit `ParentId == ID` roots)
 - Panel internal `(ParentId, ID)` pairs are unique for all selected links
 
 `ucumvert` 0.3.2 validates 662 of the 664 distinct official UCUM expressions.
@@ -78,7 +78,8 @@ notices in canonical metadata and packages both the full source license and the
 Section 10 short notice.
 
 LOINC 2.83 contains 7,355 core rows and 15,795 source panel rows with external
-copyright notices. The compiler does not establish compliance with every
+copyright notices; 15,293 of those panel notices remain on selected member edges.
+The compiler does not establish compliance with every
 referenced third-party license. Therefore the reviewed state is
 `redistribution: normalized-only` with `releaseEligible: false`: local builds are
 allowed, but this Candidate must not enter a public signed Registry until an

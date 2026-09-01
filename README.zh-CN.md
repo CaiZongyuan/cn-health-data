@@ -25,7 +25,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 | `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 |
 | `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 |
 | `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | 完整 Candidate 编译器与 Rust 查询已通过合成来源包测试，真实构建受来源门禁 | 暂无 | 暂无 |
+| `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r1` | 365,722 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
 表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时和
@@ -41,6 +41,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 - 本地安装时校验压缩前后 SHA256、限制解压大小，并执行 SQLite 完整性检查；
 - 已安装版本的查看、切换与回退；
 - 药品、疾病和 LOINC 的精确查询与文本搜索命令；
+- 完整 LOINC 2.83 编译，包含 112,405 个核心概念和 96,518 个官方中文显示；
 - 项目自行编写的中文检验/生命体征目录，以及精选 LOINC 2.83/UCUM 交叉引用；
 - 中国合成姓名、地址、`100` 电话和 `990000` 模拟居民号码的确定性生成；
 - 固定 Synthea commit 的 profile 投影、FHIR R4 身份本地化和内部 HTTP 服务；
@@ -151,6 +152,11 @@ target/debug/cn-health --version
 概念选择、分类、结果类型、首选 UCUM 单位和整理说明由项目自行编写；LOINC 与 UCUM
 标识仍然指向各自的外部标准。
 
+`loinc-zh-cn` 使用经账户下载、由运维方显式提供的官方
+`tmp/Loinc_2.83.zip`。同一个包包含完整核心表、中文 `zhCN5` Linguistic Variant、Part、
+panel 和 LOINC License 5.8。原始包保持私有并被 Git 忽略；精确 hash、成员布局、数量、
+署名和 rights 决策固定在 [`datasets/loinc-zh-cn/`](datasets/loinc-zh-cn/) 下。
+
 构建前可以检查输入文件：
 
 ```bash
@@ -185,6 +191,11 @@ uv run cn-health-build build nhc-icd10-clinical \
 
 uv run cn-health-build build laboratory-cn \
   --source datasets/laboratory-cn/catalog.csv \
+  --build-revision 1 \
+  --sequence 1
+
+uv run cn-health-build build loinc-zh-cn \
+  --source tmp/Loinc_2.83.zip \
   --build-revision 1 \
   --sequence 1
 ```
@@ -311,9 +322,9 @@ uv run cn-health-build synthea translation project \
 组合在一起，并使用与其他编译器相同的 Candidate Contract、确定性 SQLite/Parquet
 打包、Manifest 校验、FTS 和双字索引。
 
-这个小型目录不是官方完整 LOINC 中文语言包。`loinc-zh-cn` 仍是独立适配器，用于运维方
-自行提供的官方来源包；只需要经过评审的小范围概念时，消费者可以直接使用
-`laboratory-cn`，而不把它表示成完整语言包。详见
+这个小型目录不是官方完整 LOINC 中文语言包。独立的 `loinc-zh-cn@2.83.r1` Candidate
+包含全部 112,405 个核心概念和 96,518 条官方中文翻译；只需要项目精选小范围概念时，
+消费者仍可使用 `laboratory-cn`，无需加载完整术语库。详见
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md)。
 
 ## 本地安装与查询
@@ -469,7 +480,8 @@ MIT **不会**自动覆盖：
 - 药品分类使用声明的工作簿 `总表`，未实现 PDF 同步链路。
 - 即使本地存在工作簿，手术操作分类仍按当前计划暂缓开发。
 - `laboratory-cn` 是项目精选目录，不是官方完整 LOINC 中文语言包。
-- 构建 `loinc-zh-cn` 仍需运维方提供官方来源包，并确认成员布局、版本和适用条款。
+- `loinc-zh-cn@2.83.r1` 已通过本地验收，但仍为 `releaseEligible: false`；公开 Registry
+  分发前必须完成针对第三方版权通知的产物级复核。
 - `synthea-zh-cn` 已覆盖固定 Synthea 版本，51 条歧义均有证据 resolution，但 2,158 条
   仍是机器复核而非临床专家批准，不能表示为官方术语语言包。
 

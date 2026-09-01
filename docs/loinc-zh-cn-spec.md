@@ -1,12 +1,13 @@
 # 完整 `loinc-zh-cn` Candidate 构建 Spec
 
-状态：T1-T3 已由合成来源包验证；T0/T4 受官方来源与权利审查阻塞
+状态：已实现；`loinc-zh-cn@2.83.r1` 已通过真实来源构建与验收，公开 Registry 分发受
+第三方版权复核门禁
 
 对应任务：[GitHub Issue #1](https://github.com/CaiZongyuan/cn-health-data/issues/1)
 
-本文使用“必须”“不得”“应”表达规范性要求。本文不记录未经核验的 LOINC 版本、文件名、
-ZIP 成员路径、字段名、哈希或授权结论；这些值必须在取得官方来源包并完成来源审查后写入
-Dataset Contract 和布局合同。
+本文使用“必须”“不得”“应”表达规范性要求。LOINC 2.83 的版本、文件名、ZIP 成员、
+字段、hash、数量和 rights 决策已经由真实包核验并固定在 Dataset Contract、layout 和
+source review 中。
 
 ## 1. 目标
 
@@ -33,24 +34,23 @@ loinc-zh-cn@<official-loinc-version>.r<build-revision>
 
 ## 2. 当前事实基线
 
-仓库当前已有：
+当前已验证基线：
 
-- `datasets/loinc-zh-cn/dataset.yaml` 的 planned 合同；
-- `datasets/loinc-zh-cn/schema.sql` 的最小 `loinc`、FTS5 和 bigram schema；
-- 可配置 ZIP 成员路径、核心 CSV 与中文 CSV join、重复 code 拒绝；
-- 基于合成 fixture 的 SQLite、FTS 和 bigram 测试；
-- Rust `loinc get/search`，读取 `code`、`long_common_name` 和 `zh_display`。
+- 官方来源：`Loinc_2.83.zip`，SHA-256
+  `077a0718e87d8309ffe3a673f75b836a8e783dc36a646413ef97c71c12eab27e`；
+- 核心概念 112,405，官方 `zhCN5` 中文记录 96,518；
+- 候选 UCUM link 45,207，Primary SYSTEM Part link 112,405，panel edge 95,705；
+- canonical 总记录数 365,722，中文覆盖率 85.8663%，单位覆盖率 39.6077%；
+- `data.sqlite` 560,861,184 bytes，SHA-256
+  `ad5558cedbc9e6705feb2b57e3949a574974d28eaa04fc5d4344a8b3a8977bb0`；
+- canonical SHA-256
+  `ba19b5f0f7556b2a191f8c463ab3c92b7ea777bb323d55fa5a5e300cf4c75f33`；
+- 两次真实构建的 SQLite、zstd、Parquet、Diff、validation 和许可证逐字节一致；
+- Rust 本地安装、精确 code、中文/英文 FTS 和分页标志通过。
 
-仓库当前没有：
-
-- 经核验的官方来源包及来源指纹；
-- 真实版本的布局合同和 Candidate Manifest；
-- `cn-health-build build loinc-zh-cn` 构建入口；
-- 完整记录、单位、specimen part 和 panel/member 的 canonical 模型；
-- 真实 `data.sqlite` 或可发布的逐条产物。
-
-因此，在第 4 节的启动门槛全部满足前，实现状态必须保持 source-blocked，不得把合成
-fixture 结果描述为真实 Candidate。
+Candidate 携带 LOINC License 5.8、Section 10 短署名及逐行第三方版权 metadata。由于尚未
+完成所有第三方条款的产物级公开发布复核，Manifest 固定
+`redistribution: normalized-only`、`releaseEligible: false`。
 
 ## 3. 范围边界
 
@@ -105,6 +105,9 @@ fixture 结果描述为真实 Candidate。
 
 如果官方包不提供满足单位、specimen part 或 panel 语义所需的成员，应先修订本 Spec 或
 取得相应官方附件，不得从文本字段猜测结构化关系。
+
+LOINC 2.83 intake 已满足本节门槛；证据见
+`datasets/loinc-zh-cn/source-review.md`。
 
 ## 5. 来源合同
 
@@ -266,6 +269,7 @@ version_last_changed
 panel_type
 zh_display                   nullable official Simplified Chinese display
 source_metadata_json         required canonical JSON object for layout-allowlisted metadata
+translation_metadata_json    exact non-empty Chinese source fields as canonical JSON
 source_row                   integer
 translation_source_row       nullable integer
 source_version
@@ -273,8 +277,10 @@ core_source_sha256
 translation_source_sha256
 ```
 
-`source_metadata_json` 只保存 layout 明确列出的、尚未提升为独立列的 source-native 字段。
-它使用 RFC 8785 canonical JSON，对空值省略 key；不得把未审查的新列自动装入 JSON。
+`source_metadata_json` 和 `translation_metadata_json` 只保存 layout 明确列出的
+source-native 字段，使用 RFC 8785 canonical JSON 并省略空值。2.83 中文包未提供直接
+display 或 translated long name，因此 `zh_display` 由非空中文六轴按 fully-specified-name
+顺序确定性连接；这不创建新翻译，全部输入字段仍原样保存在 translation metadata 中。
 
 ### 7.2 `loinc_unit`
 
@@ -284,15 +290,18 @@ translation_source_sha256
 loinc_code                   foreign key -> loinc.code
 ucum_unit
 unit_kind                    layout 固定枚举，例如来源中的 example/example-si 角色
+unit_ordinal                 source list ordinal
 source_member
 source_row                   integer
 source_sha256
-primary key (loinc_code, unit_kind, ucum_unit)
+primary key (loinc_code, unit_kind, source_member, source_row, unit_ordinal)
 ```
 
 单位必须通过固定版本的 UCUM grammar validator。表达式原文在去除外围空白后保留，不进行
-“纠正”。同一来源角色中的重复单位、非法单位或未知 code 必须失败。表名和报告必须使用
-`candidate`/`example` 语义，不得宣称这些单位是医院首选单位。
+“纠正”或去重；同一字段中的重复值用 ordinal 原样表达。2.83 layout 只允许两个固定、
+source-reviewed 的 parser gap：`k[arb'U]/L` 和 `m[arb'U]/mL`。其他非法单位或未知 code
+必须失败。表名和报告必须使用 `candidate`/`example` 语义，不得宣称这些单位是医院首选
+单位。
 
 ### 7.3 `loinc_specimen`
 
@@ -318,6 +327,8 @@ part，不得把候选 part 表示为采集要求或医院标本目录。
 保存官方来源中 LOINC code 到 LOINC code 的 panel 边：
 
 ```text
+parent_id                    source ParentId; release-local identity
+member_id                    source ID; release-local identity
 panel_code                   foreign key -> loinc.code
 member_code                  foreign key -> loinc.code
 member_order                 integer; official sequence, or layout-declared source order
@@ -326,11 +337,12 @@ source_metadata_json         canonical JSON for allowlisted edge metadata
 source_member
 source_row                   integer
 source_sha256
-primary key (panel_code, member_order, member_code)
+primary key (parent_id, member_id)
 ```
 
-所有选入的 panel/member 边必须引用当前核心集合；未知引用、自引用、重复主键或非法顺序均
-失败。官方文件中的非 LOINC 行只有在 layout 以已核验的类型字段显式排除时才可跳过。
+2.83 中 `ParentLoinc == Loinc` 的 2,814 行是结构自指行，不作为 member edge；layout
+显式排除。其余所有边必须引用当前核心集合，官方 `(ParentId, ID)` 对必须唯一，未知引用、
+重复主键或非法顺序均失败。所有未提升字段（包括第三方版权）保存在 canonical metadata。
 
 ### 7.5 搜索表
 
@@ -412,6 +424,8 @@ dist/loinc-zh-cn/releases/<source-version>.r<revision>/
 ├── loinc-units.parquet
 ├── loinc-specimens.parquet
 ├── loinc-panel-members.parquet
+├── license.txt
+├── LOINC_short_license.txt
 ├── diff.json
 ├── manifest.json
 └── validation.json
@@ -618,5 +632,6 @@ cargo test -p cn-health
 - 官方原始包、private snapshots、真实 Candidate 产物未被 Git 跟踪；
 - 第 13.4 节命令全部通过。
 
-在上述条件满足前，`loinc-zh-cn` 必须继续显示为 planned/source required，且不得加入公开
-Registry。
+上述构建与技术验收条件已由 `loinc-zh-cn@2.83.r1` 满足。rights 条件只满足本地
+Candidate：在第三方条款完成产物级复核并以新 build revision 更新 Manifest 前，不得加入
+公开 Registry。
