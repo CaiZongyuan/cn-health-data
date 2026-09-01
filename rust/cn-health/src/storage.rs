@@ -68,9 +68,6 @@ pub(crate) fn install_manifest(
     FileExt::lock_exclusive(&lock)?;
 
     let final_dir = releases_dir.join(&manifest.release.storage_key);
-    if final_dir.exists() {
-        bail!("Release {} is already installed", manifest.release.id);
-    }
     let compressed = manifest.compressed_sqlite()?;
     let compressed_path = artifact_path(&manifest_path, compressed)?;
     let (compressed_hash, compressed_size) = sha256_file(&compressed_path)?;
@@ -84,6 +81,47 @@ pub(crate) fn install_manifest(
     let expected_size = compressed
         .uncompressed_size_bytes
         .context("Manifest has no uncompressedSizeBytes")?;
+
+    if final_dir.exists() {
+        let existing_manifest_path = final_dir.join("manifest.json");
+        let existing_manifest = Manifest::read(&existing_manifest_path)?;
+        let (incoming_manifest_hash, _) = sha256_file(&manifest_path)?;
+        let (existing_manifest_hash, _) = sha256_file(&existing_manifest_path)?;
+        if existing_manifest.release.id != manifest.release.id
+            || existing_manifest.dataset.id != manifest.dataset.id
+            || existing_manifest_hash != incoming_manifest_hash
+        {
+            bail!(
+                "installed Release {} conflicts with incoming Manifest",
+                manifest.release.id
+            );
+        }
+        let database_path = final_dir.join("data.sqlite");
+        let (database_hash, database_size) = sha256_file(&database_path)?;
+        if database_hash != expected_hash || database_size != expected_size {
+            bail!("installed SQLite SHA256 or size does not match Manifest");
+        }
+        verify_database(&database_path)?;
+        let existing_metadata: InstallMetadata =
+            serde_json::from_reader(File::open(final_dir.join("install.json"))?)?;
+        let effective_trust = if existing_metadata.trust.starts_with("signed-registry:")
+            && trust == "local-untrusted"
+        {
+            existing_metadata.trust
+        } else {
+            trust.to_owned()
+        };
+        write_json_atomic(
+            &final_dir.join("install.json"),
+            &InstallMetadata {
+                trust: effective_trust.clone(),
+            },
+        )?;
+        let pointer = pointer_from(&manifest, &effective_trust);
+        write_json_atomic(&dataset_dir.join("current.json"), &pointer)?;
+        FileExt::unlock(&lock)?;
+        return Ok(installed_dataset(manifest.dataset.id, pointer));
+    }
 
     let temporary = tempdir_in(&releases_dir)?;
     let database_path = temporary.path().join("data.sqlite");
@@ -105,13 +143,17 @@ pub(crate) fn install_manifest(
     let pointer = pointer_from(&manifest, trust);
     write_json_atomic(&dataset_dir.join("current.json"), &pointer)?;
     FileExt::unlock(&lock)?;
-    Ok(InstalledDataset {
-        id: manifest.dataset.id,
+    Ok(installed_dataset(manifest.dataset.id, pointer))
+}
+
+fn installed_dataset(id: String, pointer: CurrentPointer) -> InstalledDataset {
+    InstalledDataset {
+        id,
         release_id: pointer.release_id,
         source_version: pointer.source_version,
         build_revision: pointer.build_revision,
         trust: pointer.trust,
-    })
+    }
 }
 
 pub fn list_versions(data_dir: &Path, dataset_id: &str) -> Result<Vec<InstalledVersion>> {

@@ -44,4 +44,10 @@ Raw files under `tmp/` are ignored by Git and are never release artifacts.
 Source authority, acquisition evidence, retention, and distribution metadata are
 recorded independently for every dataset.
 
+The signed public starter Registry is a narrow exception to the default local
+Candidate policy. It contains only the project-authored `laboratory-cn` catalog
+whose Manifest records `redistribution: public` and `releaseEligible: true`.
+LOINC and UCUM identifiers continue to identify their respective external
+standards; the starter is not the complete official LOINC Chinese package.
+
 See [`docs/data-rights.md`](docs/data-rights.md) for the project policy.

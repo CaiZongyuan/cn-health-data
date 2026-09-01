@@ -54,6 +54,16 @@ pub fn install_remote(
     registry_url: &str,
     public_key_path: &Path,
 ) -> Result<InstalledDataset> {
+    let public_bytes = fs::read(public_key_path)?;
+    install_remote_with_key(data_dir, dataset_id, registry_url, &public_bytes)
+}
+
+pub fn install_remote_with_key(
+    data_dir: &Path,
+    dataset_id: &str,
+    registry_url: &str,
+    public_bytes: &[u8],
+) -> Result<InstalledDataset> {
     let client = Client::builder().redirect(Policy::none()).build()?;
     let registry_url = Url::parse(registry_url)?;
     require_secure_or_loopback(&registry_url)?;
@@ -62,12 +72,10 @@ pub fn install_remote(
     if registry.schema_version != 1 || registry.signature.algorithm != "Ed25519" {
         bail!("unsupported Registry signature or schema");
     }
-    let public_bytes = fs::read(public_key_path)?;
     let public_array: [u8; 32] = public_bytes
-        .as_slice()
         .try_into()
         .context("Registry public key must contain 32 raw bytes")?;
-    let key_id = hex::encode(Sha256::digest(&public_bytes));
+    let key_id = hex::encode(Sha256::digest(public_bytes));
     if !key_id.starts_with(&registry.signature.key_id) {
         bail!("Registry keyId does not match the supplied public key");
     }
@@ -100,7 +108,7 @@ pub fn install_remote(
     if sha256_bytes(&manifest_bytes) != release.manifest_sha256 {
         bail!("Manifest SHA256 does not match signed Registry");
     }
-    let manifest: Manifest = serde_json::from_slice(&manifest_bytes)?;
+    let manifest = Manifest::parse(&manifest_bytes)?;
     if manifest.dataset.id != dataset_id || manifest.release.id != release.id {
         bail!("Manifest identity does not match signed Registry");
     }

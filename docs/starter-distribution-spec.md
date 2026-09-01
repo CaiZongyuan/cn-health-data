@@ -65,7 +65,11 @@ distribution/
     `-- laboratory-cn/
         `-- 2026-08-30.r1/
             |-- manifest.json
-            `-- data.sqlite.zst
+            |-- data.sqlite
+            |-- data.sqlite.zst
+            |-- data.parquet
+            |-- diff.json
+            `-- validation.json
 ```
 
 The default channel is served over HTTPS from the repository's public raw-file

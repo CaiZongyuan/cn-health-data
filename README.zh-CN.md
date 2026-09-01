@@ -28,9 +28,9 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 | `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r1` | 365,722 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
-表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时和
-合成测试 Fixture；`tmp/`、`.work/` 和 `dist/` 均被 Git 忽略，因此克隆仓库不会附带
-来源工作簿或逐条数据构建产物。
+表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时、
+合成测试 Fixture，以及允许公开分发的 `laboratory-cn` starter Release。`tmp/`、`.work/`
+和 `dist/` 均被 Git 忽略，因此克隆仓库不会附带私有来源工作簿或其他本地 Candidate。
 
 当前已经实现的基础设施包括：
 
@@ -40,13 +40,13 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 - 不可变 Release 修订，以及与上一 Release 的差异比较；
 - 本地安装时校验压缩前后 SHA256、限制解压大小，并执行 SQLite 完整性检查；
 - 已安装版本的查看、切换与回退；
-- 药品、疾病和 LOINC 的精确查询与文本搜索命令；
+- 药品、疾病、LOINC 和精选检验目录的精确查询与文本搜索命令；
 - 完整 LOINC 2.83 编译，包含 112,405 个核心概念和 96,518 个官方中文显示；
 - 项目自行编写的中文检验/生命体征目录，以及精选 LOINC 2.83/UCUM 交叉引用；
 - 中国合成姓名、地址、`100` 电话和 `990000` 模拟居民号码的确定性生成；
 - 固定 Synthea commit 的 profile 投影、FHIR R4 身份本地化和内部 HTTP 服务；
-- Ed25519 签名 Registry 的生成与远程安装验证；
-- 只负责调用原生二进制文件的 npm 启动器。
+- Ed25519 签名公共 starter Registry、默认信任根、`init` 和离线 `doctor`；
+- 四个平台原生包的 tag 构建，以及只负责调用原生二进制文件的 npm 启动器。
 
 准确的已实现边界见
 [`docs/implementation-status.md`](docs/implementation-status.md)。
@@ -93,6 +93,7 @@ npm/               原生 CLI 的轻量启动器
 python/compiler/   Python 编译器、来源适配器和测试
 rust/cn-health/    原生安装与查询运行时
 schemas/           Contract、Manifest、Registry 和 CLI 输出的 JSON Schema
+distribution/      签名公共 Registry 与允许公开分发的 starter Release
 tmp/               本地原始输入，Git 忽略
 .work/             来源快照与本地工作数据，Git 忽略
 dist/              不可变的本地 Candidate，Git 忽略
@@ -100,7 +101,8 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 环境要求
 
-基础开发环境需要：
+最终用户只需要适用于当前平台的 `cn-health 0.2.0` 原生发行包，不需要 Python、Rust 或
+来源工作簿。源码开发环境需要：
 
 - Git；
 - Python 3.12；
@@ -113,24 +115,23 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 快速开始
 
-安装锁定的 Python 环境并检查仓库内的 Contract：
+从 GitHub Releases 安装适用于当前平台的 `cn-health 0.2.0` 后，初始化签名 starter 数据
+并执行真实查询：
 
 ```bash
-uv sync --locked
-uv run cn-health-build --version
-uv run cn-health-build validate-contracts
-uv run pytest
+cn-health init
+cn-health laboratory search 血糖 --json
+cn-health doctor
 ```
 
-构建并测试原生 CLI：
+`init` 使用 CLI 内置的 Registry 地址和固定公钥，安装项目自有的 18 条精选检验/生命体征
+数据；下载后查询和 `doctor` 均可离线运行。该 starter 不是官方完整 LOINC 中文包。
+
+贡献者 clone 仓库后使用一条命令建立开发环境并完成同一条真实查询：
 
 ```bash
-cargo build -p cn-health
-cargo test --workspace
-target/debug/cn-health --version
+scripts/bootstrap-dev.sh
 ```
-
-以上命令只验证软件，不会构建或再分发真实数据。
 
 ## 来源数据
 
@@ -379,9 +380,9 @@ target/debug/cn-health --data-dir .work/runtime dataset use \
 
 ## 签名 Registry 与远程安装
 
-Registry 工具已经实现。本地 Candidate 可以直接构建和安装；远程 Registry 是独立的
-可选分发通道，只接收 Manifest 中显式设置 `releaseEligible: true` 的 Release。本仓库
-目前不提供公共 Registry、生产签名密钥或托管地址。
+仓库提供一个由 CLI 固定公钥验证的公共 starter Registry，目前只包含 Manifest 中明确
+设置 `releaseEligible: true` 的 `laboratory-cn@2026-08-30.r1`。其他 Candidate 不会因为
+本地已经构建就自动获得公开分发资格。
 
 当运维方已经根据相应来源条款和预期用途准备好分发元数据后，可以生成 Ed25519 原始
 密钥并构建签名 Registry。以下示例将开发密钥和产物放在 Git 忽略的 `.work/` 目录中；
@@ -401,8 +402,8 @@ uv run cn-health-build registry build \
 ```
 
 生产私钥必须保存在仓库检出目录和公开托管服务器之外。Registry、分离签名、Manifest
-与压缩产物应按声明的同源 HTTPS URL 发布。客户端使用独立固定的公钥安装 Registry
-推荐且未撤销的 Release：
+与压缩产物应按声明的同源 HTTPS URL 发布。`cn-health init` 使用内置地址与公钥。操作方
+也可以显式指定其他 Registry，安装其中推荐且未撤销的 Release：
 
 ```bash
 target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
@@ -429,8 +430,9 @@ CN_HEALTH_BINARY="$PWD/target/release/cn-health" \
   --data-dir .work/runtime dataset list --json
 ```
 
-发布后的包结构预期通过可选的 `@cn-health/cli-<platform>-<arch>` 包提供平台二进制。
-本仓库目前尚未发布这些平台包。
+tag 发行工作流为 Linux x64、macOS x64/arm64 和 Windows x64 构建原生归档及可选的
+`@cn-health/cli-<platform>-<arch>` npm 平台包。npm 发布只有在仓库显式启用并配置 token
+时执行。
 
 ## 开发与测试
 

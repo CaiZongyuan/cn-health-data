@@ -2,11 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "CN Health CLI JSON Output",
   "oneOf": [
-    { "$ref": "#/$defs/success" },
+    { "$ref": "#/$defs/search" },
+    { "$ref": "#/$defs/init" },
+    { "$ref": "#/$defs/doctor" },
     { "$ref": "#/$defs/error" }
   ],
   "$defs": {
-    "success": {
+    "search": {
       "type": "object",
       "required": ["schemaVersion", "command", "dataset", "items", "page"],
       "properties": {
@@ -32,6 +34,64 @@
             "truncated": { "type": "boolean" }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "init": {
+      "type": "object",
+      "required": ["schemaVersion", "command", "profile", "items"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "command": { "const": "init" },
+        "profile": { "const": "starter" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["datasetId", "releaseId", "status"],
+            "properties": {
+              "datasetId": { "type": "string", "minLength": 1 },
+              "releaseId": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["installed", "already-installed"] }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "doctor": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "command",
+        "ok",
+        "cliVersion",
+        "dataDir",
+        "defaultRegistry",
+        "checks"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "command": { "const": "doctor" },
+        "ok": { "type": "boolean" },
+        "cliVersion": { "type": "string", "minLength": 1 },
+        "dataDir": { "type": "string", "minLength": 1 },
+        "defaultRegistry": { "type": "string", "format": "uri" },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "ok"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "ok": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false

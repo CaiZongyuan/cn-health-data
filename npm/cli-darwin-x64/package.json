@@ -1,0 +1,10 @@
+{
+  "name": "@cn-health/cli-darwin-x64",
+  "version": "0.2.0",
+  "description": "macOS x64 native binary for cn-health",
+  "license": "MIT",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "cnHealthBinary": "bin/cn-health",
+  "files": ["bin", "README.md", "LICENSE"]
+}

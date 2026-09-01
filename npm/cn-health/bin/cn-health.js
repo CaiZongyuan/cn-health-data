@@ -15,8 +15,9 @@ function optionalPlatformBinary() {
     const packageRoot = path.dirname(packageManifest);
     const metadata = JSON.parse(fs.readFileSync(packageManifest, "utf8"));
     const relativeBin =
-      typeof metadata.bin === "string" ? metadata.bin : metadata.bin?.["cn-health"];
-    return relativeBin ? path.resolve(packageRoot, relativeBin) : null;
+      typeof metadata.cnHealthBinary === "string" ? metadata.cnHealthBinary : null;
+    const binary = relativeBin ? path.resolve(packageRoot, relativeBin) : null;
+    return binary && fs.existsSync(binary) ? binary : null;
   } catch (error) {
     if (error.code === "MODULE_NOT_FOUND") {
       return null;

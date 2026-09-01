@@ -39,6 +39,21 @@ pub struct LoincItem {
     pub rank: usize,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaboratoryItem {
+    pub code: String,
+    pub system: String,
+    pub terminology_version: String,
+    pub display_zh: String,
+    pub category: String,
+    pub specimen: String,
+    pub result_type: String,
+    pub ucum_unit: Option<String>,
+    pub status: String,
+    pub rank: usize,
+}
+
 trait Ranked {
     fn set_rank(&mut self, rank: usize);
 }
@@ -56,6 +71,12 @@ impl Ranked for DiagnosisItem {
 }
 
 impl Ranked for LoincItem {
+    fn set_rank(&mut self, rank: usize) {
+        self.rank = rank;
+    }
+}
+
+impl Ranked for LaboratoryItem {
     fn set_rank(&mut self, rank: usize) {
         self.rank = rank;
     }
@@ -228,6 +249,80 @@ pub fn loinc_search(path: &Path, query: &str, limit: usize) -> Result<SearchResu
             code: row.get(0)?,
             long_common_name: row.get(1)?,
             zh_display: row.get(2)?,
+            rank: 0,
+        })
+    })?;
+    Ok(finish_search(
+        rows.collect::<rusqlite::Result<Vec<_>>>()?,
+        limit,
+    ))
+}
+
+pub fn laboratory_get(path: &Path, code: &str) -> Result<Option<LaboratoryItem>> {
+    let connection = connection(path)?;
+    Ok(connection
+        .query_row(
+            "SELECT code, system, terminology_version, display_zh, category, specimen,
+                    result_type, ucum_unit, status
+             FROM laboratory_concept WHERE code = ?1",
+            [code],
+            |row| {
+                Ok(LaboratoryItem {
+                    code: row.get(0)?,
+                    system: row.get(1)?,
+                    terminology_version: row.get(2)?,
+                    display_zh: row.get(3)?,
+                    category: row.get(4)?,
+                    specimen: row.get(5)?,
+                    result_type: row.get(6)?,
+                    ucum_unit: row.get(7)?,
+                    status: row.get(8)?,
+                    rank: 1,
+                })
+            },
+        )
+        .optional()?)
+}
+
+pub fn laboratory_search(
+    path: &Path,
+    query: &str,
+    limit: usize,
+) -> Result<SearchResults<LaboratoryItem>> {
+    let connection = connection(path)?;
+    let characters = query_length(query)?;
+    let (sql, argument) = if characters == 2 {
+        (
+            "SELECT l.code, l.system, l.terminology_version, l.display_zh, l.category,
+                    l.specimen, l.result_type, l.ucum_unit, l.status
+             FROM laboratory_concept_search_bigram b JOIN laboratory_concept l USING(code)
+             WHERE b.term = ?1 AND instr(l.display_zh, ?2) > 0
+             ORDER BY l.code LIMIT ?3",
+            query.to_owned(),
+        )
+    } else {
+        (
+            "SELECT l.code, l.system, l.terminology_version, l.display_zh, l.category,
+                    l.specimen, l.result_type, l.ucum_unit, l.status
+             FROM laboratory_concept_fts
+             JOIN laboratory_concept l ON l.rowid = laboratory_concept_fts.rowid
+             WHERE laboratory_concept_fts MATCH ?1
+             ORDER BY bm25(laboratory_concept_fts), l.code LIMIT ?3",
+            literal_fts_query(query),
+        )
+    };
+    let mut statement = connection.prepare(sql)?;
+    let rows = statement.query_map(params![argument, query, limit as i64 + 1], |row| {
+        Ok(LaboratoryItem {
+            code: row.get(0)?,
+            system: row.get(1)?,
+            terminology_version: row.get(2)?,
+            display_zh: row.get(3)?,
+            category: row.get(4)?,
+            specimen: row.get(5)?,
+            result_type: row.get(6)?,
+            ucum_unit: row.get(7)?,
+            status: row.get(8)?,
             rank: 0,
         })
     })?;

@@ -1,0 +1,26 @@
+{
+  "datasets": {
+    "laboratory-cn": {
+      "recommendedRelease": "laboratory-cn@2026-08-30.r1",
+      "releases": [
+        {
+          "buildRevision": 1,
+          "id": "laboratory-cn@2026-08-30.r1",
+          "manifestSha256": "d29752eca9290082aeba00c0ba81a59a0ca96bd8bd3c0b75a96e50384788f120",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/laboratory-cn/2026-08-30.r1/manifest.json",
+          "revoked": false,
+          "sequence": 1,
+          "sourceVersion": "2026-08-30",
+          "storageKey": "2026-08-30.r1"
+        }
+      ]
+    }
+  },
+  "generatedAt": "2026-09-01T08:49:12Z",
+  "schemaVersion": 1,
+  "signature": {
+    "algorithm": "Ed25519",
+    "keyId": "39a4b92d69269839",
+    "url": "registry.json.sig"
+  }
+}

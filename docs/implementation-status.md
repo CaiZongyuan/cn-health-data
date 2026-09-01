@@ -15,9 +15,9 @@
 | Synthea support | Fixed-commit profile `2026-08-29.r3`, Bundle localizer, bounded non-root HTTP service, and three-module Docker corpus validation |
 | Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
-| Native runtime | Rust local install, dual hashes, bounded decompression, integrity check, list/info/versions/use, drug/diagnosis/LOINC get/search, JSON contract |
-| Remote distribution | Ed25519 Registry builder and verifier, key pinning, same-origin HTTPS, Manifest/artifact verification |
-| npm | Thin native binary resolver and argument/stdio/exit forwarding |
+| Native runtime | Rust local/remote install, minimum CLI compatibility, init/doctor, list/info/versions/use, and drug/diagnosis/LOINC/laboratory get/search |
+| Remote distribution | Signed public starter Registry, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
+| npm | Thin native binary resolver, four optional platform packages, and tag-driven package/archive builds |
 
 ## Local Candidates
 
@@ -31,10 +31,11 @@
 - `synthea-cn@2026-08-29.r3` (supported consumer projection)
 - `synthea-zh-cn@2026-08-30.r1` (experimental display catalog; zero unresolved flags)
 
-These are locally built Candidates and are not bundled with the repository.
-Their Manifests preserve the source provenance and current distribution metadata;
-operators apply the terms associated with their own source copies when using or
-sharing record-level artifacts.
+These are locally built Candidates. The repository's signed public distribution
+tree includes only the eligible `laboratory-cn@2026-08-30.r1` starter Release;
+the other Candidates remain unbundled. Their Manifests preserve source
+provenance and distribution metadata, and operators apply the terms associated
+with their own source copies when using or sharing record-level artifacts.
 
 ## Source-dependent or deferred
 
@@ -46,6 +47,6 @@ sharing record-level artifacts.
   Complete archive. It remains `releaseEligible: false`: source and panel
   third-party copyright notices are preserved, but public Registry distribution
   requires a separate artifact-specific terms review.
-- No signing private key or public hosting endpoint is committed. Registry
-  keygen/build capabilities are implemented, but production key custody and
-  deployment remain an operator responsibility.
+- The public starter key is pinned in the runtime and its private signing key is
+  held as an encrypted CI secret rather than committed. Larger public hosting
+  remains a release-operations responsibility.
