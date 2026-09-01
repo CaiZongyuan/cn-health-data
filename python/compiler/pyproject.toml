@@ -17,6 +17,7 @@ dependencies = [
     "pyyaml>=6.0.2,<7",
     "rfc8785>=0.1.4,<1",
     "typer>=0.16,<1",
+    "ucumvert>=0.3.2,<0.4",
     "zstandard>=0.25,<1",
 ]
 

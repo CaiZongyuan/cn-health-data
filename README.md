@@ -30,7 +30,7 @@ provide a production clinical system.
 | `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r1` | 530 |
 | `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r1` | 3,171 |
 | `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | ZIP/CSV adapter and Rust queries tested with synthetic fixtures | None | None |
+| `loinc-zh-cn` | Source-gated complete Candidate compiler and Rust queries tested with synthetic packages | None | None |
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
 The build identifiers above describe Candidates verified in the current
@@ -546,6 +546,8 @@ publishing any dataset.
   implementation handbook
 - [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md): executable specification
   for Chinese datasets, Synthea projection, and consumer integration
+- [`docs/loinc-zh-cn-spec.md`](docs/loinc-zh-cn-spec.md): source, model, build, and
+  acceptance specification for the complete official Simplified Chinese LOINC Candidate
 - [`docs/synthea-zh-localization-plan.md`](docs/synthea-zh-localization-plan.md):
   implementation plan for Chinese clinical displays and bounded API translation
 - [`docs/architecture.md`](docs/architecture.md): concise component architecture

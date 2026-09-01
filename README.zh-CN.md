@@ -25,7 +25,7 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 | `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 |
 | `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 |
 | `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | ZIP/CSV 适配器与 Rust 查询已通过合成数据测试 | 暂无 | 暂无 |
+| `loinc-zh-cn` | 完整 Candidate 编译器与 Rust 查询已通过合成来源包测试，真实构建受来源门禁 | 暂无 | 暂无 |
 | `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
 
 表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时和
@@ -479,6 +479,8 @@ MIT **不会**自动覆盖：
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md)：规范性实施手册
 - [`docs/synthea-cn-spec.md`](docs/synthea-cn-spec.md)：中国人口数据、Synthea 投影与消费者
   接入的可执行规格
+- [`docs/loinc-zh-cn-spec.md`](docs/loinc-zh-cn-spec.md)：完整官方 LOINC 简体中文
+  Candidate 的来源、模型、构建与验收规格
 - [`docs/synthea-zh-localization-plan.md`](docs/synthea-zh-localization-plan.md)：Synthea
   临床内容中文显示、API 分批翻译与验收计划
 - [`docs/architecture.md`](docs/architecture.md)：组件架构概览

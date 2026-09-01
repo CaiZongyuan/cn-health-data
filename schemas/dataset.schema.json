@@ -22,6 +22,7 @@
     },
     "title": { "type": "string", "minLength": 1 },
     "description": { "type": "string", "minLength": 1 },
+    "dataset_schema_version": { "type": "integer", "minimum": 1 },
     "status": {
       "enum": ["planned", "experimental", "beta", "stable", "deprecated"]
     },
@@ -99,6 +100,16 @@
         "evidence": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "basis": { "type": "string", "minLength": 1 },
+        "attribution": { "type": "string", "minLength": 1 },
+        "reviewed_by": { "type": "string", "minLength": 1 },
+        "reviewed_at": { "type": "string", "format": "date" },
+        "allowed_artifact_types": {
+          "type": "array",
+          "items": { "enum": ["sqlite", "sqlite-zstd", "parquet"] },
           "minItems": 1,
           "uniqueItems": true
         }

@@ -29,9 +29,14 @@ def compare_sqlite_tables(
     table: str,
     *,
     excluded_fields: tuple[str, ...] = (),
+    key_fields: tuple[str, ...] = ("code",),
 ) -> DatasetDiff:
-    """Compare two same-schema tables by code without loading records into memory."""
+    """Compare two same-schema tables by key without loading records into memory."""
     _validate_identifier(table)
+    if not key_fields:
+        raise ValueError("at least one diff key field is required")
+    for field_name in key_fields:
+        _validate_identifier(field_name)
     for field_name in excluded_fields:
         _validate_identifier(field_name)
     connection = sqlite3.connect(f"file:{target_path}?mode=ro", uri=True)
@@ -41,13 +46,18 @@ def compare_sqlite_tables(
         base_columns = _columns(connection, "base", table)
         if target_columns != base_columns:
             raise ValueError("base and target SQLite schemas differ")
-        if "code" not in target_columns:
-            raise ValueError(f"{table} has no code column")
+        missing_key_fields = set(key_fields) - set(target_columns)
+        if missing_key_fields:
+            raise ValueError(f"{table} is missing key fields: {sorted(missing_key_fields)}")
         compared_columns = tuple(
             column
             for column in target_columns
-            if column != "code" and column not in excluded_fields
+            if column not in key_fields and column not in excluded_fields
         )
+        join_condition = " AND ".join(
+            f"target.{field} = base_record.{field}" for field in key_fields
+        )
+        first_key = key_fields[0]
         condition = " OR ".join(
             f"NOT (target.{column} IS base_record.{column})" for column in compared_columns
         )
@@ -56,26 +66,26 @@ def compare_sqlite_tables(
         added = _scalar(
             connection,
             f"SELECT count(*) FROM main.{table} AS target "
-            f"LEFT JOIN base.{table} AS base_record USING(code) "
-            "WHERE base_record.code IS NULL",
+            f"LEFT JOIN base.{table} AS base_record ON {join_condition} "
+            f"WHERE base_record.{first_key} IS NULL",
         )
         removed = _scalar(
             connection,
             f"SELECT count(*) FROM base.{table} AS base_record "
-            f"LEFT JOIN main.{table} AS target USING(code) "
-            "WHERE target.code IS NULL",
+            f"LEFT JOIN main.{table} AS target ON {join_condition} "
+            f"WHERE target.{first_key} IS NULL",
         )
         modified = (
             _scalar(
                 connection,
                 f"SELECT count(*) FROM main.{table} AS target "
-                f"JOIN base.{table} AS base_record USING(code) WHERE {condition}",
+                f"JOIN base.{table} AS base_record ON {join_condition} WHERE {condition}",
             )
             if condition
             else 0
         )
         intersection = target_count - added
-        modified_fields = _modified_field_counts(connection, table, compared_columns)
+        modified_fields = _modified_field_counts(connection, table, compared_columns, key_fields)
         return DatasetDiff(
             base_count=base_count,
             target_count=target_count,
@@ -122,15 +132,17 @@ def _modified_field_counts(
     connection: sqlite3.Connection,
     table: str,
     columns: tuple[str, ...],
+    key_fields: tuple[str, ...],
 ) -> tuple[tuple[str, int], ...]:
     if not columns:
         return ()
     expressions = ", ".join(
         f"sum(NOT (target.{column} IS base_record.{column}))" for column in columns
     )
+    join_condition = " AND ".join(f"target.{field} = base_record.{field}" for field in key_fields)
     row = connection.execute(
         f"SELECT {expressions} FROM main.{table} AS target "
-        f"JOIN base.{table} AS base_record USING(code)"
+        f"JOIN base.{table} AS base_record ON {join_condition}"
     ).fetchone()
     if row is None:
         raise RuntimeError("modified-field query returned no row")

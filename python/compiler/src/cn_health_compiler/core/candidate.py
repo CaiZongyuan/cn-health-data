@@ -8,7 +8,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -403,6 +403,20 @@ def build_candidate_manifest(
 ) -> dict[str, Any]:
     rights = cast(dict[str, Any], contract["rights"])
     runtime = cast(dict[str, Any], contract["runtime"])
+    manifest_rights: dict[str, object] = {
+        "redistribution": str(rights["redistribution"]),
+        "releaseEligible": bool(rights["release_eligible"]),
+        "evidence": rights.get("evidence"),
+    }
+    for source_key, manifest_key in (
+        ("basis", "basis"),
+        ("attribution", "attribution"),
+        ("reviewed_by", "reviewedBy"),
+        ("reviewed_at", "reviewedAt"),
+        ("allowed_artifact_types", "allowedArtifactTypes"),
+    ):
+        if source_key in rights:
+            manifest_rights[manifest_key] = rights[source_key]
     created_at_text = (
         created_at.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
     )
@@ -420,7 +434,7 @@ def build_candidate_manifest(
         "dataset": {
             "id": dataset_id,
             "sourceVersion": source_version,
-            "datasetSchemaVersion": 1,
+            "datasetSchemaVersion": int(contract.get("dataset_schema_version", 1)),
             "status": str(contract["status"]),
         },
         "sources": sources,
@@ -433,11 +447,7 @@ def build_candidate_manifest(
             "sha256": validation_sha256,
         },
         "diff": {"report": "diff.json", "sha256": diff_sha256},
-        "rights": {
-            "redistribution": str(rights["redistribution"]),
-            "releaseEligible": bool(rights["release_eligible"]),
-            "evidence": rights.get("evidence"),
-        },
+        "rights": manifest_rights,
         "runtime": {
             "minimumCliVersion": "0.2.0",
             "minimumSQLiteVersion": str(runtime["minimum_sqlite_version"]),
@@ -714,16 +724,22 @@ def build_file_manifest[RecordT, RulesT, ReportT: RecordCountReport](
     )
 
 
-def canonical_table_hash(database_path: Path, table: str) -> tuple[str, int]:
+def canonical_table_hash(
+    database_path: Path,
+    table: str,
+    *,
+    order_by: Sequence[str] = ("code",),
+) -> tuple[str, int]:
     if _SQL_IDENTIFIER_PATTERN.fullmatch(table) is None:
         raise ValueError(f"unsafe SQLite table name: {table!r}")
+    order_clause = _order_clause(order_by)
     digest = hashlib.sha256()
     connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:
         columns = tuple(row[1] for row in connection.execute(f"PRAGMA table_info({table})"))
         column_list = ", ".join(columns)
         record_count = 0
-        for row in connection.execute(f"SELECT {column_list} FROM {table} ORDER BY code"):
+        for row in connection.execute(f"SELECT {column_list} FROM {table} ORDER BY {order_clause}"):
             digest.update(rfc8785.dumps(dict(zip(columns, row, strict=True))))
             digest.update(b"\n")
             record_count += 1
@@ -743,14 +759,21 @@ def compress_sqlite(source_path: Path, output_path: Path) -> tuple[str, int]:
     return hash_file(output_path)
 
 
-def write_parquet(database_path: Path, table: str, output_path: Path) -> tuple[str, int]:
+def write_parquet(
+    database_path: Path,
+    table: str,
+    output_path: Path,
+    *,
+    order_by: Sequence[str] = ("code",),
+) -> tuple[str, int]:
     if _SQL_IDENTIFIER_PATTERN.fullmatch(table) is None:
         raise ValueError(f"unsafe SQLite table name: {table!r}")
+    order_clause = _order_clause(order_by)
     connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:
         schema_overrides = _parquet_schema(connection, table)
         frame = pl.read_database(
-            f"SELECT * FROM {table} ORDER BY code",
+            f"SELECT * FROM {table} ORDER BY {order_clause}",
             connection,
             schema_overrides=schema_overrides,
             infer_schema_length=None,
@@ -766,6 +789,15 @@ def write_parquet(database_path: Path, table: str, output_path: Path) -> tuple[s
     with output_path.open("rb") as artifact:
         os.fsync(artifact.fileno())
     return hash_file(output_path)
+
+
+def _order_clause(order_by: Sequence[str]) -> str:
+    if not order_by:
+        raise ValueError("at least one SQLite ordering column is required")
+    for column in order_by:
+        if _SQL_IDENTIFIER_PATTERN.fullmatch(column) is None:
+            raise ValueError(f"unsafe SQLite column name: {column!r}")
+    return ", ".join(order_by)
 
 
 def _parquet_schema(

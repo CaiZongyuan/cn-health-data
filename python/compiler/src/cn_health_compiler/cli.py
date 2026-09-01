@@ -14,6 +14,7 @@ from cn_health_compiler.core.registry import build_signed_registry, generate_sig
 from cn_health_compiler.core.validation import validate_dataset_contracts
 from cn_health_compiler.sources.geography.build import build_geography_candidate
 from cn_health_compiler.sources.laboratory.build import build_laboratory_candidate
+from cn_health_compiler.sources.loinc.build import build_loinc_candidate
 from cn_health_compiler.sources.names.build import build_names_candidate
 from cn_health_compiler.sources.nhc_icd10.build import build_diagnosis_candidate
 from cn_health_compiler.sources.nhsa_drugs.build import build_nhsa_drug_candidate
@@ -94,6 +95,12 @@ def build_dataset(
             "--postal-source", exists=True, dir_okay=False, readable=True, resolve_path=True
         ),
     ] = None,
+    translation_source: Annotated[
+        Path | None,
+        typer.Option(
+            "--translation-source", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ] = None,
     repo_root: Annotated[
         Path | None,
         typer.Option("--repo-root", file_okay=False, resolve_path=True),
@@ -113,6 +120,11 @@ def build_dataset(
     root = repo_root or find_repository_root()
     target_output_root = output_root or root / "dist"
     if dataset_id == "geography-cn":
+        if translation_source is not None:
+            raise typer.BadParameter(
+                "--translation-source is only valid for loinc-zh-cn",
+                param_hint="dataset_id",
+            )
         if division_source is None or postal_source is None:
             raise typer.BadParameter(
                 "geography-cn requires --division-source and --postal-source",
@@ -131,9 +143,32 @@ def build_dataset(
         typer.echo(result.release_dir)
         typer.echo(result.manifest_path)
         return
+    if dataset_id == "loinc-zh-cn":
+        if division_source is not None or postal_source is not None:
+            raise typer.BadParameter(
+                "geography sources are not valid for loinc-zh-cn",
+                param_hint="dataset_id",
+            )
+        result = build_loinc_candidate(
+            repo_root=root,
+            core_source_path=source,
+            translation_source_path=translation_source,
+            output_root=target_output_root,
+            build_revision=build_revision,
+            sequence=sequence,
+            base_release_dir=base_release,
+        )
+        typer.echo(result.release_dir)
+        typer.echo(result.manifest_path)
+        return
     if division_source is not None or postal_source is not None:
         raise typer.BadParameter(
             "additional geography sources are only valid for geography-cn",
+            param_hint="dataset_id",
+        )
+    if translation_source is not None:
+        raise typer.BadParameter(
+            "--translation-source is only valid for loinc-zh-cn",
             param_hint="dataset_id",
         )
     builders = {
@@ -269,9 +304,7 @@ def synthea_translation_inventory(
         raise typer.BadParameter(
             "refusing to overwrite translation inventory", param_hint="--output"
         )
-    inventory = build_translation_inventory(
-        module_dir=module_dir, fhir_bundle_paths=bundle or ()
-    )
+    inventory = build_translation_inventory(module_dir=module_dir, fhir_bundle_paths=bundle or ())
     write_json_atomic(output, inventory.as_dict())
     typer.echo(output)
     typer.echo(
@@ -295,18 +328,14 @@ def synthea_translation_make_batches(
         typer.Option("--bundle", exists=True, dir_okay=False, readable=True, resolve_path=True),
     ] = None,
     max_records: Annotated[int, typer.Option("--max-records", min=1, max=100)] = 30,
-    max_source_characters: Annotated[
-        int, typer.Option("--max-source-characters", min=1)
-    ] = 6_000,
+    max_source_characters: Annotated[int, typer.Option("--max-source-characters", min=1)] = 6_000,
 ) -> None:
     """Create deterministic, bounded translation request batches."""
     if output_dir.exists() and any(output_dir.iterdir()):
         raise typer.BadParameter(
             "translation batch directory is not empty", param_hint="--output-dir"
         )
-    inventory = build_translation_inventory(
-        module_dir=module_dir, fhir_bundle_paths=bundle or ()
-    )
+    inventory = build_translation_inventory(module_dir=module_dir, fhir_bundle_paths=bundle or ())
     batches = batches_from_inventory(
         inventory,
         prompt_version=prompt_version,

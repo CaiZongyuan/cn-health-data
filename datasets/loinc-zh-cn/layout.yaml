@@ -1,0 +1,370 @@
+version: 1
+package_mode: combined
+
+archive_limits:
+  maximum_entry_count: 95
+  maximum_total_uncompressed_bytes: 1063582650
+  maximum_member_uncompressed_bytes: 246622108
+  maximum_compression_ratio: 25
+  allowed_compression:
+    - stored
+    - deflate
+
+license:
+  archive: core
+  member: LoincLicense_5.8.txt
+  uncompressed_sha256: 05eb5069f8352b0513fe8c911d8a432e8ddc2d09f999b6f153617f2afd16ad85
+  uncompressed_size_bytes: 25709
+
+core:
+  archive: core
+  member: LoincTable/Loinc.csv
+  uncompressed_sha256: 5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba
+  uncompressed_size_bytes: 84205426
+  encoding: utf-8-sig
+  delimiter: ","
+  headers:
+    - LOINC_NUM
+    - COMPONENT
+    - PROPERTY
+    - TIME_ASPCT
+    - SYSTEM
+    - SCALE_TYP
+    - METHOD_TYP
+    - CLASS
+    - VersionLastChanged
+    - CHNG_TYPE
+    - DefinitionDescription
+    - STATUS
+    - CONSUMER_NAME
+    - CLASSTYPE
+    - FORMULA
+    - EXMPL_ANSWERS
+    - SURVEY_QUEST_TEXT
+    - SURVEY_QUEST_SRC
+    - UNITSREQUIRED
+    - RELATEDNAMES2
+    - SHORTNAME
+    - ORDER_OBS
+    - HL7_FIELD_SUBFIELD_ID
+    - EXTERNAL_COPYRIGHT_NOTICE
+    - EXAMPLE_UNITS
+    - LONG_COMMON_NAME
+    - EXAMPLE_UCUM_UNITS
+    - STATUS_REASON
+    - STATUS_TEXT
+    - CHANGE_REASON_PUBLIC
+    - COMMON_TEST_RANK
+    - COMMON_ORDER_RANK
+    - HL7_ATTACHMENT_STRUCTURE
+    - EXTERNAL_COPYRIGHT_LINK
+    - PanelType
+    - AskAtOrderEntry
+    - AssociatedObservations
+    - VersionFirstReleased
+    - ValidHL7AttachmentRequest
+    - DisplayName
+  columns:
+    code: LOINC_NUM
+    component: COMPONENT
+    property: PROPERTY
+    time_aspect: TIME_ASPCT
+    system: SYSTEM
+    scale_type: SCALE_TYP
+    method_type: METHOD_TYP
+    long_common_name: LONG_COMMON_NAME
+    short_name: SHORTNAME
+    consumer_name: CONSUMER_NAME
+    class: CLASS
+    class_type: CLASSTYPE
+    order_obs: ORDER_OBS
+    status: STATUS
+    status_reason: STATUS_REASON
+    status_text: STATUS_TEXT
+    change_type: CHNG_TYPE
+    definition_description: DefinitionDescription
+    version_first_released: VersionFirstReleased
+    version_last_changed: VersionLastChanged
+    panel_type: PanelType
+  preserved_metadata:
+    formula: FORMULA
+    exampleAnswers: EXMPL_ANSWERS
+    surveyQuestionText: SURVEY_QUEST_TEXT
+    surveyQuestionSource: SURVEY_QUEST_SRC
+    unitsRequired: UNITSREQUIRED
+    relatedNames: RELATEDNAMES2
+    hl7FieldSubfieldId: HL7_FIELD_SUBFIELD_ID
+    externalCopyrightNotice: EXTERNAL_COPYRIGHT_NOTICE
+    exampleUnits: EXAMPLE_UNITS
+    exampleUcumUnits: EXAMPLE_UCUM_UNITS
+    changeReasonPublic: CHANGE_REASON_PUBLIC
+    commonTestRank: COMMON_TEST_RANK
+    commonOrderRank: COMMON_ORDER_RANK
+    hl7AttachmentStructure: HL7_ATTACHMENT_STRUCTURE
+    externalCopyrightLink: EXTERNAL_COPYRIGHT_LINK
+    askAtOrderEntry: AskAtOrderEntry
+    associatedObservations: AssociatedObservations
+    validHl7AttachmentRequest: ValidHL7AttachmentRequest
+    displayName: DisplayName
+  ignored_columns: {}
+
+linguistic_variant:
+  archive: core
+  member: AccessoryFiles/LinguisticVariants/zhCN5LinguisticVariant.csv
+  uncompressed_sha256: 94527f0d89c455c427ac75e2ae6f5f9b19a92534e2b206768375819734a186e5
+  uncompressed_size_bytes: 96195744
+  encoding: utf-8-sig
+  delimiter: ","
+  headers:
+    - LOINC_NUM
+    - COMPONENT
+    - PROPERTY
+    - TIME_ASPCT
+    - SYSTEM
+    - SCALE_TYP
+    - METHOD_TYP
+    - CLASS
+    - SHORTNAME
+    - LONG_COMMON_NAME
+    - RELATEDNAMES2
+    - LinguisticVariantDisplayName
+    - ConsumerName
+  code_column: LOINC_NUM
+  display_from_columns:
+    - COMPONENT
+    - PROPERTY
+    - TIME_ASPCT
+    - SYSTEM
+    - SCALE_TYP
+    - METHOD_TYP
+  preserved_metadata:
+    component: COMPONENT
+    property: PROPERTY
+    timeAspect: TIME_ASPCT
+    system: SYSTEM
+    scaleType: SCALE_TYP
+    methodType: METHOD_TYP
+    class: CLASS
+    shortName: SHORTNAME
+    longCommonName: LONG_COMMON_NAME
+    relatedNames: RELATEDNAMES2
+    linguisticVariantDisplayName: LinguisticVariantDisplayName
+    consumerName: ConsumerName
+  filters: {}
+  ignored_columns: {}
+
+units:
+  - archive: core
+    member: LoincTable/Loinc.csv
+    uncompressed_sha256: 5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba
+    uncompressed_size_bytes: 84205426
+    encoding: utf-8-sig
+    delimiter: ","
+    headers:
+      - LOINC_NUM
+      - COMPONENT
+      - PROPERTY
+      - TIME_ASPCT
+      - SYSTEM
+      - SCALE_TYP
+      - METHOD_TYP
+      - CLASS
+      - VersionLastChanged
+      - CHNG_TYPE
+      - DefinitionDescription
+      - STATUS
+      - CONSUMER_NAME
+      - CLASSTYPE
+      - FORMULA
+      - EXMPL_ANSWERS
+      - SURVEY_QUEST_TEXT
+      - SURVEY_QUEST_SRC
+      - UNITSREQUIRED
+      - RELATEDNAMES2
+      - SHORTNAME
+      - ORDER_OBS
+      - HL7_FIELD_SUBFIELD_ID
+      - EXTERNAL_COPYRIGHT_NOTICE
+      - EXAMPLE_UNITS
+      - LONG_COMMON_NAME
+      - EXAMPLE_UCUM_UNITS
+      - STATUS_REASON
+      - STATUS_TEXT
+      - CHANGE_REASON_PUBLIC
+      - COMMON_TEST_RANK
+      - COMMON_ORDER_RANK
+      - HL7_ATTACHMENT_STRUCTURE
+      - EXTERNAL_COPYRIGHT_LINK
+      - PanelType
+      - AskAtOrderEntry
+      - AssociatedObservations
+      - VersionFirstReleased
+      - ValidHL7AttachmentRequest
+      - DisplayName
+    code_column: LOINC_NUM
+    unit_column: EXAMPLE_UCUM_UNITS
+    unit_kind: example
+    separator: ";"
+    parser_exceptions:
+      - "k[arb'U]/L"
+      - "m[arb'U]/mL"
+    filters: {}
+    ignored_columns:
+      COMPONENT: consumed by the core concept projection
+      PROPERTY: consumed by the core concept projection
+      TIME_ASPCT: consumed by the core concept projection
+      SYSTEM: consumed by the core concept projection
+      SCALE_TYP: consumed by the core concept projection
+      METHOD_TYP: consumed by the core concept projection
+      CLASS: consumed by the core concept projection
+      VersionLastChanged: consumed by the core concept projection
+      CHNG_TYPE: consumed by the core concept projection
+      DefinitionDescription: consumed by the core concept projection
+      STATUS: consumed by the core concept projection
+      CONSUMER_NAME: consumed by the core concept projection
+      CLASSTYPE: consumed by the core concept projection
+      FORMULA: retained in core source metadata
+      EXMPL_ANSWERS: retained in core source metadata
+      SURVEY_QUEST_TEXT: retained in core source metadata
+      SURVEY_QUEST_SRC: retained in core source metadata
+      UNITSREQUIRED: retained in core source metadata
+      RELATEDNAMES2: retained in core source metadata
+      SHORTNAME: consumed by the core concept projection
+      ORDER_OBS: consumed by the core concept projection
+      HL7_FIELD_SUBFIELD_ID: retained in core source metadata
+      EXTERNAL_COPYRIGHT_NOTICE: retained in core source metadata
+      EXAMPLE_UNITS: retained in core source metadata
+      LONG_COMMON_NAME: consumed by the core concept projection
+      STATUS_REASON: consumed by the core concept projection
+      STATUS_TEXT: consumed by the core concept projection
+      CHANGE_REASON_PUBLIC: retained in core source metadata
+      COMMON_TEST_RANK: retained in core source metadata
+      COMMON_ORDER_RANK: retained in core source metadata
+      HL7_ATTACHMENT_STRUCTURE: retained in core source metadata
+      EXTERNAL_COPYRIGHT_LINK: retained in core source metadata
+      PanelType: consumed by the core concept projection
+      AskAtOrderEntry: retained in core source metadata
+      AssociatedObservations: retained in core source metadata
+      VersionFirstReleased: consumed by the core concept projection
+      ValidHL7AttachmentRequest: retained in core source metadata
+      DisplayName: retained in core source metadata
+
+parts:
+  archive: core
+  member: AccessoryFiles/PartFile/Part.csv
+  uncompressed_sha256: 743dff07ad47bc5eeb4854864ebb2a5ed883112df8d49e21b0fad9bf60ad6c77
+  uncompressed_size_bytes: 8038858
+  encoding: utf-8-sig
+  delimiter: ","
+  headers:
+    - PartNumber
+    - PartTypeName
+    - PartName
+    - PartDisplayName
+    - Status
+  part_number_column: PartNumber
+  part_name_column: PartName
+  part_display_name_column: PartDisplayName
+  filters:
+    PartTypeName: SYSTEM
+  ignored_columns:
+    Status: Part status is outside the specimen candidate relation
+
+specimen_links:
+  archive: core
+  member: AccessoryFiles/PartFile/LoincPartLink_Primary.csv
+  uncompressed_sha256: 31e2db4ad083c56829951464d521956fb3bbd6ab9f207b5e9f39423363617578
+  uncompressed_size_bytes: 118680671
+  encoding: utf-8-sig
+  delimiter: ","
+  headers:
+    - LoincNumber
+    - LongCommonName
+    - PartNumber
+    - PartName
+    - PartCodeSystem
+    - PartTypeName
+    - LinkTypeName
+    - Property
+  code_column: LoincNumber
+  part_number_column: PartNumber
+  link_type_column: LinkTypeName
+  filters:
+    PartCodeSystem: http://loinc.org
+    PartTypeName: SYSTEM
+    Property: http://loinc.org/property/SYSTEM
+  ignored_columns:
+    LongCommonName: canonical display comes from the core table
+    PartName: canonical Part display comes from Part.csv
+
+panel_members:
+  archive: core
+  member: AccessoryFiles/PanelsAndForms/PanelsAndForms.csv
+  uncompressed_sha256: 54451baebd4e6f116edfc44024fc5ea2a005e32a56ad72514c31278cff9ce7d4
+  uncompressed_size_bytes: 34791992
+  encoding: utf-8-sig
+  delimiter: ","
+  headers:
+    - ParentId
+    - ParentLoinc
+    - ParentName
+    - ID
+    - SEQUENCE
+    - Loinc
+    - LoincName
+    - DisplayNameForForm
+    - ObservationRequiredInPanel
+    - ObservationIdInForm
+    - SkipLogicHelpText
+    - DefaultValue
+    - EntryType
+    - DataTypeInForm
+    - DataTypeSource
+    - AnswerSequenceOverride
+    - ConditionForInclusion
+    - AllowableAlternative
+    - ObservationCategory
+    - Context
+    - ConsistencyChecks
+    - RelevanceEquation
+    - CodingInstructions
+    - QuestionCardinality
+    - AnswerCardinality
+    - AnswerListIdOverride
+    - AnswerListTypeOverride
+    - EXTERNAL_COPYRIGHT_NOTICE
+    - AdditionalCopyright
+  parent_id_column: ParentId
+  member_id_column: ID
+  panel_code_column: ParentLoinc
+  member_code_column: Loinc
+  member_order_column: SEQUENCE
+  relationship_value: contains
+  exclude_self_links: true
+  filters: {}
+  preserved_metadata:
+    parentName: ParentName
+    loincName: LoincName
+    displayNameForForm: DisplayNameForForm
+    observationRequiredInPanel: ObservationRequiredInPanel
+    observationIdInForm: ObservationIdInForm
+    skipLogicHelpText: SkipLogicHelpText
+    defaultValue: DefaultValue
+    entryType: EntryType
+    dataTypeInForm: DataTypeInForm
+    dataTypeSource: DataTypeSource
+    answerSequenceOverride: AnswerSequenceOverride
+    conditionForInclusion: ConditionForInclusion
+    allowableAlternative: AllowableAlternative
+    observationCategory: ObservationCategory
+    context: Context
+    consistencyChecks: ConsistencyChecks
+    relevanceEquation: RelevanceEquation
+    codingInstructions: CodingInstructions
+    questionCardinality: QuestionCardinality
+    answerCardinality: AnswerCardinality
+    answerListIdOverride: AnswerListIdOverride
+    answerListTypeOverride: AnswerListTypeOverride
+    externalCopyrightNotice: EXTERNAL_COPYRIGHT_NOTICE
+    additionalCopyright: AdditionalCopyright
+  ignored_columns: {}

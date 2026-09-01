@@ -1,81 +1,122 @@
-"""SQLite artifact construction for LOINC records."""
+"""Deterministic multi-table SQLite construction for complete LOINC packages."""
 
-from collections.abc import Iterable
-from dataclasses import astuple, fields
+import sqlite3
+from dataclasses import astuple
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
-
-from cn_health_compiler.core.sqlite import SQLiteArtifact, build_sqlite_artifact
-from cn_health_compiler.sources.loinc.adapter import LoincRecord
-
-
-class LoincValidationError(ValueError):
-    pass
-
-
-class LoincValidationReport(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    record_count: int
-    unique_codes: int
-
-
-class LoincValidator:
-    def __init__(self, expected_count: int) -> None:
-        self._expected_count = expected_count
-        self._seen: set[str] = set()
-
-    def consume(self, record: LoincRecord) -> None:
-        if record.code in self._seen:
-            raise LoincValidationError(f"duplicate LOINC code {record.code}")
-        self._seen.add(record.code)
-
-    def finish(self) -> LoincValidationReport:
-        if len(self._seen) != self._expected_count:
-            raise LoincValidationError(
-                f"record count changed: expected {self._expected_count}, found {len(self._seen)}"
-            )
-        return LoincValidationReport(record_count=len(self._seen), unique_codes=len(self._seen))
-
-
-_COLUMNS = tuple(field.name for field in fields(LoincRecord))
-_POST_INSERT_SQL = (
-    """
-    INSERT INTO loinc_fts(rowid, long_common_name, zh_display)
-    SELECT rowid, long_common_name, zh_display FROM loinc ORDER BY code
-    """,
-    """
-    WITH RECURSIVE searchable(code, text) AS (
-        SELECT code, long_common_name FROM loinc
-        UNION ALL SELECT code, zh_display FROM loinc WHERE zh_display IS NOT NULL
-    ), grams(code, text, position) AS (
-        SELECT code, text, 1 FROM searchable WHERE length(text) >= 2
-        UNION ALL
-        SELECT code, text, position + 1 FROM grams WHERE position < length(text) - 1
-    )
-    INSERT OR IGNORE INTO loinc_search_bigram(term, code)
-    SELECT substr(text, position, 2), code FROM grams ORDER BY 1, 2
-    """,
-    "INSERT INTO loinc_fts(loinc_fts) VALUES('optimize')",
+from cn_health_compiler.core.sqlite import SQLiteArtifact, build_sqlite_database
+from cn_health_compiler.sources.loinc.records import LoincPackageRecords, LoincRecord
+from cn_health_compiler.sources.loinc.validation import (
+    LoincValidationReport,
+    LoincValidationRules,
+    validate_loinc_package,
 )
 
 
 def build_loinc_sqlite(
-    records: Iterable[LoincRecord],
+    records: LoincPackageRecords,
+    rules: LoincValidationRules,
     schema_path: Path,
     output_path: Path,
-    *,
-    expected_count: int,
 ) -> SQLiteArtifact[LoincValidationReport]:
-    return build_sqlite_artifact(
-        records,
-        LoincValidator(expected_count),
-        astuple,
-        _COLUMNS,
+    report = validate_loinc_package(records, rules)
+
+    def populate(connection: sqlite3.Connection) -> LoincValidationReport:
+        connection.executemany(
+            """INSERT INTO loinc (
+                code, component, property, time_aspect, system, scale_type, method_type,
+                long_common_name, short_name, consumer_name, class, class_type, order_obs,
+                status, status_reason, status_text, change_type, definition_description,
+                version_first_released, version_last_changed, panel_type, zh_display,
+                source_metadata_json, translation_metadata_json, source_row,
+                translation_source_row, source_version,
+                core_source_sha256, translation_source_sha256
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?
+            )""",
+            (_concept_values(record) for record in records.concepts),
+        )
+        connection.executemany(
+            """INSERT INTO loinc_unit (
+                loinc_code, ucum_unit, unit_kind, unit_ordinal, source_member,
+                source_row, source_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (astuple(record) for record in records.units),
+        )
+        connection.executemany(
+            """INSERT INTO loinc_specimen (
+                loinc_code, part_number, part_name, part_display_name, link_type,
+                source_member, source_row, source_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (astuple(record) for record in records.specimens),
+        )
+        connection.executemany(
+            """INSERT INTO loinc_panel_member (
+                parent_id, member_id, panel_code, member_code, member_order, relationship,
+                source_metadata_json, source_member, source_row, source_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (astuple(record) for record in records.panel_members),
+        )
+        connection.execute(
+            """INSERT INTO loinc_fts(rowid, long_common_name, zh_display)
+            SELECT rowid, long_common_name, zh_display FROM loinc ORDER BY code"""
+        )
+        connection.execute(
+            """WITH RECURSIVE searchable(code, text) AS (
+                SELECT code, long_common_name FROM loinc
+                UNION ALL SELECT code, zh_display FROM loinc WHERE zh_display IS NOT NULL
+            ), grams(code, text, position) AS (
+                SELECT code, text, 1 FROM searchable WHERE length(text) >= 2
+                UNION ALL
+                SELECT code, text, position + 1 FROM grams WHERE position < length(text) - 1
+            )
+            INSERT OR IGNORE INTO loinc_search_bigram(term, code)
+            SELECT substr(text, position, 2), code FROM grams ORDER BY 1, 2"""
+        )
+        connection.execute("INSERT INTO loinc_fts(loinc_fts) VALUES('optimize')")
+        foreign_key_errors = connection.execute("PRAGMA foreign_key_check").fetchall()
+        if foreign_key_errors:
+            raise RuntimeError(f"SQLite foreign_key_check failed: {foreign_key_errors!r}")
+        return report
+
+    return build_sqlite_database(
         schema_path,
         output_path,
-        table="loinc",
-        staging_table="loinc_staging",
-        post_insert_sql=_POST_INSERT_SQL,
+        populate,
+        user_version=2,
+    )
+
+
+def _concept_values(record: LoincRecord) -> tuple[object, ...]:
+    return (
+        record.code,
+        record.component,
+        record.property,
+        record.time_aspect,
+        record.system,
+        record.scale_type,
+        record.method_type,
+        record.long_common_name,
+        record.short_name,
+        record.consumer_name,
+        record.class_name,
+        record.class_type,
+        record.order_obs,
+        record.status,
+        record.status_reason,
+        record.status_text,
+        record.change_type,
+        record.definition_description,
+        record.version_first_released,
+        record.version_last_changed,
+        record.panel_type,
+        record.zh_display,
+        record.source_metadata_json,
+        record.translation_metadata_json,
+        record.source_row,
+        record.translation_source_row,
+        record.source_version,
+        record.core_source_sha256,
+        record.translation_source_sha256,
     )

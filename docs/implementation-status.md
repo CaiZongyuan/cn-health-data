@@ -6,7 +6,7 @@
 |---|---|
 | `nhsa-drugs` compiler | Real XLSX snapshot, fingerprint, streaming normalize/validate, SQLite, FTS, bigram, Parquet, zstd, Diff, Manifest |
 | `nhc-icd10-clinical` compiler | Real 2022 XLSX snapshot with main/additional/morphology codes, SQLite, FTS, bigram, Parquet, zstd, Diff, Manifest |
-| `loinc-zh-cn` adapter | Synthetic ZIP/CSV and Chinese linguistic-variant join tests, SQLite/FTS/bigram schema |
+| `loinc-zh-cn` compiler | Source-intake-gated multi-ZIP Candidate builder with bounded archive validation, complete core/Chinese joins, UCUM, SYSTEM parts, panels, Schema v2 SQLite/FTS/bigram, Parquet, Diff, Manifest, and synthetic end-to-end tests |
 | `geography-cn` | Real administrative-division, GeoNames place, and postal Candidate with 24,731 rows |
 | `names-cn` | Faker `zh_CN` AST-only adapter and 530 weighted name components |
 | `population-cn` | UN WPP 2024 Medium projection with 3,171 age/sex rows |
@@ -41,9 +41,11 @@ sharing record-level artifacts.
 - `laboratory-cn` is the verified project-authored subset used by current
   consumers; it is not represented as the official complete LOINC Chinese
   linguistic variant.
-- The separate `loinc-zh-cn` adapter is ready for an official source package
-  obtained under the applicable terms. No such package is present in the
-  current local inputs, so that Dataset reports no verified Candidate.
+- The separate `loinc-zh-cn` compiler is implemented and tested end to end with
+  project-generated source packages. It deliberately refuses the current
+  planned contract until an official source package, exact layout/version/counts,
+  and rights review are pinned. No such package is present in the current local
+  inputs, so that Dataset reports no verified Candidate.
 - No signing private key or public hosting endpoint is committed. Registry
   keygen/build capabilities are implemented, but production key custody and
   deployment remain an operator responsibility.

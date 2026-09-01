@@ -70,8 +70,12 @@ def build_sqlite_database[ReportT: RecordCountReport](
     schema_path: Path,
     output_path: Path,
     populate: Callable[[sqlite3.Connection], ReportT],
+    *,
+    user_version: int = 1,
 ) -> SQLiteArtifact[ReportT]:
     """Populate and atomically publish a deterministic SQLite database."""
+    if user_version < 1:
+        raise ValueError("SQLite user_version must be positive")
     if output_path.exists():
         raise FileExistsError(f"refusing to overwrite SQLite artifact: {output_path}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,7 +91,7 @@ def build_sqlite_database[ReportT: RecordCountReport](
         try:
             connection.execute("PRAGMA page_size = 4096")
             connection.execute(f"PRAGMA application_id = {SQLITE_APPLICATION_ID}")
-            connection.execute("PRAGMA user_version = 1")
+            connection.execute(f"PRAGMA user_version = {user_version}")
             connection.execute("PRAGMA journal_mode = DELETE")
             connection.execute("PRAGMA synchronous = FULL")
             connection.execute("PRAGMA temp_store = FILE")

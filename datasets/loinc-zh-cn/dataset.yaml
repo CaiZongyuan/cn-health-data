@@ -1,18 +1,52 @@
 id: loinc-zh-cn
-title: LOINC 中文参考数据
+title: LOINC 简体中文参考数据
 description: >
-  LOINC concepts and Chinese display data compiled into a local reference
-  dataset.
-status: planned
+  Complete LOINC 2.83 core concepts joined to the official Chinese (China)
+  linguistic variant, with source-supported UCUM examples, SYSTEM Parts, and
+  panel membership relationships.
+status: experimental
+dataset_schema_version: 2
 
 authority:
-  name: Regenstrief Institute
+  name: Regenstrief Institute, Inc. and the LOINC Committee
   role: original-authority
-  verification: pending-source-review
+  verification: package-license-and-layout-reviewed-2026-09-01
 
 source:
-  type: zip
-  acquisition: to-be-confirmed
+  type: composite-zip
+  acquisition: manual-local
+  package_mode: combined
+  declared_version: "2.83"
+  upstream_sync: false
+  core:
+    authority: Regenstrief Institute, Inc. and the LOINC Committee
+    authority_role: original-authority
+    format: zip
+    acquisition: manual-local
+    original_filename: Loinc_2.83.zip
+    path_hint: tmp/Loinc_2.83.zip
+    source_url: https://loinc.org/download/loinc-complete/
+    declared_version: "2.83"
+    sha256: 077a0718e87d8309ffe3a673f75b836a8e783dc36a646413ef97c71c12eab27e
+    size_bytes: 92815327
+    source_reacquirable: true
+  linguistic_variant:
+    authority: Regenstrief Institute, Inc.
+    authority_role: official-linguistic-variant
+    format: zip
+    acquisition: manual-local
+    original_filename: Loinc_2.83.zip
+    path_hint: tmp/Loinc_2.83.zip
+    source_url: https://loinc.org/download/loinc-complete/
+    declared_version: "2.83"
+    target_version: "2.83"
+    language: zh
+    country: CN
+    variant_id: "5"
+    producer: Lin Zhang, A LOINC volunteer from China
+    sha256: 077a0718e87d8309ffe3a673f75b836a8e783dc36a646413ef97c71c12eab27e
+    size_bytes: 92815327
+    source_reacquirable: true
 
 versioning:
   strategy: upstream-version
@@ -24,7 +58,61 @@ output:
 
 runtime:
   searchable: true
+  minimum_sqlite_version: 3.38.0
 
 rights:
-  redistribution: review-required
+  redistribution: normalized-only
   release_eligible: false
+  basis: >
+    LOINC License 5.8 permits use, copying, distribution, and incorporation
+    subject to attribution, display-name, version, unchanged-content, and
+    third-party copyright conditions. Public Registry eligibility remains
+    disabled pending artifact-specific third-party terms review.
+  evidence:
+    - datasets/loinc-zh-cn/source-review.md
+    - datasets/loinc-zh-cn/LOINC_short_license.txt
+    - source-member:LoincLicense_5.8.txt
+  attribution: >
+    This material contains content from LOINC (http://loinc.org). LOINC is
+    copyright © Regenstrief Institute, Inc. and the Logical Observation
+    Identifiers Names and Codes (LOINC) Committee and is available at no cost
+    under the license at http://loinc.org/license. LOINC® is a registered
+    United States trademark of Regenstrief Institute, Inc.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types:
+    - sqlite
+    - sqlite-zstd
+    - parquet
+
+validation:
+  expected_loinc_count: 112405
+  expected_unit_count: 45207
+  expected_specimen_count: 112405
+  expected_panel_member_count: 95705
+  expected_source_member_rows:
+    core: 112405
+    linguistic-variant: 96518
+    unit:example: 112405
+    parts: 74937
+    specimen-links: 685901
+    panel-members: 98519
+  allowed_statuses:
+    - ACTIVE
+    - TRIAL
+    - DEPRECATED
+    - DISCOURAGED
+  allowed_order_obs:
+    - Order
+    - Observation
+    - Both
+    - Subset
+  allowed_unit_kinds:
+    - example
+  allowed_specimen_link_types:
+    - Primary
+  allowed_panel_relationships:
+    - contains
+  record_count:
+    max_relative_decrease: 0.10
+    max_relative_increase: 0.10

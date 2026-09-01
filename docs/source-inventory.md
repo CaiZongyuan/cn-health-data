@@ -16,10 +16,11 @@ source-specific configuration.
 
 `laboratory-cn` is a focused project-authored catalog for current consumers. It
 does not claim to reproduce the official complete LOINC Chinese linguistic
-variant. The separate LOINC adapter is covered by synthetic ZIP/CSV tests, but
-no official source package is present in the current local inputs. Supplying a
-package determines the exact member layout, version, and source terms recorded
-by its `loinc-zh-cn` Candidate.
+variant. The separate LOINC compiler is covered by complete synthetic Candidate
+tests, including bounded ZIP validation, UCUM, SYSTEM parts, panels, SQLite,
+Parquet, Diff, and Manifest. No official source package is present in the current
+local inputs. Supplying and reviewing the packages determines the exact member
+layout, version, counts, and source terms recorded by its `loinc-zh-cn` Candidate.
 
 `nhc-procedure-clinical` remains planned but implementation is explicitly
 deferred; its local workbook is not consumed by any build command.
