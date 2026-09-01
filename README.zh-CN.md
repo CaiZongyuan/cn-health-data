@@ -101,7 +101,7 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 环境要求
 
-最终用户只需要适用于当前平台的 `cn-health 0.2.0` 原生发行包，不需要 Python、Rust 或
+最终用户只需要适用于当前平台的 `cn-health 0.2.1` 原生发行包，不需要 Python、Rust 或
 来源工作簿。源码开发环境需要：
 
 - Git；
@@ -115,7 +115,7 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 快速开始
 
-从 GitHub Releases 安装适用于当前平台的 `cn-health 0.2.0` 后，初始化签名 starter 数据
+从 GitHub Releases 安装适用于当前平台的 `cn-health 0.2.1` 后，初始化签名 starter 数据
 并执行真实查询：
 
 ```bash

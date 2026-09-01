@@ -65,6 +65,13 @@ jobs:
           cp LICENSE DATA-NOTICE.md "$native_dir/"
           cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$npm_dir/bin/${{ matrix.binary }}"
           cp LICENSE "$npm_dir/LICENSE"
+          node -e '
+            const fs = require("fs");
+            const manifestPath = process.argv[1];
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+            manifest.bin = {"cn-health-native": manifest.cnHealthBinary};
+            fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+          ' "$npm_dir/package.json"
           tar -C artifacts -czf "artifacts/cn-health-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" "cn-health-${{ github.ref_name }}-${{ matrix.name }}"
           pnpm --filter "@cn-health/${{ matrix.npm_package }}" pack --pack-destination "$PWD/artifacts/npm"
       - uses: actions/upload-artifact@v6
