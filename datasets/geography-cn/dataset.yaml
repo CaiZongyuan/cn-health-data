@@ -64,7 +64,21 @@ runtime:
 
 rights:
   redistribution: normalized-only
-  release_eligible: false
+  release_eligible: true
+  basis: >
+    Maintainer decision to publish only the normalized composite projection
+    while preserving per-source provenance and attribution.
+  evidence:
+    - docs/publication-decision.md
+    - https://www.geonames.org/about.html
+    - https://creativecommons.org/licenses/by/4.0/
+  attribution: >
+    Contains normalized geographic reference data derived from the pinned
+    AreaCity source collection and GeoNames gazetteer/postal data. Source roles,
+    URLs, versions, and hashes are recorded in the Release Manifest.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
   min_division_count: 3595

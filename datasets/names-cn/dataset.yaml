@@ -35,7 +35,19 @@ runtime:
 
 rights:
   redistribution: normalized-only
-  release_eligible: false
+  release_eligible: true
+  basis: >
+    Maintainer decision to publish normalized aggregate name components from
+    the pinned MIT-licensed Faker provider source.
+  evidence:
+    - docs/publication-decision.md
+    - https://github.com/joke2k/faker/blob/master/LICENSE.txt
+  attribution: >
+    Derived from the Faker project zh_CN person provider at the commit and
+    version recorded in the Release Manifest. Contains no person-level records.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
   min_surname_count: 399

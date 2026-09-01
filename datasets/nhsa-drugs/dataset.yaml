@@ -33,8 +33,20 @@ runtime:
   minimum_sqlite_version: 3.34.0
 
 rights:
-  redistribution: review-required
-  release_eligible: false
+  redistribution: normalized-only
+  release_eligible: true
+  basis: >
+    Maintainer decision to publish the normalized code/reference projection
+    while excluding the source workbook and preserving factual provenance.
+  evidence:
+    - docs/publication-decision.md
+    - DATA-NOTICE.md
+  attribution: >
+    Normalized from the pinned distribution snapshot identified by authority,
+    filename, date, worksheet, and SHA256 in the Release Manifest.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
   source:
