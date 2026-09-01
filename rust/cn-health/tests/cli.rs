@@ -110,6 +110,41 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
                 [],
             )
             .unwrap();
+    } else if dataset_id == "laboratory-cn" {
+        connection
+            .execute_batch(
+                "
+                CREATE TABLE laboratory_concept(
+                    code TEXT PRIMARY KEY,
+                    system TEXT NOT NULL,
+                    terminology_version TEXT NOT NULL,
+                    display_zh TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    specimen TEXT NOT NULL,
+                    result_type TEXT NOT NULL,
+                    ucum_unit TEXT,
+                    status TEXT NOT NULL
+                );
+                CREATE VIRTUAL TABLE laboratory_concept_fts USING fts5(
+                    display_zh, content='laboratory_concept', content_rowid='rowid', tokenize='trigram'
+                );
+                CREATE TABLE laboratory_concept_search_bigram(
+                    term TEXT NOT NULL, code TEXT NOT NULL,
+                    PRIMARY KEY(term, code)
+                ) WITHOUT ROWID;
+                INSERT INTO laboratory_concept VALUES
+                    ('2339-0', 'http://loinc.org', '2.83', '血糖', 'chemistry', 'blood',
+                     'quantity', 'mg/dL', 'active'),
+                    ('4548-4', 'http://loinc.org', '2.83', '糖化血红蛋白', 'chemistry', 'blood',
+                     'quantity', '%', 'active');
+                INSERT INTO laboratory_concept_fts(rowid, display_zh)
+                    SELECT rowid, display_zh FROM laboratory_concept;
+                INSERT INTO laboratory_concept_search_bigram VALUES ('血糖', '2339-0');
+                PRAGMA application_id=1129203780;
+                PRAGMA user_version=1;
+                ",
+            )
+            .unwrap();
     } else {
         connection
             .execute_batch(
@@ -178,7 +213,8 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
             "uncompressedSha256": sha256(&database),
             "uncompressedSizeBytes": fs::metadata(&database).unwrap().len()
         }],
-        "rights": {"redistribution": "review-required", "releaseEligible": false}
+        "rights": {"redistribution": "review-required", "releaseEligible": false},
+        "runtime": {"minimumCliVersion": "0.2.0", "minimumSQLiteVersion": "3.34.0"}
     });
     let manifest_path = release.join("manifest.json");
     fs::write(
@@ -203,6 +239,7 @@ fn installs_lists_and_queries_local_candidates() {
     let drug_manifest = fixture_release(&fixtures, "nhsa-drugs");
     let diagnosis_manifest = fixture_release(&fixtures, "nhc-icd10-clinical");
     let loinc_manifest = fixture_release(&fixtures, "loinc-zh-cn");
+    let laboratory_manifest = fixture_release(&fixtures, "laboratory-cn");
 
     command(&data_dir)
         .args(["dataset", "install", "--local-manifest"])
@@ -217,6 +254,11 @@ fn installs_lists_and_queries_local_candidates() {
     command(&data_dir)
         .args(["dataset", "install", "--local-manifest"])
         .arg(&loinc_manifest)
+        .assert()
+        .success();
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(&laboratory_manifest)
         .assert()
         .success();
 
@@ -278,6 +320,21 @@ fn installs_lists_and_queries_local_candidates() {
     let loinc_json: Value = serde_json::from_slice(&loinc_output.stdout).unwrap();
     assert_eq!(loinc_json["items"][0]["code"], "4548-4");
 
+    let laboratory_output = command(&data_dir)
+        .args(["laboratory", "search", "血糖", "--json"])
+        .output()
+        .unwrap();
+    assert!(laboratory_output.status.success());
+    let laboratory_json: Value = serde_json::from_slice(&laboratory_output.stdout).unwrap();
+    assert_eq!(laboratory_json["items"][0]["code"], "2339-0");
+    assert_eq!(laboratory_json["items"][0]["ucumUnit"], "mg/dL");
+
+    command(&data_dir)
+        .args(["laboratory", "get", "4548-4", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("糖化血红蛋白"));
+
     command(&data_dir)
         .args(["drug", "get", "XA01", "--json"])
         .assert()
@@ -297,6 +354,43 @@ fn emits_json_error_for_missing_dataset() {
     assert!(output.stderr.is_empty());
     let error: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(error["error"]["code"], "DATASET_NOT_INSTALLED");
+}
+
+#[test]
+fn doctor_reports_an_uninitialized_data_directory() {
+    let temporary = TempDir::new().unwrap();
+    let output = command(&temporary.path().join("data"))
+        .args(["doctor", "--json"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["command"], "doctor");
+    assert_eq!(report["ok"], false);
+    assert_eq!(report["checks"][0]["id"], "starter-installed");
+}
+
+#[test]
+fn rejects_incompatible_or_invalid_manifest_cli_versions() {
+    for minimum in ["99.0.0", "next"] {
+        let temporary = TempDir::new().unwrap();
+        let manifest = fixture_release(&temporary.path().join("fixtures"), "laboratory-cn");
+        let mut value: Value = serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
+        value["runtime"]["minimumCliVersion"] = Value::String(minimum.to_owned());
+        fs::write(&manifest, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+
+        command(&temporary.path().join("data"))
+            .args(["dataset", "install", "--local-manifest"])
+            .arg(manifest)
+            .assert()
+            .code(6)
+            .stderr(predicate::str::contains(if minimum == "next" {
+                "minimumCliVersion"
+            } else {
+                "CLI_VERSION_INCOMPATIBLE"
+            }));
+    }
 }
 
 #[test]
@@ -322,9 +416,9 @@ fn rejects_corrupt_compressed_artifact_without_installing() {
 }
 
 #[test]
-fn installs_from_a_signed_registry() {
+fn initializes_queries_and_diagnoses_from_a_signed_registry() {
     let temporary = TempDir::new().unwrap();
-    let manifest_path = fixture_release(&temporary.path().join("fixtures"), "nhsa-drugs");
+    let manifest_path = fixture_release(&temporary.path().join("fixtures"), "laboratory-cn");
     let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
     manifest["rights"]["releaseEligible"] = Value::Bool(true);
     let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
@@ -337,10 +431,10 @@ fn installs_from_a_signed_registry() {
     let registry = json!({
         "schemaVersion": 1,
         "datasets": {
-            "nhsa-drugs": {
-                "recommendedRelease": "nhsa-drugs@fixture.r1",
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@fixture.r1",
                 "releases": [{
-                    "id": "nhsa-drugs@fixture.r1",
+                    "id": "laboratory-cn@fixture.r1",
                     "manifestUrl": format!("{base_url}/manifest.json"),
                     "manifestSha256": manifest_sha256,
                     "revoked": false
@@ -362,7 +456,7 @@ fn installs_from_a_signed_registry() {
     let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
     let compressed_bytes = fs::read(compressed).unwrap();
     let server_thread = std::thread::spawn(move || {
-        for _ in 0..4 {
+        for _ in 0..8 {
             let request = server.recv().unwrap();
             let body = match request.url() {
                 "/registry.json" => registry_bytes.clone(),
@@ -378,14 +472,41 @@ fn installs_from_a_signed_registry() {
     fs::write(&public_key_path, public_bytes).unwrap();
     let data_dir = temporary.path().join("data");
 
-    command(&data_dir)
-        .args(["dataset", "install", "nhsa-drugs", "--registry"])
+    let first = command(&data_dir)
+        .args(["init", "--registry"])
         .arg(format!("{base_url}/registry.json"))
         .arg("--public-key")
-        .arg(public_key_path)
-        .assert()
-        .success();
+        .arg(&public_key_path)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(first.status.success());
+    let first_json: Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(first_json["items"][0]["status"], "installed");
+
+    let second = command(&data_dir)
+        .args(["init", "--registry"])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(second.status.success());
+    let second_json: Value = serde_json::from_slice(&second.stdout).unwrap();
+    assert_eq!(second_json["items"][0]["status"], "already-installed");
     server_thread.join().unwrap();
+
+    command(&data_dir)
+        .args(["doctor", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"ok\":true"));
+    command(&data_dir)
+        .args(["laboratory", "search", "血糖", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("2339-0"));
     command(&data_dir)
         .args(["dataset", "list", "--json"])
         .assert()

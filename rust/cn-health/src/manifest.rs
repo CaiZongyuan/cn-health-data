@@ -3,6 +3,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -14,6 +15,7 @@ pub struct Manifest {
     pub dataset: Dataset,
     pub artifacts: Vec<Artifact>,
     pub rights: Rights,
+    pub runtime: Runtime,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -52,24 +54,51 @@ pub struct Rights {
     pub release_eligible: bool,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Runtime {
+    pub minimum_cli_version: String,
+}
+
 impl Manifest {
     pub fn read(path: &Path) -> Result<Self> {
         let file = File::open(path)
             .with_context(|| format!("failed to open Manifest {}", path.display()))?;
         let manifest: Self = serde_json::from_reader(file)
             .with_context(|| format!("failed to parse Manifest {}", path.display()))?;
-        if manifest.schema_version != 1 {
+        manifest.validate()?;
+        Ok(manifest)
+    }
+
+    pub fn parse(bytes: &[u8]) -> Result<Self> {
+        let manifest: Self = serde_json::from_slice(bytes).context("failed to parse Manifest")?;
+        manifest.validate()?;
+        Ok(manifest)
+    }
+
+    fn validate(&self) -> Result<()> {
+        if self.schema_version != 1 {
+            bail!("unsupported Manifest schemaVersion {}", self.schema_version);
+        }
+        validate_segment(&self.dataset.id, "Dataset ID")?;
+        validate_segment(&self.release.storage_key, "storageKey")?;
+        if self.release.revoked {
+            bail!("Release {} is revoked", self.release.id);
+        }
+        let minimum = Version::parse(&self.runtime.minimum_cli_version).with_context(|| {
+            format!(
+                "invalid runtime.minimumCliVersion {:?}",
+                self.runtime.minimum_cli_version
+            )
+        })?;
+        let current = Version::parse(env!("CARGO_PKG_VERSION"))
+            .context("invalid compiled cn-health version")?;
+        if current < minimum {
             bail!(
-                "unsupported Manifest schemaVersion {}",
-                manifest.schema_version
+                "CLI_VERSION_INCOMPATIBLE: Manifest requires cn-health >= {minimum}, running {current}"
             );
         }
-        validate_segment(&manifest.dataset.id, "Dataset ID")?;
-        validate_segment(&manifest.release.storage_key, "storageKey")?;
-        if manifest.release.revoked {
-            bail!("Release {} is revoked", manifest.release.id);
-        }
-        Ok(manifest)
+        Ok(())
     }
 
     pub fn compressed_sqlite(&self) -> Result<&Artifact> {

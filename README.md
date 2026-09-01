@@ -34,9 +34,10 @@ provide a production clinical system.
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
 
 The build identifiers above describe Candidates verified in the current
-development workspace. This repository distributes the compiler, runtime, and
-synthetic test fixtures. `tmp/`, `.work/`, and `dist/` are ignored by Git, so
-source workbooks and record-level build outputs are not included in a clone.
+development workspace. This repository distributes the compiler, runtime,
+synthetic test fixtures, and the redistribution-approved `laboratory-cn`
+starter Release. `tmp/`, `.work/`, and `dist/` are ignored by Git, so private
+source workbooks and other local Candidates are not included in a clone.
 
 Implemented infrastructure includes:
 
@@ -47,7 +48,8 @@ Implemented infrastructure includes:
 - local installation with compressed and uncompressed SHA256 verification,
   bounded decompression, and SQLite integrity checks;
 - installed-version listing, activation, and rollback;
-- exact and literal search commands for drugs, diagnoses, and LOINC;
+- exact and literal search commands for drugs, diagnoses, LOINC, and the curated
+  laboratory catalog;
 - complete LOINC 2.83 compilation with 112,405 core concepts and 96,518
   official Chinese displays;
 - a project-authored laboratory/vital-sign catalog with Chinese displays and
@@ -56,8 +58,10 @@ Implemented infrastructure includes:
   simulated resident IDs;
 - a fixed-commit Synthea profile projection, FHIR R4 identity localizer, and
   bounded internal HTTP service;
-- Ed25519-signed Registry generation and verified remote installation; and
-- an npm wrapper that delegates all behavior to the native binary.
+- a signed public starter Registry, pinned default trust root, `init`, and
+  offline `doctor`; and
+- tag builds for four native platforms plus an npm wrapper that delegates all
+  behavior to the native binary.
 
 For the exact implementation boundary, see
 [`docs/implementation-status.md`](docs/implementation-status.md).
@@ -107,6 +111,7 @@ npm/               Thin native CLI launcher
 python/compiler/   Python compiler package, adapters, and tests
 rust/cn-health/    Native installer and query runtime
 schemas/           JSON Schemas for contracts, Manifests, Registry, and CLI output
+distribution/      Signed public Registry and redistribution-approved starter Release
 tmp/               Local raw inputs; ignored by Git
 .work/             Source snapshots and local working data; ignored by Git
 dist/              Immutable local Candidates; ignored by Git
@@ -114,7 +119,9 @@ dist/              Immutable local Candidates; ignored by Git
 
 ## Requirements
 
-Core development requires:
+End users need only the `cn-health 0.2.0` native release for their platform;
+Python, Rust, and source workbooks are not runtime requirements. Source
+development requires:
 
 - Git;
 - Python 3.12;
@@ -128,24 +135,26 @@ require the third-party XLSX files.
 
 ## Quick Start
 
-Install the locked Python environment and validate the repository contracts:
+After installing the `cn-health 0.2.0` archive for your platform from GitHub
+Releases, initialize signed starter data and run a real query:
 
 ```bash
-uv sync --locked
-uv run cn-health-build --version
-uv run cn-health-build validate-contracts
-uv run pytest
+cn-health init
+cn-health laboratory search 血糖 --json
+cn-health doctor
 ```
 
-Build and test the native CLI:
+`init` uses the Registry URL and pinned public key built into the CLI. It
+installs the 18 project-authored laboratory and vital-sign records; queries and
+`doctor` work offline after download. The starter is not the complete official
+LOINC Chinese package.
+
+Contributors can clone the repository and prove the same real query with one
+command:
 
 ```bash
-cargo build -p cn-health
-cargo test --workspace
-target/debug/cn-health --version
+scripts/bootstrap-dev.sh
 ```
-
-These commands verify the software without building or redistributing real data.
 
 ## Source Data
 
@@ -431,11 +440,10 @@ directory for the `org.cn-health.cn-health` project identity.
 
 ## Signed Registry and Remote Installation
 
-The Registry tooling is implemented. Local Candidates can be built and installed
-directly. A remote Registry is a separate optional distribution channel and
-accepts only Releases whose Manifests explicitly set `releaseEligible: true`.
-This repository does not provide a public Registry, production signing key, or
-hosting endpoint.
+The repository provides a public starter Registry verified by a public key
+pinned in the CLI. It currently contains only the explicitly eligible
+`laboratory-cn@2026-08-30.r1` Release. Building another Candidate locally never
+makes it publicly distributable.
 
 When an operator has prepared distribution metadata consistent with the terms
 applicable to the source and intended use, they can generate a raw Ed25519
@@ -458,8 +466,9 @@ uv run cn-health-build registry build \
 
 Production private keys must remain outside the repository checkout and public
 host. Publish the Registry, detached signature, Manifests, and compressed
-artifacts at their declared same-origin HTTPS URLs. A client installs the
-Registry's recommended, non-revoked release with a separately pinned public key:
+artifacts at their declared same-origin HTTPS URLs. `cn-health init` uses the
+built-in channel. An operator can also install a recommended, non-revoked
+Release from another Registry with a separately pinned public key:
 
 ```bash
 target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
@@ -487,9 +496,10 @@ CN_HEALTH_BINARY="$PWD/target/release/cn-health" \
   --data-dir .work/runtime dataset list --json
 ```
 
-Published package layouts are expected to provide an optional
-`@cn-health/cli-<platform>-<arch>` binary package. Those platform packages are
-not currently published by this repository.
+The tag release workflow builds native archives and optional
+`@cn-health/cli-<platform>-<arch>` npm packages for Linux x64, macOS x64/arm64,
+and Windows x64. npm publishing runs only when the repository explicitly enables
+it and configures a token.
 
 ## Development and Testing
 

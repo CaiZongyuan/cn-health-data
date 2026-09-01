@@ -3,7 +3,8 @@ mod query;
 mod registry;
 mod storage;
 
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
@@ -12,12 +13,18 @@ use serde::Serialize;
 use serde_json::json;
 
 use crate::query::{
-    SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search, loinc_get, loinc_search,
+    SearchResults, diagnosis_get, diagnosis_search, drug_get, drug_search, laboratory_get,
+    laboratory_search, loinc_get, loinc_search,
 };
-use crate::registry::install_remote;
+use crate::registry::{install_remote, install_remote_with_key};
 use crate::storage::{
     activate_release, current_database, install_local, list_installed, list_versions,
 };
+
+const STARTER_DATASET_ID: &str = "laboratory-cn";
+const DEFAULT_REGISTRY_URL: &str =
+    "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/registry.json";
+const DEFAULT_REGISTRY_PUBLIC_KEY: &[u8; 32] = include_bytes!("../../../distribution/registry.pub");
 
 #[derive(Parser)]
 #[command(
@@ -34,10 +41,37 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    Init(InitArgs),
+    Doctor(DoctorArgs),
     Dataset(DatasetArgs),
     Drug(LookupArgs),
     Diagnosis(LookupArgs),
     Loinc(LookupArgs),
+    Laboratory(LookupArgs),
+}
+
+#[derive(Args)]
+struct InitArgs {
+    #[arg(long, default_value = "starter")]
+    profile: String,
+    #[arg(long, requires = "public_key")]
+    registry: Option<String>,
+    #[arg(long, requires = "registry")]
+    public_key: Option<PathBuf>,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args)]
+struct DoctorArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Serialize)]
+struct DoctorCheck {
+    id: &'static str,
+    ok: bool,
 }
 
 #[derive(Args)]
@@ -102,28 +136,34 @@ enum LookupCommand {
 fn main() {
     let cli = Cli::parse();
     let json_output = cli.wants_json();
-    if let Err(error) = run(cli) {
-        let message = format!("{error:#}");
-        let (code, exit_code) = classify_error(&message);
-        if json_output {
-            println!(
-                "{}",
-                serde_json::to_string(&json!({
-                    "schemaVersion": 1,
-                    "error": {"code": code, "message": message}
-                }))
-                .expect("JSON error serialization cannot fail")
-            );
-        } else {
-            eprintln!("{message}");
+    match run(cli) {
+        Ok(true) => {}
+        Ok(false) => std::process::exit(1),
+        Err(error) => {
+            let message = format!("{error:#}");
+            let (code, exit_code) = classify_error(&message);
+            if json_output {
+                println!(
+                    "{}",
+                    serde_json::to_string(&json!({
+                        "schemaVersion": 1,
+                        "error": {"code": code, "message": message}
+                    }))
+                    .expect("JSON error serialization cannot fail")
+                );
+            } else {
+                eprintln!("{message}");
+            }
+            std::process::exit(exit_code);
         }
-        std::process::exit(exit_code);
     }
 }
 
 impl Cli {
     fn wants_json(&self) -> bool {
         match &self.command {
+            Command::Init(args) => args.json,
+            Command::Doctor(args) => args.json,
             Command::Dataset(DatasetArgs { command }) => match command {
                 DatasetCommand::List { json }
                 | DatasetCommand::Info { json, .. }
@@ -132,7 +172,8 @@ impl Cli {
             },
             Command::Drug(LookupArgs { command })
             | Command::Diagnosis(LookupArgs { command })
-            | Command::Loinc(LookupArgs { command }) => match command {
+            | Command::Loinc(LookupArgs { command })
+            | Command::Laboratory(LookupArgs { command }) => match command {
                 LookupCommand::Search { json, .. } | LookupCommand::Get { json, .. } => *json,
             },
         }
@@ -140,7 +181,10 @@ impl Cli {
 }
 
 fn classify_error(message: &str) -> (&'static str, i32) {
-    if message.contains("is not installed") {
+    if message.contains("CLI_VERSION_INCOMPATIBLE") || message.contains("runtime.minimumCliVersion")
+    {
+        ("CLI_VERSION_INCOMPATIBLE", 6)
+    } else if message.contains("is not installed") {
         ("DATASET_NOT_INSTALLED", 3)
     } else if message.contains("SHA256") || message.contains("integrity_check") {
         ("ARTIFACT_VERIFICATION_FAILED", 4)
@@ -149,13 +193,34 @@ fn classify_error(message: &str) -> (&'static str, i32) {
     }
 }
 
-fn run(cli: Cli) -> Result<()> {
+fn run(cli: Cli) -> Result<bool> {
     let data_dir = cli.data_dir.unwrap_or_else(default_data_dir);
     match cli.command {
-        Command::Dataset(args) => run_dataset(&data_dir, args.command),
-        Command::Drug(args) => run_lookup(&data_dir, "nhsa-drugs", args.command),
-        Command::Diagnosis(args) => run_lookup(&data_dir, "nhc-icd10-clinical", args.command),
-        Command::Loinc(args) => run_lookup(&data_dir, "loinc-zh-cn", args.command),
+        Command::Init(args) => {
+            run_init(&data_dir, args)?;
+            Ok(true)
+        }
+        Command::Doctor(args) => run_doctor(&data_dir, args),
+        Command::Dataset(args) => {
+            run_dataset(&data_dir, args.command)?;
+            Ok(true)
+        }
+        Command::Drug(args) => {
+            run_lookup(&data_dir, "nhsa-drugs", args.command)?;
+            Ok(true)
+        }
+        Command::Diagnosis(args) => {
+            run_lookup(&data_dir, "nhc-icd10-clinical", args.command)?;
+            Ok(true)
+        }
+        Command::Loinc(args) => {
+            run_lookup(&data_dir, "loinc-zh-cn", args.command)?;
+            Ok(true)
+        }
+        Command::Laboratory(args) => {
+            run_lookup(&data_dir, STARTER_DATASET_ID, args.command)?;
+            Ok(true)
+        }
     }
 }
 
@@ -164,6 +229,91 @@ fn default_data_dir() -> PathBuf {
         .expect("platform has no user data directory")
         .data_dir()
         .to_path_buf()
+}
+
+fn run_init(data_dir: &Path, args: InitArgs) -> Result<()> {
+    if args.profile != "starter" {
+        anyhow::bail!("unsupported initialization profile {:?}", args.profile);
+    }
+    let versions_before = list_versions(data_dir, STARTER_DATASET_ID)?;
+    let (registry_url, public_key) = match (args.registry, args.public_key) {
+        (None, None) => (
+            DEFAULT_REGISTRY_URL.to_owned(),
+            DEFAULT_REGISTRY_PUBLIC_KEY.to_vec(),
+        ),
+        (Some(registry), Some(public_key)) => (registry, fs::read(public_key)?),
+        _ => anyhow::bail!("--registry and --public-key must be provided together"),
+    };
+    let installed =
+        install_remote_with_key(data_dir, STARTER_DATASET_ID, &registry_url, &public_key)?;
+    let status = if versions_before
+        .iter()
+        .any(|version| version.release_id == installed.release_id)
+    {
+        "already-installed"
+    } else {
+        "installed"
+    };
+    if args.json {
+        print_json(&json!({
+            "schemaVersion": 1,
+            "command": "init",
+            "profile": args.profile,
+            "items": [{
+                "datasetId": installed.id,
+                "releaseId": installed.release_id,
+                "status": status
+            }]
+        }))?;
+    } else {
+        println!("{}\t{}\t{}", installed.id, installed.release_id, status);
+    }
+    Ok(())
+}
+
+fn run_doctor(data_dir: &Path, args: DoctorArgs) -> Result<bool> {
+    let installed = list_installed(data_dir)?;
+    let starter = installed
+        .iter()
+        .find(|dataset| dataset.id == STARTER_DATASET_ID);
+    let installed_ok = starter.is_some();
+    let trusted = starter.is_some_and(|dataset| dataset.trust.starts_with("signed-registry:"));
+    let query_ok = current_database(data_dir, STARTER_DATASET_ID)
+        .and_then(|(database, _)| laboratory_get(&database, "2339-0"))
+        .is_ok_and(|item| item.is_some());
+    let ok = installed_ok && trusted && query_ok;
+    let checks = [
+        DoctorCheck {
+            id: "starter-installed",
+            ok: installed_ok,
+        },
+        DoctorCheck {
+            id: "starter-trusted",
+            ok: trusted,
+        },
+        DoctorCheck {
+            id: "starter-query",
+            ok: query_ok,
+        },
+    ];
+    if args.json {
+        print_json(&json!({
+            "schemaVersion": 1,
+            "command": "doctor",
+            "ok": ok,
+            "cliVersion": env!("CARGO_PKG_VERSION"),
+            "dataDir": data_dir,
+            "defaultRegistry": DEFAULT_REGISTRY_URL,
+            "checks": checks
+        }))?;
+    } else {
+        println!("cn-health {}", env!("CARGO_PKG_VERSION"));
+        println!("data-dir\t{}", data_dir.display());
+        for check in checks {
+            println!("{}\t{}", check.id, if check.ok { "ok" } else { "failed" });
+        }
+    }
+    Ok(ok)
 }
 
 fn run_dataset(data_dir: &std::path::Path, command: DatasetCommand) -> Result<()> {
@@ -286,6 +436,22 @@ fn run_lookup(data_dir: &std::path::Path, dataset_id: &str, command: LookupComma
         }
         ("loinc-zh-cn", LookupCommand::Get { code, json }) => {
             let item = loinc_get(&database, &code)?.context("LOINC code not found")?;
+            output_item(item, json)
+        }
+        ("laboratory-cn", LookupCommand::Search { query, limit, json }) => {
+            let results = laboratory_search(&database, &query, limit)?;
+            output_search(
+                dataset_id,
+                &current.release_id,
+                "laboratory.search",
+                query,
+                limit,
+                results,
+                json,
+            )
+        }
+        ("laboratory-cn", LookupCommand::Get { code, json }) => {
+            let item = laboratory_get(&database, &code)?.context("laboratory code not found")?;
             output_item(item, json)
         }
         (_, LookupCommand::Search { query, limit, json }) => {

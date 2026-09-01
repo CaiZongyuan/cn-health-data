@@ -5,3 +5,5 @@ Candidates as untrusted inputs, verifies compressed and uncompressed hashes,
 checks SQLite integrity/application ID, and atomically updates `current.json`.
 Remote installation additionally verifies an Ed25519 Registry signature,
 Manifest digest, release eligibility, URL origin, and bounded response sizes.
+Version 0.2.0 adds a pinned public starter Registry, idempotent `init`, offline
+`doctor`, Manifest minimum CLI enforcement, and laboratory lookup/search.

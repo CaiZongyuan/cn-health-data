@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  native:
+    name: Native ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            npm_package: cli-linux-x64
+            binary: cn-health
+          - name: darwin-x64
+            runner: macos-latest
+            target: x86_64-apple-darwin
+            npm_package: cli-darwin-x64
+            binary: cn-health
+          - name: darwin-arm64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            npm_package: cli-darwin-arm64
+            binary: cn-health
+          - name: win32-x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            npm_package: cli-win32-x64
+            binary: cn-health.exe
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Verify tag and package versions
+        shell: bash
+        run: |
+          set -eu
+          release_version=${GITHUB_REF_NAME#v}
+          test "$(node -p "require('./npm/cn-health/package.json').version")" = "$release_version"
+          grep -Fqx "version = \"$release_version\"" rust/cn-health/Cargo.toml
+      - run: rustup toolchain install 1.96.0 --profile minimal
+      - run: rustup default 1.96.0
+      - run: rustup target add ${{ matrix.target }}
+      - run: cargo build --locked --release -p cn-health --target ${{ matrix.target }}
+      - name: Stage native and npm packages
+        shell: bash
+        run: |
+          set -eu
+          native_dir="artifacts/cn-health-${{ github.ref_name }}-${{ matrix.name }}"
+          npm_dir="npm/${{ matrix.npm_package }}"
+          mkdir -p "$native_dir" "$npm_dir/bin" artifacts/npm
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$native_dir/${{ matrix.binary }}"
+          cp LICENSE DATA-NOTICE.md "$native_dir/"
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$npm_dir/bin/${{ matrix.binary }}"
+          cp LICENSE "$npm_dir/LICENSE"
+          tar -C artifacts -czf "artifacts/cn-health-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" "cn-health-${{ github.ref_name }}-${{ matrix.name }}"
+          pnpm --filter "@cn-health/${{ matrix.npm_package }}" pack --pack-destination "$PWD/artifacts/npm"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: native-${{ matrix.name }}
+          path: |
+            artifacts/*.tar.gz
+            artifacts/npm/*.tgz
+          if-no-files-found: error
+
+  launcher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter cn-health test
+      - run: mkdir -p artifacts && pnpm --filter cn-health pack --pack-destination "$PWD/artifacts"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: npm-launcher
+          path: artifacts/*.tgz
+          if-no-files-found: error
+
+  github-release:
+    needs: [native, launcher]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.tgz
+          generate_release_notes: true
+
+  npm-publish:
+    if: ${{ vars.NPM_PUBLISH_ENABLED == 'true' }}
+    needs: [native, launcher]
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Publish platform packages, then launcher
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -eu
+          test -n "$NODE_AUTH_TOKEN"
+          mapfile -d '' platform_packages < <(find artifacts -name 'cn-health-cli-*.tgz' -print0 | sort -z)
+          test "${#platform_packages[@]}" -eq 4
+          for package in "${platform_packages[@]}"; do
+            npm publish "$package" --access public
+          done
+          launcher=$(find artifacts -name 'cn-health-*.tgz' ! -name 'cn-health-cli-*.tgz' -print -quit)
+          test -n "$launcher"
+          npm publish "$launcher" --access public
