@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - name: Download npm tarballs from GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
