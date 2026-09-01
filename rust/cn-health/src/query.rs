@@ -4,6 +4,8 @@ use anyhow::{Result, bail};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde::Serialize;
 
+const WST_886_SYSTEM: &str = "urn:cn-health:terminology:wst-886-2026";
+
 pub struct SearchResults<T> {
     pub items: Vec<T>,
     pub truncated: bool,
@@ -385,6 +387,7 @@ fn laboratory_v2_get(connection: &Connection, code: &str) -> Result<Option<Labor
         .optional()?;
     if let Some(item) = &mut item {
         item.references = laboratory_references(connection, &item.code)?;
+        item.rank = 1;
     }
     Ok(item)
 }
@@ -392,7 +395,7 @@ fn laboratory_v2_get(connection: &Connection, code: &str) -> Result<Option<Labor
 fn laboratory_v2_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LaboratoryV2Item> {
     Ok(LaboratoryV2Item {
         code: row.get(0)?,
-        system: "urn:cn-health:terminology:wst-886-2026".to_owned(),
+        system: WST_886_SYSTEM.to_owned(),
         name: row.get(1)?,
         category: row.get(2)?,
         analyte: row.get(3)?,
@@ -578,23 +581,25 @@ pub fn laboratory_panel_search(
     let (sql, argument) = if characters == 2 {
         (
             "SELECT p.code, p.name, p.specimen, p.status, p.source_type,
-                    p.source_location, p.notes, count(m.test_code)
+                    p.source_location, p.notes,
+                    (SELECT count(*) FROM laboratory_panel_member m
+                     WHERE m.panel_code = p.code)
              FROM laboratory_panel_search_bigram b
              JOIN laboratory_panel p USING(code)
-             JOIN laboratory_panel_member m ON m.panel_code = p.code
              WHERE b.term = ?1 AND instr(p.name, ?2) > 0
-             GROUP BY p.code ORDER BY p.code LIMIT ?3",
+             ORDER BY p.code LIMIT ?3",
             query.to_owned(),
         )
     } else {
         (
             "SELECT p.code, p.name, p.specimen, p.status, p.source_type,
-                    p.source_location, p.notes, count(m.test_code)
+                    p.source_location, p.notes,
+                    (SELECT count(*) FROM laboratory_panel_member m
+                     WHERE m.panel_code = p.code)
              FROM laboratory_panel_fts
              JOIN laboratory_panel p ON p.rowid = laboratory_panel_fts.rowid
-             JOIN laboratory_panel_member m ON m.panel_code = p.code
              WHERE laboratory_panel_fts MATCH ?1
-             GROUP BY p.code ORDER BY bm25(laboratory_panel_fts), p.code LIMIT ?3",
+             ORDER BY bm25(laboratory_panel_fts), p.code LIMIT ?3",
             literal_fts_query(query),
         )
     };
@@ -639,7 +644,7 @@ fn laboratory_panel_members(
     let rows = statement.query_map([panel_code], |row| {
         let test = LaboratoryV2Item {
             code: row.get(1)?,
-            system: "urn:cn-health:terminology:wst-886-2026".to_owned(),
+            system: WST_886_SYSTEM.to_owned(),
             name: row.get(2)?,
             category: row.get(3)?,
             analyte: row.get(4)?,
@@ -658,10 +663,10 @@ fn laboratory_panel_members(
         };
         Ok((row.get(0)?, test))
     })?;
-    let mut records = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    let records = rows.collect::<rusqlite::Result<Vec<_>>>()?;
     drop(statement);
     let mut members = Vec::with_capacity(records.len());
-    for (sort_order, mut test) in records.drain(..) {
+    for (sort_order, mut test) in records {
         test.references = laboratory_references(connection, &test.code)?;
         members.push(LaboratoryPanelMember { sort_order, test });
     }

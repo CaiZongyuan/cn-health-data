@@ -24,10 +24,14 @@ from cn_health_compiler.core.candidate import (
 from cn_health_compiler.core.dataset import load_yaml_mapping
 from cn_health_compiler.core.manifest import validate_manifest, write_json_atomic
 from cn_health_compiler.core.source import hash_file, snapshot_local_source
+from cn_health_compiler.core.sqlite import SQLiteArtifact
 from cn_health_compiler.sources.laboratory.evidence import inspect_panel_evidence
 from cn_health_compiler.sources.laboratory.records import load_laboratory_catalog
 from cn_health_compiler.sources.laboratory.sqlite import build_laboratory_sqlite
-from cn_health_compiler.sources.laboratory.validation import LaboratoryValidationRules
+from cn_health_compiler.sources.laboratory.validation import (
+    LaboratoryValidationReport,
+    LaboratoryValidationRules,
+)
 from cn_health_compiler.sources.nhc_lab.records import iter_nhc_laboratory_records
 
 _TABLES: tuple[tuple[str, tuple[str, ...], str], ...] = (
@@ -242,7 +246,7 @@ def _manifest(
     runtime_source: tuple[str, int],
     panel_catalog_source: tuple[str, int],
     paths: tuple[Path, Path, Path, Path],
-    sqlite_artifact: Any,
+    sqlite_artifact: SQLiteArtifact[LaboratoryValidationReport],
     compressed: tuple[str, int],
     parquets: list[tuple[str, str, int]],
     canonical_sha256: str,

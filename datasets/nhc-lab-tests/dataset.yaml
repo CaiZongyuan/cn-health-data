@@ -16,7 +16,6 @@ source:
   type: markdown
   acquisition: manual-local
   path_hint: tmp/WST_886—2026.md
-  source_url: https://www.nhc.gov.cn/wjw/s9492/202605/088bb2fe143d44ae8fbee328226d377b.shtml
   declared_version: "2026"
   standard_number: WS/T 886—2026
   published_at: "2026-05-25"

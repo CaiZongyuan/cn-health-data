@@ -10,13 +10,14 @@
 | `geography-cn` | Real administrative-division, GeoNames place, and postal Candidate with 24,731 rows |
 | `names-cn` | Faker `zh_CN` AST-only adapter and 530 weighted name components |
 | `population-cn` | UN WPP 2024 Medium projection with 3,171 age/sex rows |
-| `laboratory-cn` | Project-authored catalog of 18 Chinese laboratory/vital-sign concepts with exact LOINC 2.83 and preferred UCUM crosswalks |
+| `nhc-lab-tests` | Complete 399-row WS/T 886—2026 authority projection with appendix-validated code segments, SQLite/FTS/bigram, Parquet, provenance, and reproducibility evidence |
+| `laboratory-cn` | Schema v2 adult projection with 84 WS/T 886 tests, 96 references, 15 hospital panels, 88 stable members, units, precision, and explicit healthy simulation metadata |
 | Synthetic identity | Deterministic Chinese name/address, `100` phone, `.test` email, project MRN, and `990000` simulated resident ID |
 | Synthea support | Fixed-commit profile `2026-08-29.r3`, Bundle localizer, bounded non-root HTTP service, and three-module Docker corpus validation |
 | Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
-| Native runtime | Rust full/default and selective remote install, minimum CLI compatibility, complete doctor, list/info/versions/use, and drug/diagnosis/LOINC/laboratory get/search |
-| Remote distribution | Seven-Dataset signed public Registry, normalized artifact staging, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
+| Native runtime | Rust full/default and selective remote install, minimum CLI compatibility, complete doctor, schema v1/v2 laboratory get/search, and panel get/search |
+| Remote distribution | Eight-Dataset signed public Registry, laboratory v1 history, normalized artifact staging, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
 | npm | Thin native binary resolver, four optional platform packages, and tag-driven package/archive builds |
 
 ## Local Candidates
@@ -26,7 +27,8 @@
 - `geography-cn@2026-08-29.r2`
 - `names-cn@40.37.0.r2`
 - `population-cn@WPP2024.r2`
-- `laboratory-cn@2026-08-30.r2`
+- `nhc-lab-tests@2026.r1`
+- `laboratory-cn@2026-09-01.r1` (schema v2; v1 `2026-08-30.r2` retained)
 - `loinc-zh-cn@2.83.r2`
 - `synthea-cn@2026-08-29.r3` (supported consumer projection)
 - `synthea-zh-cn@2026-08-30.r1` (experimental display catalog; zero unresolved flags)
@@ -40,9 +42,9 @@ provenance, attribution, and distribution metadata.
 ## Source-dependent or deferred
 
 - `nhc-procedure-clinical` is deferred by current project direction.
-- `laboratory-cn` is the verified project-authored subset used by current
-  consumers; it is not represented as the official complete LOINC Chinese
-  linguistic variant.
+- `laboratory-cn` intentionally limits references to adults and sex
+  `all/male/female`; pediatric, method-specific, regional, pregnancy, and
+  disease-driven result models remain out of scope.
 - `loinc-zh-cn@2.83.r2` is distributed with the complete and short LOINC license
   artifacts, source-member provenance, and required attribution.
 - The public Registry key is pinned in the runtime and its private signing key is

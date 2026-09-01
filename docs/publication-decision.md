@@ -61,9 +61,18 @@ statistics and no person-level records.
 
 ### `laboratory-cn`
 
-Continue publishing the project-authored curated catalog under its existing
-public decision. LOINC and UCUM identifiers continue to identify their external
-standards; the catalog is not the complete official LOINC Chinese package.
+Publish the normalized WS/T 886 adult runtime projection, project-authored
+reference/simulation metadata, and hospital panels. Preserve all four source
+identities and per-reference provenance. The price-project workbook is panel
+evidence only; do not present its reimbursement or method codes as official
+WS/T 886 or LOINC mappings. Keep the source Markdown and XLSX private.
+
+### `nhc-lab-tests`
+
+Publish the normalized factual WS/T 886 code/name/category/analyte/specimen/scale
+projection. Preserve the standard number, dates, conversion filename, SHA256,
+size, and table-row source location. Do not distribute the Markdown conversion,
+external image, or represent unavailable PDF page numbers as known facts.
 
 ## Operational Conditions
 

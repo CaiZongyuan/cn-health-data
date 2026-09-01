@@ -9,8 +9,9 @@ native Rust CLI, and a thin npm launcher.
 
 The repository is organized around Chinese health data needed by different
 consumers, not around one simulator. It currently builds drug and diagnosis
-datasets from explicitly provided XLSX snapshots, a project-authored curated
-laboratory catalog, and general-purpose geography, name, and population
+datasets from explicitly provided source snapshots, the complete WS/T 886
+laboratory terminology, a simulation-ready adult laboratory projection, and
+general-purpose geography, name, and population
 Datasets. Synthea is supported through a versioned consumer projection. The
 project does not download a presumed latest source, store patient data, or
 provide a production clinical system.
@@ -29,13 +30,14 @@ provide a production clinical system.
 | `geography-cn` | Versioned administrative divisions, populated places, and postal areas | `2026-08-29.r2` | 24,731 | Public Registry; installed by default |
 | `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r2` | 530 | Public Registry; installed by default |
 | `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r2` | 3,171 | Public Registry; installed by default |
-| `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r2` | 18 | Public Registry; installed by default |
+| `nhc-lab-tests` | Complete WS/T 886—2026 terminology with appendix-validated category, specimen, and scale codes | `2026.r1` | 399 | Public Registry; installed by default |
+| `laboratory-cn` | WS/T 886 adult runtime projection with references, healthy simulation metadata, and hospital panels | `2026-09-01.r1` | 84 tests, 96 references, 15 panels | Public Registry; installed by default |
 | `loinc-zh-cn` | Complete LOINC 2.83 core plus official Chinese variant, UCUM examples, SYSTEM Parts, and panels | `2.83.r2` | 365,722 | Public Registry; installed by default |
 | `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None | Not implemented |
 
 The build identifiers above describe Candidates verified in the current
 development workspace. This repository distributes the compiler, runtime,
-synthetic test fixtures, and normalized public Releases for all seven
+synthetic test fixtures, and normalized public Releases for all eight
 implemented Datasets. `tmp/`, `.work/`, and `dist/` are ignored by Git, so
 private source files, build caches, and historical Candidates are not included
 in a clone; current compressed SQLite, Parquet, Manifests, and reports live in
@@ -50,12 +52,12 @@ Implemented infrastructure includes:
 - local installation with compressed and uncompressed SHA256 verification,
   bounded decompression, and SQLite integrity checks;
 - installed-version listing, activation, and rollback;
-- exact and literal search commands for drugs, diagnoses, LOINC, and the curated
-  laboratory catalog;
+- exact and literal search commands for drugs, diagnoses, LOINC, and WS/T 886
+  laboratory tests and panels;
 - complete LOINC 2.83 compilation with 112,405 core concepts and 96,518
   official Chinese displays;
-- a project-authored laboratory/vital-sign catalog with Chinese displays and
-  curated LOINC 2.83/UCUM crosswalks;
+- 84 adult simulation-ready laboratory tests, 96 provenance-bearing references,
+  and 15 project-authored hospital panels;
 - deterministic Chinese synthetic names, addresses, `100` phones, and `990000`
   simulated resident IDs;
 - a fixed-commit Synthea profile projection, FHIR R4 identity localizer, and
@@ -113,7 +115,7 @@ npm/               Thin native CLI launcher
 python/compiler/   Python compiler package, adapters, and tests
 rust/cn-health/    Native installer and query runtime
 schemas/           JSON Schemas for contracts, Manifests, Registry, and CLI output
-distribution/      Signed public Registry and seven current normalized Releases
+distribution/      Signed public Registry and eight current normalized Datasets
 tmp/               Local raw inputs; ignored by Git
 .work/             Source snapshots and local working data; ignored by Git
 dist/              Immutable local Candidates; ignored by Git
@@ -125,7 +127,7 @@ End users can install through npm or use a native release archive:
 
 | Installation | Runtime requirement | Supported platforms |
 |---|---|---|
-| npm `cn-health@0.3.0` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
+| npm `cn-health@0.4.0` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
 | GitHub native archive | No language runtime | Linux x64, macOS x64/arm64, Windows x64 |
 
 Both options run the same Rust CLI. The npm package only resolves a platform
@@ -151,48 +153,48 @@ require the third-party XLSX files.
 This is the simplest cross-platform installation method:
 
 ```bash
-npm install --global cn-health@0.3.0
+npm install --global cn-health@0.4.0
 cn-health --version
 ```
 
 The version command should print:
 
 ```text
-cn-health 0.3.0
+cn-health 0.4.0
 ```
 
 npm installs only the optional package matching the current operating system.
 For example, Linux x64 installs `@cn-health/cli-linux-x64`; unmet optional
 dependencies for the other platforms are expected.
 
-For a temporary check, `npx --yes cn-health@0.3.0 --version` also works. A global
+For a temporary check, `npx --yes cn-health@0.4.0 --version` also works. A global
 installation is preferable for repeated queries because it avoids resolving the
 package every time.
 
 ### Install a Native Archive
 
 To run without Node.js, download the matching archive from the
-[`v0.3.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.3.0):
+[`v0.4.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.4.0):
 
 | System | Release asset |
 |---|---|
-| Linux x64 | `cn-health-v0.3.0-linux-x64.tar.gz` |
-| macOS Intel | `cn-health-v0.3.0-darwin-x64.tar.gz` |
-| macOS Apple Silicon | `cn-health-v0.3.0-darwin-arm64.tar.gz` |
-| Windows x64 | `cn-health-v0.3.0-win32-x64.tar.gz` |
+| Linux x64 | `cn-health-v0.4.0-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.4.0-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.4.0-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.4.0-win32-x64.tar.gz` |
 
 Extract and run on Linux or macOS:
 
 ```bash
-tar -xzf cn-health-v0.3.0-linux-x64.tar.gz
-./cn-health-v0.3.0-linux-x64/cn-health --version
+tar -xzf cn-health-v0.4.0-linux-x64.tar.gz
+./cn-health-v0.4.0-linux-x64/cn-health --version
 ```
 
 Windows PowerShell can use the system `tar` command:
 
 ```powershell
-tar -xzf cn-health-v0.3.0-win32-x64.tar.gz
-.\cn-health-v0.3.0-win32-x64\cn-health.exe --version
+tar -xzf cn-health-v0.4.0-win32-x64.tar.gz
+.\cn-health-v0.4.0-win32-x64\cn-health.exe --version
 ```
 
 Every native archive also contains `LICENSE` and `DATA-NOTICE.md`. macOS
@@ -207,12 +209,12 @@ After installing the CLI, run:
 cn-health init --json
 ```
 
-The first run downloads, verifies, and installs all seven implemented Datasets
+The first run downloads, verifies, and installs all eight implemented Datasets
 from the built-in HTTPS Registry. The current compressed download is about
-75.33 MiB and installed SQLite files total about 784 MiB. Output includes:
+75.40 MiB and installed SQLite files total about 784.50 MiB. Output includes:
 
 ```json
-{"command":"init","items":[{"datasetId":"geography-cn","releaseId":"geography-cn@2026-08-29.r2","status":"installed"},{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-08-30.r2","status":"installed"},{"datasetId":"loinc-zh-cn","releaseId":"loinc-zh-cn@2.83.r2","status":"installed"},{"datasetId":"names-cn","releaseId":"names-cn@40.37.0.r2","status":"installed"},{"datasetId":"nhc-icd10-clinical","releaseId":"nhc-icd10-clinical@2022.r4","status":"installed"},{"datasetId":"nhsa-drugs","releaseId":"nhsa-drugs@2026-01-09.r4","status":"installed"},{"datasetId":"population-cn","releaseId":"population-cn@WPP2024.r2","status":"installed"}],"schemaVersion":2,"selection":"all"}
+{"command":"init","items":[{"datasetId":"geography-cn","releaseId":"geography-cn@2026-08-29.r2","status":"installed"},{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-09-01.r1","status":"installed"},{"datasetId":"loinc-zh-cn","releaseId":"loinc-zh-cn@2.83.r2","status":"installed"},{"datasetId":"names-cn","releaseId":"names-cn@40.37.0.r2","status":"installed"},{"datasetId":"nhc-icd10-clinical","releaseId":"nhc-icd10-clinical@2022.r4","status":"installed"},{"datasetId":"nhc-lab-tests","releaseId":"nhc-lab-tests@2026.r1","status":"installed"},{"datasetId":"nhsa-drugs","releaseId":"nhsa-drugs@2026-01-09.r4","status":"installed"},{"datasetId":"population-cn","releaseId":"population-cn@WPP2024.r2","status":"installed"}],"schemaVersion":2,"selection":"all"}
 ```
 
 `init` is idempotent; an existing identical Release reports
@@ -240,21 +242,24 @@ Unknown Dataset IDs fail before network access. Each installation verifies:
 Search by literal Chinese text:
 
 ```bash
-cn-health laboratory search 血糖 --limit 10 --json
+cn-health laboratory search 白细胞 --limit 10 --json
 cn-health drug search 二甲双胍 --limit 10 --json
 cn-health diagnosis search 糖尿病 --limit 10 --json
 cn-health loinc search 葡萄糖 --limit 10 --json
 ```
 
-Retrieve an exact LOINC code:
+Retrieve an exact WS/T 886 code or expand a hospital panel:
 
 ```bash
-cn-health laboratory get 2339-0 --json
+cn-health laboratory get 0100101A --json
+cn-health laboratory panel search 血常规 --json
+cn-health laboratory panel get CN-LAB-CBC-5DIFF --json
 ```
 
-Code `2339-0` returns the curated Chinese display `血糖`, LOINC system/version,
-category, specimen, result type, and preferred UCUM unit `mg/dL`. Search text
-must contain at least two Unicode characters. The default result limit is 20;
+Code `0100101A` returns `白细胞计数`, category/specimen/scale, unit, precision,
+adult reference provenance, and explicit healthy simulation bounds. Panel get
+returns stable ordered members with the same complete metadata. Search text must
+contain at least two Unicode characters. The default result limit is 20;
 `--limit` accepts 1 through 200. JSON search output has stable schema, Dataset
 and Release identity, query parameters, items, and pagination metadata.
 
@@ -267,7 +272,7 @@ cn-health dataset info laboratory-cn --json
 cn-health dataset versions laboratory-cn --json
 ```
 
-`doctor` checks all seven default Datasets, signed-Registry trust, and
+`doctor` checks all eight default Datasets, signed-Registry trust, and
 representative exact lookups for drug, diagnosis, LOINC, and laboratory query
 surfaces. `doctor --json` also shows the effective `dataDir` and default Registry.
 
@@ -341,22 +346,26 @@ Source acquisition is explicit and local. The compiler never scans `tmp/`, never
 chooses a file by modification time, and never synchronizes from an upstream PDF
 or website. Pass the exact source path on every build.
 
-The currently declared third-party workbook inputs are:
+The currently declared third-party source inputs are:
 
 | Dataset | Input contract | Worksheet | Expected SHA256 |
 |---|---|---|---|
 | `nhsa-drugs` | Drug classification/code workbook supplied through `DRUG_SOURCE` | `总表` | `9f7bee4c098d4b0f9fff0f6f9b7c8b580b011d0d3c8b5f6364a3799c76772d67` |
 | `nhc-icd10-clinical` | Clinical Diagnosis Classification workbook supplied through `DIAGNOSIS_SOURCE` | `2.0（2022版）` | `e927d8ec0d25a64125e24b26dcc3987b0021b5d8b94c0f4d7ae7e05f1592af52` |
+| `nhc-lab-tests` | Explicit WS/T 886—2026 Markdown conversion | Table 1 and appendix A | `a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c` |
+| `laboratory-cn` panel evidence | Medical-service price project mapping workbook | `映射关系表（试行）` | `4625a6f73e2eab2f76a47434b4aabfa7bb9b9328ac2462d36c1bd97c6e7de861` |
 
 The drug compiler reads only the declared workbook's `总表`. The downloaded drug
 PDF in `tmp/` is not part of this build. The local procedure workbook is also not
 consumed because procedure implementation is deferred.
 
-`laboratory-cn` is different from those imported workbooks: its source is the
-repository-owned [`datasets/laboratory-cn/catalog.csv`](datasets/laboratory-cn/catalog.csv).
-The catalog's Chinese displays, selection, categories, result types, preferred
-UCUM units, and curation notes are project-authored. Its LOINC and UCUM
-identifiers continue to identify their respective external standards.
+`nhc-lab-tests` compiles all 399 WS/T 886 rows and checks their encoded category,
+specimen, and scale against appendix A. `laboratory-cn` hydrates its terminology
+from that same explicit source, then applies the reviewed project inputs
+[`runtime.csv`](datasets/laboratory-cn/runtime.csv) and
+[`panels.csv`](datasets/laboratory-cn/panels.csv). The price mapping workbook is
+panel evidence only; its reimbursement and method codes are not represented as
+official WS/T 886 or LOINC crosswalks.
 
 `loinc-zh-cn` uses the authenticated, operator-supplied official
 `tmp/Loinc_2.83.zip`. The same archive contains the complete table, Chinese
@@ -400,7 +409,13 @@ uv run cn-health-build build nhc-icd10-clinical \
   --sequence 1
 
 uv run cn-health-build build laboratory-cn \
-  --source datasets/laboratory-cn/catalog.csv \
+  --source 'tmp/WST_886—2026.md' \
+  --panel-source 'tmp/检验类医疗服务价格项目立项指南映射关系表.xlsx' \
+  --build-revision 1 \
+  --sequence 3
+
+uv run cn-health-build build nhc-lab-tests \
+  --source 'tmp/WST_886—2026.md' \
   --build-revision 1 \
   --sequence 1
 
@@ -552,20 +567,19 @@ under an explicit experimental distribution boundary. Translation APIs are
 never called by CI, Bundle projection, or runtime services. See
 [`translations/synthea-zh-cn/coverage.json`](translations/synthea-zh-cn/coverage.json).
 
-## Curated Laboratory Concepts
+## Adult Laboratory Runtime
 
-`laboratory-cn@2026-08-30.r2` contains 18 laboratory and vital-sign concepts
-needed by the currently validated consumers. It pairs project-authored Chinese
-displays and catalog metadata with exact LOINC 2.83 codes and preferred UCUM
-units. The same Candidate Contract, deterministic SQLite/Parquet packaging,
-Manifest verification, FTS, and bigram indexing used by the other compilers
-apply to this catalog.
+`nhc-lab-tests@2026.r1` contains all 399 WS/T 886—2026 terminology rows.
+`laboratory-cn@2026-09-01.r1` projects 84 common adult tests into 96 reference
+records and 15 hospital panels. Quantity tests provide unit, precision, and
+explicit uniform simulation bounds; qualitative and ordinal tests provide a
+fixed healthy normal value. Every reference distinguishes national-standard
+from project-curated provenance.
 
-This focused catalog is not the official complete LOINC Chinese linguistic
-variant. The separate `loinc-zh-cn@2.83.r2` Release contains all 112,405 core
-concepts and 96,518 official Chinese translations. Consumers that only need the
-reviewed project subset can still use `laboratory-cn` without loading the full
-terminology. See
+LOINC remains an optional crosswalk rather than the primary identity. The
+separate `loinc-zh-cn@2.83.r2` Release contains all 112,405 core concepts and
+96,518 official Chinese translations. The immutable schema v1 laboratory
+Release remains downloadable and readable by CLI v0.4.0. See
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md).
 
 ## Install and Query Local Candidates
@@ -625,7 +639,7 @@ directory for the `org.cn-health.cn-health` project identity.
 ## Signed Registry and Remote Installation
 
 The repository provides a complete public Registry verified by a public key
-pinned in the CLI. It contains the current recommended Releases for all seven
+pinned in the CLI. It contains the current recommended Releases for all eight
 implemented Datasets. Public Manifests declare only hosted zstd, Parquet,
 report, and license files; clients bounded-decompress SQLite and verify it
 against the uncompressed hash and size in the Manifest.
@@ -722,10 +736,12 @@ cargo test --workspace
 pnpm --filter cn-health test
 ```
 
-Dataset parser and build tests use only synthetic fixtures; they do not
-incorporate records from the source workbooks. When changing a source adapter,
-update its contract, fingerprint, validation baseline, provenance, distribution
-metadata, and tests together. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Dataset parser and build tests use committed synthetic fixtures. Optional local
+tests also verify pinned real-source counts and hashes when the ignored inputs
+are present; raw records are never committed as test fixtures. When changing a
+source adapter, update its contract, fingerprint, validation baseline,
+provenance, distribution metadata, and tests together. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Data Rights and License
 
@@ -758,9 +774,9 @@ publishing any dataset.
   path is implemented.
 - Procedure classification is explicitly deferred even if a local workbook is
   present.
-- `laboratory-cn` is a curated project catalog, not the complete official LOINC
-  Chinese linguistic variant.
-- The public Registry distributes seven current normalized Datasets. Every
+- `laboratory-cn` provides adult healthy simulation metadata, not patient- or
+  disease-specific laboratory modeling.
+- The public Registry distributes eight current normalized Datasets. Every
   Manifest retains source identity, version, hashes, attribution, and applicable
   notices; raw source files are not public artifacts.
 - `synthea-zh-cn` covers the pinned Synthea version and all 51 ambiguities have

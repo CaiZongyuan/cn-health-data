@@ -23,12 +23,13 @@ use crate::storage::{
 };
 
 const STARTER_DATASET_ID: &str = "laboratory-cn";
-const DEFAULT_DATASET_IDS: [&str; 7] = [
+const DEFAULT_DATASET_IDS: [&str; 8] = [
     "geography-cn",
     "laboratory-cn",
     "loinc-zh-cn",
     "names-cn",
     "nhc-icd10-clinical",
+    "nhc-lab-tests",
     "nhsa-drugs",
     "population-cn",
 ];

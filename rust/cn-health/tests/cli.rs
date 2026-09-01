@@ -462,11 +462,12 @@ fn queries_schema_v2_laboratory_references_and_panels() {
     assert!(get.status.success());
     let get_json: Value = serde_json::from_slice(&get.stdout).unwrap();
     assert_eq!(get_json["name"], "红细胞计数");
+    assert_eq!(get_json["rank"], 1);
     assert_eq!(get_json["references"][0]["sex"], "female");
     assert_eq!(get_json["references"][1]["sex"], "male");
 
     command(&data_dir)
-        .args(["laboratory", "panel", "search", "血常", "--json"])
+        .args(["laboratory", "panel", "search", "血常规", "--json"])
         .assert()
         .success()
         .stdout(predicate::str::contains("CN-LAB-CBC-5DIFF"));

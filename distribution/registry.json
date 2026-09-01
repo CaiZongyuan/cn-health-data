@@ -16,7 +16,7 @@
       ]
     },
     "laboratory-cn": {
-      "recommendedRelease": "laboratory-cn@2026-08-30.r2",
+      "recommendedRelease": "laboratory-cn@2026-09-01.r1",
       "releases": [
         {
           "buildRevision": 2,
@@ -27,6 +27,16 @@
           "sequence": 2,
           "sourceVersion": "2026-08-30",
           "storageKey": "2026-08-30.r2"
+        },
+        {
+          "buildRevision": 1,
+          "id": "laboratory-cn@2026-09-01.r1",
+          "manifestSha256": "638edfa7bf0165e07ed290373708fd4739718623fd63e9f2b55a715738e5dab2",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/laboratory-cn/2026-09-01.r1/manifest.json",
+          "revoked": false,
+          "sequence": 3,
+          "sourceVersion": "2026-09-01",
+          "storageKey": "2026-09-01.r1"
         }
       ]
     },
@@ -75,6 +85,21 @@
         }
       ]
     },
+    "nhc-lab-tests": {
+      "recommendedRelease": "nhc-lab-tests@2026.r1",
+      "releases": [
+        {
+          "buildRevision": 1,
+          "id": "nhc-lab-tests@2026.r1",
+          "manifestSha256": "7e480e7bd5540b9877fd45f945f5d566aeb3e1eedcd6df7a3aadc2201072c901",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/nhc-lab-tests/2026.r1/manifest.json",
+          "revoked": false,
+          "sequence": 1,
+          "sourceVersion": "2026",
+          "storageKey": "2026.r1"
+        }
+      ]
+    },
     "nhsa-drugs": {
       "recommendedRelease": "nhsa-drugs@2026-01-09.r4",
       "releases": [
@@ -106,7 +131,7 @@
       ]
     }
   },
-  "generatedAt": "2026-09-01T11:47:53Z",
+  "generatedAt": "2026-09-01T14:40:01Z",
   "schemaVersion": 1,
   "signature": {
     "algorithm": "Ed25519",

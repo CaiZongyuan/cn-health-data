@@ -9,7 +9,7 @@ data or reimplement queries in JavaScript.
 Node.js 22 or newer is required for the launcher:
 
 ```bash
-npm install --global cn-health@0.3.0
+npm install --global cn-health@0.4.0
 cn-health --version
 ```
 
@@ -30,14 +30,16 @@ superseded by current releases.
 
 ```bash
 cn-health init
-cn-health laboratory search 血糖 --json
-cn-health laboratory get 2339-0 --json
+cn-health laboratory search 白细胞 --json
+cn-health laboratory get 0100101A --json
+cn-health laboratory panel get CN-LAB-CBC-5DIFF --json
 cn-health doctor
 ```
 
-`init` verifies and installs all seven current public Datasets: drug, diagnosis,
-complete Chinese LOINC, geography, names, population, and the curated laboratory
-catalog. Use `--only DATASET_ID[,DATASET_ID...]` for selective installation.
+`init` verifies and installs all eight current public Datasets: drug, diagnosis,
+complete Chinese LOINC, WS/T 886 terminology, geography, names, population, and
+the adult laboratory runtime. Use `--only DATASET_ID[,DATASET_ID...]` for
+selective installation.
 Raw source workbooks and archives are not distributed.
 
 After initialization, queries and `doctor` work offline. Use

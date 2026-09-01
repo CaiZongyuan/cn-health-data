@@ -126,7 +126,7 @@ Successful JSON output is:
 
 ## 7. Diagnostics
 
-`cn-health doctor` checks all seven default Dataset pointers, signed-Registry
+`cn-health doctor` checks all eight default Dataset pointers, signed-Registry
 trust metadata, installed SQLite presence, and representative exact lookups for
 drug, diagnosis, LOINC, and laboratory query surfaces. The command remains
 offline after installation.
@@ -142,7 +142,7 @@ local multi-revision `dist/` size as a user download size.
 
 Completion requires:
 
-- all seven Contracts and staged Manifests are release-eligible;
+- all eight Contracts and staged Manifests are release-eligible;
 - staged Manifests omit uncompressed SQLite transport entries;
 - every remaining artifact and report exists and matches SHA256 and size;
 - the signed Registry recommends exactly one current Release per Dataset;
