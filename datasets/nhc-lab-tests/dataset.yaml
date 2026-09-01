@@ -1,0 +1,72 @@
+id: nhc-lab-tests
+title: 临床检验常用项目名称及代码
+description: >
+  Authority projection of all 399 common clinical laboratory tests defined by
+  WS/T 886—2026, including the category, analyte, specimen, and scale encoded
+  by each national health industry standard code.
+dataset_schema_version: 1
+status: beta
+
+authority:
+  name: 国家卫生健康委员会
+  role: original-authority
+  verification: standard-content-reviewed-2026-09-01
+
+source:
+  type: markdown
+  acquisition: manual-local
+  path_hint: tmp/WST_886—2026.md
+  source_url: https://www.nhc.gov.cn/wjw/s9492/202605/088bb2fe143d44ae8fbee328226d377b.shtml
+  declared_version: "2026"
+  standard_number: WS/T 886—2026
+  published_at: "2026-05-25"
+  effective_at: "2026-11-01"
+  effective_status: published-not-effective
+  sha256: a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c
+  size_bytes: 74253
+  upstream_sync: false
+
+versioning:
+  strategy: standard-version
+
+output:
+  primary: sqlite
+  optional:
+    - parquet
+
+runtime:
+  searchable: true
+  minimum_sqlite_version: 3.34.0
+
+rights:
+  redistribution: normalized-only
+  release_eligible: true
+  evidence:
+    - DATA-NOTICE.md
+    - docs/publication-decision.md
+    - datasets/nhc-lab-tests/README.md
+  basis: >
+    Maintainer decision to publish the normalized factual code/name projection
+    while excluding the converted standard source from public Releases.
+  attribution: >
+    Normalized from WS/T 886—2026, published by the National Health Commission
+    of the People's Republic of China.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
+
+validation:
+  expected_record_count: 399
+  expected_category_count: 34
+  expected_specimen_count: 27
+  allowed_scales:
+    A: 定量
+    B: 定性
+    C: 定名
+    D: 定序
+  required_codes:
+    - 0100101A
+    - 1100301A
+    - 1200604A
+    - 1700104A
+    - 3400313B

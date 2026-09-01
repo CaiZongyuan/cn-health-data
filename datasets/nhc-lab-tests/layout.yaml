@@ -1,0 +1,11 @@
+version: 1
+format: markdown-html-tables
+encoding: utf-8
+standard_number: WS/T 886—2026
+published_at: "2026-05-25"
+effective_at: "2026-11-01"
+tables:
+  tests: [序号, 代码, 检验项目名称, 类别, 分析物, 标本类型, 标度]
+  categories: [代码, 临床检验常用项目的类别]
+  specimens: [代码, 临床检验常用项目的标本类型]
+  scales: [代码, 标度]

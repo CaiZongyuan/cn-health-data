@@ -1,0 +1,97 @@
+code,unit_display,unit_ucum,precision,healthy_strategy,loinc_code,sex,reference_kind,low_value,high_value,normal_value,simulation_low,simulation_high,source_type,source_standard,source_version,source_location,notes
+0100101A,×10^9/L,10*9/L,1,uniform,6690-2,all,range,3.5,9.5,,3.5,9.5,national-standard,WS/T 405-2012,2012,表 1,成人静脉血
+0100201A,×10^12/L,10*12/L,1,uniform,789-8,male,range,4.3,5.8,,4.3,5.8,national-standard,WS/T 405-2012,2012,表 1,成年男性静脉血
+0100201A,×10^12/L,10*12/L,1,uniform,789-8,female,range,3.8,5.1,,3.8,5.1,national-standard,WS/T 405-2012,2012,表 1,成年女性静脉血
+0100301A,×10^9/L,10*9/L,0,uniform,777-3,all,range,125,350,,125,350,national-standard,WS/T 405-2012,2012,表 1,成人静脉血
+0100401A,g/L,g/L,0,uniform,718-7,male,range,130,175,,130,175,national-standard,WS/T 405-2012,2012,表 1,成年男性静脉血
+0100401A,g/L,g/L,0,uniform,718-7,female,range,115,150,,115,150,national-standard,WS/T 405-2012,2012,表 1,成年女性静脉血
+0100501A,L/L,L/L,2,uniform,20570-8,male,range,0.40,0.50,,0.40,0.50,national-standard,WS/T 405-2012,2012,表 1,成年男性静脉血
+0100501A,L/L,L/L,2,uniform,20570-8,female,range,0.35,0.45,,0.35,0.45,national-standard,WS/T 405-2012,2012,表 1,成年女性静脉血
+0100601A,fL,fL,1,uniform,787-2,all,range,82,100,,82,100,national-standard,WS/T 405-2012,2012,表 1,成人静脉血
+0100701A,pg,pg,1,uniform,785-6,all,range,27,34,,27,34,national-standard,WS/T 405-2012,2012,表 1,成人静脉血
+0100801A,g/L,g/L,0,uniform,786-4,all,range,316,354,,316,354,national-standard,WS/T 405-2012,2012,表 1,成人静脉血
+0100901A,%,%,1,uniform,,all,range,0.5,1.5,,0.5,1.5,project-curated,CN Health Data adult healthy baseline,2026-09-01,0100901A/all,成人健康模拟值
+0300101A,mm/h,mm/h,0,uniform,,male,range,0,15,,1,15,project-curated,CN Health Data adult healthy baseline,2026-09-01,0300101A/male,成年男性健康模拟值
+0300101A,mm/h,mm/h,0,uniform,,female,range,0,20,,1,20,project-curated,CN Health Data adult healthy baseline,2026-09-01,0300101A/female,成年女性健康模拟值
+0500103A,s,s,1,uniform,,all,range,11,14,,11,14,project-curated,CN Health Data adult healthy baseline,2026-09-01,0500103A/all,成人健康模拟值
+0500203A,s,s,1,uniform,,all,range,25,35,,25,35,project-curated,CN Health Data adult healthy baseline,2026-09-01,0500203A/all,成人健康模拟值
+0500303A,s,s,1,uniform,,all,range,14,21,,14,21,project-curated,CN Health Data adult healthy baseline,2026-09-01,0500303A/all,成人健康模拟值
+0500403A,g/L,g/L,1,uniform,,all,range,2,4,,2,4,project-curated,CN Health Data adult healthy baseline,2026-09-01,0500403A/all,成人健康模拟值
+0501703A,mg/L FEU,mg/L,2,uniform,,all,upper-bound,,0.5,,0.05,0.45,project-curated,CN Health Data adult healthy baseline,2026-09-01,0501703A/all,单侧参考上限与模拟范围分开保存
+0600110D,,,0,fixed-normal,,all,ordinal,,,5.0～8.0,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600110D/all,健康固定正常结果
+0600210D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600210D/all,健康固定正常结果
+0600310D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600310D/all,健康固定正常结果
+0600410D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600410D/all,健康固定正常结果
+0600510D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600510D/all,健康固定正常结果
+0600610D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600610D/all,健康固定正常结果
+0600710B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600710B/all,健康固定正常结果
+0600810D,,,0,fixed-normal,,all,ordinal,,,正常,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600810D/all,健康固定正常结果
+0600910D,,,0,fixed-normal,,all,ordinal,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0600910D/all,健康固定正常结果
+0601010D,,,0,fixed-normal,,all,ordinal,,,1.015～1.025,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,0601010D/all,健康固定正常结果
+1100104A,g/L,g/L,0,uniform,,all,range,40,55,,40,55,project-curated,CN Health Data adult healthy baseline,2026-09-01,1100104A/all,成人健康模拟值
+1100204A,g/L,g/L,0,uniform,,all,range,65,85,,65,85,project-curated,CN Health Data adult healthy baseline,2026-09-01,1100204A/all,成人健康模拟值
+1100301A,%,%,1,uniform,4548-4,all,range,4,6,,4,6,project-curated,CN Health Data adult healthy baseline,2026-09-01,1100301A/all,成人非妊娠健康模拟值
+1101204A,mg/L,mg/L,2,uniform,,all,range,0.51,1.09,,0.51,1.09,project-curated,CN Health Data adult healthy baseline,2026-09-01,1101204A/all,成人健康模拟值
+1101405A,mg/L,mg/L,1,uniform,,all,upper-bound,,10,,0.1,5,project-curated,CN Health Data adult healthy baseline,2026-09-01,1101405A/all,单侧参考上限与模拟范围分开保存
+1101504A,ng/mL,ng/mL,2,uniform,,all,upper-bound,,0.05,,0.01,0.04,project-curated,CN Health Data adult healthy baseline,2026-09-01,1101504A/all,单侧参考上限与模拟范围分开保存
+1102804A,μg/L,ug/L,0,uniform,,male,range,30,400,,30,400,project-curated,CN Health Data adult healthy baseline,2026-09-01,1102804A/male,成年男性健康模拟值
+1102804A,μg/L,ug/L,0,uniform,,female,range,13,150,,13,150,project-curated,CN Health Data adult healthy baseline,2026-09-01,1102804A/female,成年女性健康模拟值
+1200604A,mIU/L,m[IU]/L,2,uniform,,all,range,0.27,4.2,,0.27,4.2,project-curated,CN Health Data adult healthy baseline,2026-09-01,1200604A/all,成人非妊娠健康模拟值
+1200704A,nmol/L,nmol/L,1,uniform,,all,range,1.3,3.1,,1.3,3.1,project-curated,CN Health Data adult healthy baseline,2026-09-01,1200704A/all,成人健康模拟值
+1200804A,nmol/L,nmol/L,0,uniform,,all,range,66,181,,66,181,project-curated,CN Health Data adult healthy baseline,2026-09-01,1200804A/all,成人健康模拟值
+1200904A,pmol/L,pmol/L,1,uniform,,all,range,3.1,6.8,,3.1,6.8,project-curated,CN Health Data adult healthy baseline,2026-09-01,1200904A/all,成人健康模拟值
+1201004A,pmol/L,pmol/L,1,uniform,,all,range,12,22,,12,22,project-curated,CN Health Data adult healthy baseline,2026-09-01,1201004A/all,成人健康模拟值
+1400205A,mmol/L,mmol/L,1,uniform,,all,range,137,147,,137,147,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400205A/all,成人健康模拟值
+1400305A,mmol/L,mmol/L,2,uniform,,all,range,0.75,1.02,,0.75,1.02,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400305A/all,成人健康模拟值
+1400404A,mmol/L,mmol/L,2,uniform,,all,range,0.85,1.51,,0.85,1.51,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400404A/all,成人健康模拟值
+1400505A,mmol/L,mmol/L,1,uniform,,all,range,99,110,,99,110,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400505A/all,成人健康模拟值
+1400605A,mmol/L,mmol/L,1,uniform,,all,range,3.5,5.3,,3.5,5.3,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400605A/all,成人健康模拟值
+1400705A,mmol/L,mmol/L,2,uniform,,all,range,2.11,2.52,,2.11,2.52,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400705A/all,成人健康模拟值
+1400805A,mmol/L,mmol/L,2,uniform,,all,range,1.15,1.35,,1.15,1.35,project-curated,CN Health Data adult healthy baseline,2026-09-01,1400805A/all,成人健康模拟值
+1500104A,U/L,U/L,0,uniform,,male,range,9,50,,9,50,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500104A/male,成年男性健康模拟值
+1500104A,U/L,U/L,0,uniform,,female,range,7,40,,7,40,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500104A/female,成年女性健康模拟值
+1500204A,U/L,U/L,0,uniform,,male,range,15,40,,15,40,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500204A/male,成年男性健康模拟值
+1500204A,U/L,U/L,0,uniform,,female,range,13,35,,13,35,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500204A/female,成年女性健康模拟值
+1500404A,U/L,U/L,0,uniform,,all,range,45,125,,45,125,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500404A/all,成人健康模拟值
+1500504A,U/L,U/L,0,uniform,,all,range,35,135,,35,135,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500504A/all,成人健康模拟值
+1500604A,U/L,U/L,0,uniform,,male,range,50,310,,50,310,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500604A/male,成年男性健康模拟值
+1500604A,U/L,U/L,0,uniform,,female,range,40,200,,40,200,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500604A/female,成年女性健康模拟值
+1500704A,U/L,U/L,0,uniform,,all,range,120,250,,120,250,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500704A/all,成人健康模拟值
+1500904A,U/L,U/L,0,uniform,,male,range,10,60,,10,60,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500904A/male,成年男性健康模拟值
+1500904A,U/L,U/L,0,uniform,,female,range,7,45,,7,45,project-curated,CN Health Data adult healthy baseline,2026-09-01,1500904A/female,成年女性健康模拟值
+1501104A,U/L,U/L,0,uniform,,all,range,5000,12000,,5000,12000,project-curated,CN Health Data adult healthy baseline,2026-09-01,1501104A/all,成人健康模拟值
+1501204A,U/L,U/L,0,uniform,,all,range,13,60,,13,60,project-curated,CN Health Data adult healthy baseline,2026-09-01,1501204A/all,成人健康模拟值
+1600104A,ng/mL,ng/mL,1,uniform,,all,upper-bound,,7,,0.5,6,project-curated,CN Health Data adult healthy baseline,2026-09-01,1600104A/all,单侧参考上限与模拟范围分开保存
+1600204A,ng/mL,ng/mL,1,uniform,,all,upper-bound,,5,,0.5,4.5,project-curated,CN Health Data adult healthy baseline,2026-09-01,1600204A/all,单侧参考上限与模拟范围分开保存
+1600604A,U/mL,[IU]/mL,1,uniform,,all,upper-bound,,35,,5,30,project-curated,CN Health Data adult healthy baseline,2026-09-01,1600604A/all,单侧参考上限与模拟范围分开保存
+1600704A,U/mL,[IU]/mL,1,uniform,,all,upper-bound,,31.3,,5,28,project-curated,CN Health Data adult healthy baseline,2026-09-01,1600704A/all,单侧参考上限与模拟范围分开保存
+1600804A,U/mL,[IU]/mL,1,uniform,,all,upper-bound,,37,,5,32,project-curated,CN Health Data adult healthy baseline,2026-09-01,1600804A/all,单侧参考上限与模拟范围分开保存
+1601504A,ng/mL,ng/mL,1,uniform,,all,upper-bound,,3.3,,0.2,3,project-curated,CN Health Data adult healthy baseline,2026-09-01,1601504A/all,单侧参考上限与模拟范围分开保存
+1601604A,ng/mL,ng/mL,1,uniform,,all,upper-bound,,16.3,,1,15,project-curated,CN Health Data adult healthy baseline,2026-09-01,1601604A/all,单侧参考上限与模拟范围分开保存
+1700104A,mmol/L,mmol/L,1,uniform,2339-0,all,range,3.9,6.1,,3.9,6.1,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700104A/all,成人空腹健康模拟值
+1700204A,mmol/L,mmol/L,1,uniform,,all,range,3.1,8.0,,3.1,8.0,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700204A/all,成人健康模拟值
+1700304A,μmol/L,umol/L,0,uniform,,male,range,208,428,,208,428,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700304A/male,成年男性健康模拟值
+1700304A,μmol/L,umol/L,0,uniform,,female,range,155,357,,155,357,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700304A/female,成年女性健康模拟值
+1700404A,μmol/L,umol/L,0,uniform,,male,range,57,97,,57,97,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700404A/male,成年男性健康模拟值
+1700404A,μmol/L,umol/L,0,uniform,,female,range,41,73,,41,73,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700404A/female,成年女性健康模拟值
+1700504A,μmol/L,umol/L,1,uniform,,all,range,5,21,,5,21,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700504A/all,成人健康模拟值
+1700604A,μmol/L,umol/L,1,uniform,,all,range,0,7,,0.1,7,project-curated,CN Health Data adult healthy baseline,2026-09-01,1700604A/all,成人健康模拟值
+1701204A,μmol/L,umol/L,1,uniform,,all,upper-bound,,15,,3,14,project-curated,CN Health Data adult healthy baseline,2026-09-01,1701204A/all,单侧参考上限与模拟范围分开保存
+2000104A,mmol/L,mmol/L,1,uniform,,all,upper-bound,,5.2,,2.8,5,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000104A/all,健康模拟使用显式双侧范围
+2000204A,mmol/L,mmol/L,1,uniform,,all,upper-bound,,1.7,,0.4,1.6,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000204A/all,健康模拟使用显式双侧范围
+2000304A,mmol/L,mmol/L,1,uniform,,all,lower-bound,1.0,,,1.0,2.0,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000304A/all,健康模拟使用显式双侧范围
+2000404A,mmol/L,mmol/L,1,uniform,,all,upper-bound,,3.4,,1.5,3.3,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000404A/all,健康模拟使用显式双侧范围
+2000604A,g/L,g/L,2,uniform,,all,range,1.0,1.6,,1.0,1.6,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000604A/all,成人健康模拟值
+2000704A,g/L,g/L,2,uniform,,all,range,0.6,1.1,,0.6,1.1,project-curated,CN Health Data adult healthy baseline,2026-09-01,2000704A/all,成人健康模拟值
+2100104A,ng/mL,ng/mL,1,uniform,,all,upper-bound,,5,,0.5,4,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100104A/all,单侧参考上限与模拟范围分开保存
+2100304A,ng/mL,ng/mL,0,uniform,,male,range,28,72,,28,72,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100304A/male,成年男性健康模拟值
+2100304A,ng/mL,ng/mL,0,uniform,,female,range,25,58,,25,58,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100304A/female,成年女性健康模拟值
+2100404A,ng/mL,ng/mL,3,uniform,,all,upper-bound,,0.04,,0.001,0.03,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100404A/all,单侧参考上限与模拟范围分开保存
+2100504A,ng/mL,ng/mL,3,uniform,,all,upper-bound,,0.014,,0.001,0.012,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100504A/all,单侧参考上限与模拟范围分开保存
+2100604A,pg/mL,pg/mL,0,uniform,,all,upper-bound,,100,,5,80,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100604A/all,单侧参考上限与模拟范围分开保存
+2100704A,pg/mL,pg/mL,0,uniform,,all,upper-bound,,125,,10,100,project-curated,CN Health Data adult healthy baseline,2026-09-01,2100704A/all,单侧参考上限与模拟范围分开保存
+2400104B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,2400104B/all,健康固定正常结果
+2400204B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,2400204B/all,健康固定正常结果
+2400304B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,2400304B/all,健康固定正常结果
+2400404B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,2400404B/all,健康固定正常结果
+2400504B,,,0,fixed-normal,,all,coded,,,阴性,,,project-curated,CN Health Data adult healthy baseline,2026-09-01,2400504B/all,健康固定正常结果

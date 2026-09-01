@@ -1,25 +1,44 @@
 id: laboratory-cn
-title: 中国精选检验概念目录
+title: 中国成人检验健康模拟目录
 description: >
-  Project-authored Chinese displays and a curated LOINC/UCUM crosswalk for the
-  laboratory and vital-sign concepts exercised by Synthea and ClinMesh. This is
-  not the official complete LOINC Chinese linguistic variant.
+  Simulation-ready projection of common WS/T 886—2026 laboratory tests for
+  Chinese HIS, Synthea, and ClinMesh consumers, with adult reference metadata,
+  deterministic healthy-result strategies, optional LOINC crosswalks, and
+  project-authored hospital orderable panels.
+dataset_schema_version: 2
 status: beta
 
 authority:
   name: CN Health Data contributors
   role: project-author
-  verification: repository-reviewed-2026-08-30
+  verification: repository-reviewed-2026-09-01
 
 source:
-  type: csv
+  type: wst886-markdown+project-csv+xlsx-evidence
   acquisition: manual-local
-  path_hint: datasets/laboratory-cn/catalog.csv
-  source_url: https://github.com/CaiZongyuan/cn-health-data/blob/main/datasets/laboratory-cn/catalog.csv
-  declared_version: 2026-08-30
-  sha256: 0ce998b45c921a06f2b1e016610afc83ea2886fc68c7ce7c5a69c8be6da43d2b
-  size_bytes: 2383
+  path_hint: tmp/WST_886—2026.md
+  source_url: https://www.nhc.gov.cn/wjw/s9492/202605/088bb2fe143d44ae8fbee328226d377b.shtml
+  declared_version: "2026-09-01"
+  terminology_version: "2026"
+  published_at: "2026-05-25"
+  effective_at: "2026-11-01"
+  sha256: a7f5e038dba32730a61437297c918c073b347304dc09ed6f6844025b2137bb8c
+  size_bytes: 74253
   upstream_sync: false
+  panel_evidence:
+    path_hint: tmp/检验类医疗服务价格项目立项指南映射关系表.xlsx
+    worksheet: 映射关系表（试行）
+    sha256: 4625a6f73e2eab2f76a47434b4aabfa7bb9b9328ac2462d36c1bd97c6e7de861
+    size_bytes: 126861
+    header_rows: [4, 5]
+    first_data_row: 6
+    last_data_row: 667
+  runtime_catalog:
+    path: datasets/laboratory-cn/runtime.csv
+    sha256: 0aa9bf55bfc3c05af41a2c11347b43708095a1c8e0fa5a83dd1fee31029ae87e
+  panel_catalog:
+    path: datasets/laboratory-cn/panels.csv
+    sha256: f2e723817ddde2f8dcab87394cd147cd43675a4f94ca18aee6caae01b1a5ade6
 
 versioning:
   strategy: project-release
@@ -34,39 +53,36 @@ runtime:
   minimum_sqlite_version: 3.34.0
 
 rights:
-  redistribution: public
+  redistribution: normalized-only
   release_eligible: true
   evidence:
     - LICENSE
+    - DATA-NOTICE.md
     - datasets/laboratory-cn/README.md
     - docs/publication-decision.md
   basis: >
-    Project-authored curated catalog published with external terminology
-    identifiers and their source identities preserved.
+    Project-authored simulation metadata and normalized factual terminology are
+    published while the converted standard and evidence workbook are excluded.
   attribution: >
-    CN Health Data project-authored curated laboratory and vital-sign catalog;
-    LOINC and UCUM identifiers identify their respective external standards.
+    WS/T 886—2026 terminology facts are attributed to the National Health
+    Commission. Adult simulation metadata and panel definitions are maintained
+    by CN Health Data contributors; external identifiers retain their sources.
   reviewed_by: CN Health Data maintainers
   reviewed_at: "2026-09-01"
   allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
-  allowed_ucum_units:
-    - "%"
-    - 10*12/L
-    - 10*9/L
-    - Cel
-    - L/L
-    - fL
-    - g/L
-    - mg/dL
-    - mm[Hg]
-    - pg
-  expected_record_count: 18
-  required_codes:
-    - 2339-0
-    - 4548-4
-    - 8310-5
-    - 8462-4
-    - 8480-6
-  terminology_version: "2.83"
+  minimum_test_count: 60
+  minimum_panel_count: 15
+  allowed_sexes: [all, male, female]
+  allowed_reference_kinds: [range, upper-bound, lower-bound, coded, ordinal]
+  allowed_result_kinds: [quantity, qualitative, ordinal, named]
+  allowed_strategies: [uniform, fixed-normal]
+  allowed_source_types: [national-standard, project-curated]
+  maximum_precision: 4
+  required_test_codes: [0100101A, 1100301A, 1200604A, 1700104A, 2400104B]
+  required_panel_codes:
+    - CN-LAB-CBC-5DIFF
+    - CN-LAB-LIVER
+    - CN-LAB-RENAL
+    - CN-LAB-URINALYSIS

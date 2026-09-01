@@ -189,8 +189,17 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
     }
     drop(connection);
 
+    finish_fixture_release(&release, dataset_id, &database, "0.2.0")
+}
+
+fn finish_fixture_release(
+    release: &Path,
+    dataset_id: &str,
+    database: &Path,
+    minimum_cli_version: &str,
+) -> PathBuf {
     let compressed = release.join("data.sqlite.zst");
-    let mut input = File::open(&database).unwrap();
+    let mut input = File::open(database).unwrap();
     let mut output = File::create(&compressed).unwrap();
     zstd::stream::copy_encode(&mut input, &mut output, 3).unwrap();
     output.flush().unwrap();
@@ -210,11 +219,14 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
             "sha256": sha256(&compressed),
             "sizeBytes": fs::metadata(&compressed).unwrap().len(),
             "uncompressedName": "data.sqlite",
-            "uncompressedSha256": sha256(&database),
-            "uncompressedSizeBytes": fs::metadata(&database).unwrap().len()
+            "uncompressedSha256": sha256(database),
+            "uncompressedSizeBytes": fs::metadata(database).unwrap().len()
         }],
         "rights": {"redistribution": "review-required", "releaseEligible": false},
-        "runtime": {"minimumCliVersion": "0.2.0", "minimumSQLiteVersion": "3.34.0"}
+        "runtime": {
+            "minimumCliVersion": minimum_cli_version,
+            "minimumSQLiteVersion": "3.34.0"
+        }
     });
     let manifest_path = release.join("manifest.json");
     fs::write(
@@ -223,6 +235,86 @@ fn fixture_release(root: &Path, dataset_id: &str) -> PathBuf {
     )
     .unwrap();
     manifest_path
+}
+
+fn fixture_laboratory_v2(root: &Path) -> PathBuf {
+    let dataset_id = "laboratory-cn";
+    let release = root.join(dataset_id);
+    fs::create_dir_all(&release).unwrap();
+    let database = release.join("data.sqlite");
+    let connection = Connection::open(&database).unwrap();
+    connection
+        .execute_batch(
+            "
+            CREATE TABLE laboratory_test(
+                code TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL,
+                analyte TEXT NOT NULL, specimen TEXT NOT NULL, scale TEXT NOT NULL,
+                result_kind TEXT NOT NULL, unit_display TEXT, unit_ucum TEXT,
+                precision INTEGER NOT NULL, healthy_strategy TEXT NOT NULL,
+                loinc_code TEXT, status TEXT NOT NULL, source_version TEXT NOT NULL
+            );
+            CREATE TABLE laboratory_reference(
+                test_code TEXT NOT NULL, sex TEXT NOT NULL, reference_kind TEXT NOT NULL,
+                low_value REAL, high_value REAL, normal_value TEXT, simulation_low REAL,
+                simulation_high REAL, source_type TEXT NOT NULL, source_standard TEXT NOT NULL,
+                source_version TEXT NOT NULL, source_location TEXT NOT NULL, notes TEXT NOT NULL,
+                PRIMARY KEY(test_code, sex)
+            );
+            CREATE TABLE laboratory_panel(
+                code TEXT PRIMARY KEY, name TEXT NOT NULL, specimen TEXT NOT NULL,
+                status TEXT NOT NULL, source_type TEXT NOT NULL,
+                source_location TEXT NOT NULL, notes TEXT NOT NULL
+            );
+            CREATE TABLE laboratory_panel_member(
+                panel_code TEXT NOT NULL, test_code TEXT NOT NULL, sort_order INTEGER NOT NULL,
+                PRIMARY KEY(panel_code, test_code)
+            );
+            CREATE VIRTUAL TABLE laboratory_test_fts USING fts5(
+                name, analyte, category,
+                content='laboratory_test', content_rowid='rowid', tokenize='trigram'
+            );
+            CREATE TABLE laboratory_test_search_bigram(
+                term TEXT NOT NULL, code TEXT NOT NULL, PRIMARY KEY(term, code)
+            ) WITHOUT ROWID;
+            CREATE VIRTUAL TABLE laboratory_panel_fts USING fts5(
+                name, content='laboratory_panel', content_rowid='rowid', tokenize='trigram'
+            );
+            CREATE TABLE laboratory_panel_search_bigram(
+                term TEXT NOT NULL, code TEXT NOT NULL, PRIMARY KEY(term, code)
+            ) WITHOUT ROWID;
+            INSERT INTO laboratory_test VALUES
+                ('0100101A', '白细胞计数', '血细胞分析', '白细胞(数量)', '全血', '定量',
+                 'quantity', '×10^9/L', '10*9/L', 1, 'uniform', '6690-2', 'active',
+                 '2026-09-01'),
+                ('0100201A', '红细胞计数', '血细胞分析', '红细胞(数量)', '全血', '定量',
+                 'quantity', '×10^12/L', '10*12/L', 1, 'uniform', '789-8', 'active',
+                 '2026-09-01');
+            INSERT INTO laboratory_reference VALUES
+                ('0100101A', 'all', 'range', 3.5, 9.5, NULL, 3.5, 9.5,
+                 'national-standard', 'WS/T 405-2012', '2012', '表 1', '成人静脉血'),
+                ('0100201A', 'male', 'range', 4.3, 5.8, NULL, 4.3, 5.8,
+                 'national-standard', 'WS/T 405-2012', '2012', '表 1', '成年男性'),
+                ('0100201A', 'female', 'range', 3.8, 5.1, NULL, 3.8, 5.1,
+                 'national-standard', 'WS/T 405-2012', '2012', '表 1', '成年女性');
+            INSERT INTO laboratory_panel VALUES
+                ('CN-LAB-CBC-5DIFF', '血常规（五分类）', '全血', 'active',
+                 'project-authored', 'fixture/row 6', 'fixture');
+            INSERT INTO laboratory_panel_member VALUES
+                ('CN-LAB-CBC-5DIFF', '0100101A', 1),
+                ('CN-LAB-CBC-5DIFF', '0100201A', 2);
+            INSERT INTO laboratory_test_fts(rowid, name, analyte, category)
+                SELECT rowid, name, analyte, category FROM laboratory_test;
+            INSERT INTO laboratory_test_search_bigram VALUES ('白细', '0100101A');
+            INSERT INTO laboratory_panel_fts(rowid, name)
+                SELECT rowid, name FROM laboratory_panel;
+            INSERT INTO laboratory_panel_search_bigram VALUES ('血常', 'CN-LAB-CBC-5DIFF');
+            PRAGMA application_id=1129203780;
+            PRAGMA user_version=2;
+            ",
+        )
+        .unwrap();
+    drop(connection);
+    finish_fixture_release(&release, dataset_id, &database, "0.4.0")
 }
 
 fn command(data_dir: &Path) -> Command {
@@ -340,6 +432,58 @@ fn installs_lists_and_queries_local_candidates() {
         .assert()
         .success()
         .stdout(predicate::str::contains("盐酸二甲双胍片"));
+}
+
+#[test]
+fn queries_schema_v2_laboratory_references_and_panels() {
+    let temporary = TempDir::new().unwrap();
+    let data_dir = temporary.path().join("data");
+    let manifest = fixture_laboratory_v2(&temporary.path().join("fixtures-v2"));
+    command(&data_dir)
+        .args(["dataset", "install", "--local-manifest"])
+        .arg(manifest)
+        .assert()
+        .success();
+
+    let search = command(&data_dir)
+        .args(["laboratory", "search", "白细", "--json"])
+        .output()
+        .unwrap();
+    assert!(search.status.success());
+    let search_json: Value = serde_json::from_slice(&search.stdout).unwrap();
+    assert_eq!(search_json["items"][0]["code"], "0100101A");
+    assert_eq!(search_json["items"][0]["unitUcum"], "10*9/L");
+    assert_eq!(search_json["items"][0]["references"][0]["lowValue"], 3.5);
+
+    let get = command(&data_dir)
+        .args(["laboratory", "get", "0100201A", "--json"])
+        .output()
+        .unwrap();
+    assert!(get.status.success());
+    let get_json: Value = serde_json::from_slice(&get.stdout).unwrap();
+    assert_eq!(get_json["name"], "红细胞计数");
+    assert_eq!(get_json["references"][0]["sex"], "female");
+    assert_eq!(get_json["references"][1]["sex"], "male");
+
+    command(&data_dir)
+        .args(["laboratory", "panel", "search", "血常", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("CN-LAB-CBC-5DIFF"));
+
+    let panel = command(&data_dir)
+        .args(["laboratory", "panel", "get", "CN-LAB-CBC-5DIFF", "--json"])
+        .output()
+        .unwrap();
+    assert!(panel.status.success());
+    let panel_json: Value = serde_json::from_slice(&panel.stdout).unwrap();
+    assert_eq!(panel_json["memberCount"], 2);
+    assert_eq!(panel_json["members"][0]["sortOrder"], 1);
+    assert_eq!(panel_json["members"][0]["test"]["code"], "0100101A");
+    assert_eq!(
+        panel_json["members"][1]["test"]["references"][1]["sex"],
+        "male"
+    );
 }
 
 #[test]
