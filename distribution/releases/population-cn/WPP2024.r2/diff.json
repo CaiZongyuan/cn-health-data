@@ -1,0 +1,12 @@
+{
+  "added": 0,
+  "baseRelease": "population-cn@WPP2024.r1",
+  "baseSourceSha256": "a04d7d1486a5eb2832cc812d599448f0a71e8ac9e1e7e6fa4066673d6a2487cd",
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "targetRelease": "population-cn@WPP2024.r2",
+  "targetSourceSha256": "a04d7d1486a5eb2832cc812d599448f0a71e8ac9e1e7e6fa4066673d6a2487cd",
+  "unchanged": 3171
+}

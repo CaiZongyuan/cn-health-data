@@ -1,0 +1,12 @@
+{
+  "added": 0,
+  "baseRelease": "geography-cn@2026-08-29.r1",
+  "baseSourceSha256": "20b7cd8cb9402abe9230a641864d67ea86c36d7fe41712d5b34daca5c55fb4be",
+  "modified": 0,
+  "modifiedFields": {},
+  "removed": 0,
+  "schemaVersion": 1,
+  "targetRelease": "geography-cn@2026-08-29.r2",
+  "targetSourceSha256": "20b7cd8cb9402abe9230a641864d67ea86c36d7fe41712d5b34daca5c55fb4be",
+  "unchanged": 24731
+}

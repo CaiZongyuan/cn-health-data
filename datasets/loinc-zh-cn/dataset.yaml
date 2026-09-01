@@ -62,16 +62,17 @@ runtime:
 
 rights:
   redistribution: normalized-only
-  release_eligible: false
+  release_eligible: true
   basis: >
     LOINC License 5.8 permits use, copying, distribution, and incorporation
     subject to attribution, display-name, version, unchanged-content, and
-    third-party copyright conditions. Public Registry eligibility remains
-    disabled pending artifact-specific third-party terms review.
+    third-party copyright conditions. The maintainer publication decision keeps
+    source-member provenance, notices, and license artifacts with the Release.
   evidence:
     - datasets/loinc-zh-cn/source-review.md
     - datasets/loinc-zh-cn/LOINC_short_license.txt
     - source-member:LoincLicense_5.8.txt
+    - docs/publication-decision.md
   attribution: >
     This material contains content from LOINC (http://loinc.org). LOINC is
     copyright © Regenstrief Institute, Inc. and the Logical Observation

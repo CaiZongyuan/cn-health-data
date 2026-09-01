@@ -368,7 +368,7 @@ fn doctor_reports_an_uninitialized_data_directory() {
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["command"], "doctor");
     assert_eq!(report["ok"], false);
-    assert_eq!(report["checks"][0]["id"], "starter-installed");
+    assert_eq!(report["checks"][0]["id"], "dataset:geography-cn");
 }
 
 #[test]
@@ -473,7 +473,7 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
     let data_dir = temporary.path().join("data");
 
     let first = command(&data_dir)
-        .args(["init", "--registry"])
+        .args(["init", "--only", "laboratory-cn", "--registry"])
         .arg(format!("{base_url}/registry.json"))
         .arg("--public-key")
         .arg(&public_key_path)
@@ -482,10 +482,12 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
         .unwrap();
     assert!(first.status.success());
     let first_json: Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(first_json["schemaVersion"], 2);
+    assert_eq!(first_json["selection"], "only");
     assert_eq!(first_json["items"][0]["status"], "installed");
 
     let second = command(&data_dir)
-        .args(["init", "--registry"])
+        .args(["init", "--only", "laboratory-cn", "--registry"])
         .arg(format!("{base_url}/registry.json"))
         .arg("--public-key")
         .arg(&public_key_path)
@@ -498,11 +500,6 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
     server_thread.join().unwrap();
 
     command(&data_dir)
-        .args(["doctor", "--json"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("\"ok\":true"));
-    command(&data_dir)
         .args(["laboratory", "search", "血糖", "--json"])
         .assert()
         .success()
@@ -512,4 +509,16 @@ fn initializes_queries_and_diagnoses_from_a_signed_registry() {
         .assert()
         .success()
         .stdout(predicate::str::contains("signed-registry"));
+}
+
+#[test]
+fn init_rejects_unknown_dataset_before_network_access() {
+    let temporary = TempDir::new().unwrap();
+    command(&temporary.path().join("data"))
+        .args(["init", "--only", "not-a-dataset", "--json"])
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains(
+            "unknown or unavailable Dataset ID",
+        ));
 }

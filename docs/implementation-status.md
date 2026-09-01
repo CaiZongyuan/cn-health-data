@@ -15,27 +15,27 @@
 | Synthea support | Fixed-commit profile `2026-08-29.r3`, Bundle localizer, bounded non-root HTTP service, and three-module Docker corpus validation |
 | Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
-| Native runtime | Rust local/remote install, minimum CLI compatibility, init/doctor, list/info/versions/use, and drug/diagnosis/LOINC/laboratory get/search |
-| Remote distribution | Signed public starter Registry, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
+| Native runtime | Rust full/default and selective remote install, minimum CLI compatibility, complete doctor, list/info/versions/use, and drug/diagnosis/LOINC/laboratory get/search |
+| Remote distribution | Seven-Dataset signed public Registry, normalized artifact staging, pinned trust root, Ed25519 verification, same-origin HTTPS, and Manifest/artifact verification |
 | npm | Thin native binary resolver, four optional platform packages, and tag-driven package/archive builds |
 
 ## Local Candidates
 
-- `nhsa-drugs@2026-01-09.r3`
-- `nhc-icd10-clinical@2022.r3`
-- `geography-cn@2026-08-29.r1`
-- `names-cn@40.37.0.r1`
-- `population-cn@WPP2024.r1`
-- `laboratory-cn@2026-08-30.r1`
-- `loinc-zh-cn@2.83.r1`
+- `nhsa-drugs@2026-01-09.r4`
+- `nhc-icd10-clinical@2022.r4`
+- `geography-cn@2026-08-29.r2`
+- `names-cn@40.37.0.r2`
+- `population-cn@WPP2024.r2`
+- `laboratory-cn@2026-08-30.r2`
+- `loinc-zh-cn@2.83.r2`
 - `synthea-cn@2026-08-29.r3` (supported consumer projection)
 - `synthea-zh-cn@2026-08-30.r1` (experimental display catalog; zero unresolved flags)
 
-These are locally built Candidates. The repository's signed public distribution
-tree includes only the eligible `laboratory-cn@2026-08-30.r1` starter Release;
-the other Candidates remain unbundled. Their Manifests preserve source
-provenance and distribution metadata, and operators apply the terms associated
-with their own source copies when using or sharing record-level artifacts.
+These are locally built Candidates whose current normalized zstd/Parquet,
+Manifest, report, and license projections are staged in the signed public
+distribution. Raw source files, uncompressed SQLite transport copies, historical
+revisions, and build caches remain unbundled. Public Manifests preserve source
+provenance, attribution, and distribution metadata.
 
 ## Source-dependent or deferred
 
@@ -43,10 +43,8 @@ with their own source copies when using or sharing record-level artifacts.
 - `laboratory-cn` is the verified project-authored subset used by current
   consumers; it is not represented as the official complete LOINC Chinese
   linguistic variant.
-- `loinc-zh-cn@2.83.r1` is verified locally from the authenticated official
-  Complete archive. It remains `releaseEligible: false`: source and panel
-  third-party copyright notices are preserved, but public Registry distribution
-  requires a separate artifact-specific terms review.
-- The public starter key is pinned in the runtime and its private signing key is
+- `loinc-zh-cn@2.83.r2` is distributed with the complete and short LOINC license
+  artifacts, source-member provenance, and required attribution.
+- The public Registry key is pinned in the runtime and its private signing key is
   held as an encrypted CI secret rather than committed. Larger public hosting
   remains a release-operations responsibility.

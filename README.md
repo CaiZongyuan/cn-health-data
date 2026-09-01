@@ -22,22 +22,24 @@ provide a production clinical system.
 
 ## Current Status
 
-| Dataset | Current implementation | Verified local build | Records |
-|---|---|---:|---:|
-| `nhsa-drugs` | Import, validation, packaging, and search for the drug classification/code workbook `总表` | `2026-01-09.r3` | 269,110 |
-| `nhc-icd10-clinical` | Import, validation, packaging, and search for Clinical Diagnosis Classification 2.0 (2022) | `2022.r3` | 37,294 |
-| `geography-cn` | Versioned administrative divisions, populated places, and postal areas | `2026-08-29.r1` | 24,731 |
-| `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r1` | 530 |
-| `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r1` | 3,171 |
-| `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | Complete LOINC 2.83 core plus official Chinese variant, UCUM examples, SYSTEM Parts, and panels | `2.83.r1` | 365,722 |
-| `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None |
+| Dataset | Current implementation | Verified build | Records | Public availability |
+|---|---|---:|---:|---|
+| `nhsa-drugs` | Import, validation, packaging, and search for the drug classification/code workbook `总表` | `2026-01-09.r4` | 269,110 | Public Registry; installed by default |
+| `nhc-icd10-clinical` | Import, validation, packaging, and search for Clinical Diagnosis Classification 2.0 (2022) | `2022.r4` | 37,294 | Public Registry; installed by default |
+| `geography-cn` | Versioned administrative divisions, populated places, and postal areas | `2026-08-29.r2` | 24,731 | Public Registry; installed by default |
+| `names-cn` | Safe static parsing of Chinese surname and given-name components | `40.37.0.r2` | 530 | Public Registry; installed by default |
+| `population-cn` | Chinese age/sex marginal population distributions | `WPP2024.r2` | 3,171 | Public Registry; installed by default |
+| `laboratory-cn` | Project-authored Chinese laboratory/vital-sign catalog with exact LOINC and preferred UCUM crosswalks | `2026-08-30.r2` | 18 | Public Registry; installed by default |
+| `loinc-zh-cn` | Complete LOINC 2.83 core plus official Chinese variant, UCUM examples, SYSTEM Parts, and panels | `2.83.r2` | 365,722 | Public Registry; installed by default |
+| `nhc-procedure-clinical` | Contract and schema defined; compiler implementation deferred | None | None | Not implemented |
 
 The build identifiers above describe Candidates verified in the current
 development workspace. This repository distributes the compiler, runtime,
-synthetic test fixtures, and the redistribution-approved `laboratory-cn`
-starter Release. `tmp/`, `.work/`, and `dist/` are ignored by Git, so private
-source workbooks and other local Candidates are not included in a clone.
+synthetic test fixtures, and normalized public Releases for all seven
+implemented Datasets. `tmp/`, `.work/`, and `dist/` are ignored by Git, so
+private source files, build caches, and historical Candidates are not included
+in a clone; current compressed SQLite, Parquet, Manifests, and reports live in
+`distribution/`.
 
 Implemented infrastructure includes:
 
@@ -58,8 +60,8 @@ Implemented infrastructure includes:
   simulated resident IDs;
 - a fixed-commit Synthea profile projection, FHIR R4 identity localizer, and
   bounded internal HTTP service;
-- a signed public starter Registry, pinned default trust root, `init`, and
-  offline `doctor`; and
+- a signed complete public Registry, default full `init`, selective `--only`,
+  and offline `doctor`; and
 - tag builds for four native platforms plus an npm wrapper that delegates all
   behavior to the native binary.
 
@@ -111,7 +113,7 @@ npm/               Thin native CLI launcher
 python/compiler/   Python compiler package, adapters, and tests
 rust/cn-health/    Native installer and query runtime
 schemas/           JSON Schemas for contracts, Manifests, Registry, and CLI output
-distribution/      Signed public Registry and redistribution-approved starter Release
+distribution/      Signed public Registry and seven current normalized Releases
 tmp/               Local raw inputs; ignored by Git
 .work/             Source snapshots and local working data; ignored by Git
 dist/              Immutable local Candidates; ignored by Git
@@ -119,9 +121,18 @@ dist/              Immutable local Candidates; ignored by Git
 
 ## Requirements
 
-End users need only the `cn-health 0.2.1` native release for their platform;
-Python, Rust, and source workbooks are not runtime requirements. Source
-development requires:
+End users can install through npm or use a native release archive:
+
+| Installation | Runtime requirement | Supported platforms |
+|---|---|---|
+| npm `cn-health@0.3.0` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
+| GitHub native archive | No language runtime | Linux x64, macOS x64/arm64, Windows x64 |
+
+Both options run the same Rust CLI. The npm package only resolves a platform
+binary; it does not contain a second query implementation. End users do not
+need Python, Rust, `uv`, pnpm, or any source workbook.
+
+Source development requires:
 
 - Git;
 - Python 3.12;
@@ -135,19 +146,187 @@ require the third-party XLSX files.
 
 ## Quick Start
 
-After installing the `cn-health 0.2.1` archive for your platform from GitHub
-Releases, initialize signed starter data and run a real query:
+### Install With npm
+
+This is the simplest cross-platform installation method:
 
 ```bash
+npm install --global cn-health@0.3.0
+cn-health --version
+```
+
+The version command should print:
+
+```text
+cn-health 0.3.0
+```
+
+npm installs only the optional package matching the current operating system.
+For example, Linux x64 installs `@cn-health/cli-linux-x64`; unmet optional
+dependencies for the other platforms are expected.
+
+For a temporary check, `npx --yes cn-health@0.3.0 --version` also works. A global
+installation is preferable for repeated queries because it avoids resolving the
+package every time.
+
+### Install a Native Archive
+
+To run without Node.js, download the matching archive from the
+[`v0.3.0` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.3.0):
+
+| System | Release asset |
+|---|---|
+| Linux x64 | `cn-health-v0.3.0-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.3.0-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.3.0-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.3.0-win32-x64.tar.gz` |
+
+Extract and run on Linux or macOS:
+
+```bash
+tar -xzf cn-health-v0.3.0-linux-x64.tar.gz
+./cn-health-v0.3.0-linux-x64/cn-health --version
+```
+
+Windows PowerShell can use the system `tar` command:
+
+```powershell
+tar -xzf cn-health-v0.3.0-win32-x64.tar.gz
+.\cn-health-v0.3.0-win32-x64\cn-health.exe --version
+```
+
+Every native archive also contains `LICENSE` and `DATA-NOTICE.md`. macOS
+artifacts are not currently Apple-notarized; execution remains subject to the
+machine's Gatekeeper and organizational security policy.
+
+### Initialize Complete Data
+
+After installing the CLI, run:
+
+```bash
+cn-health init --json
+```
+
+The first run downloads, verifies, and installs all seven implemented Datasets
+from the built-in HTTPS Registry. The current compressed download is about
+75.33 MiB and installed SQLite files total about 784 MiB. Output includes:
+
+```json
+{"command":"init","items":[{"datasetId":"geography-cn","releaseId":"geography-cn@2026-08-29.r2","status":"installed"},{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-08-30.r2","status":"installed"},{"datasetId":"loinc-zh-cn","releaseId":"loinc-zh-cn@2.83.r2","status":"installed"},{"datasetId":"names-cn","releaseId":"names-cn@40.37.0.r2","status":"installed"},{"datasetId":"nhc-icd10-clinical","releaseId":"nhc-icd10-clinical@2022.r4","status":"installed"},{"datasetId":"nhsa-drugs","releaseId":"nhsa-drugs@2026-01-09.r4","status":"installed"},{"datasetId":"population-cn","releaseId":"population-cn@WPP2024.r2","status":"installed"}],"schemaVersion":2,"selection":"all"}
+```
+
+`init` is idempotent; an existing identical Release reports
+`already-installed`. To install only selected Datasets:
+
+```bash
+cn-health init --only nhsa-drugs,nhc-icd10-clinical
+```
+
+Unknown Dataset IDs fail before network access. Each installation verifies:
+
+- the Registry Ed25519 signature and pinned public-key ID;
+- the Manifest digest, Dataset/Release identity, and revocation state;
+- `releaseEligible` distribution status and same-origin HTTPS URLs;
+- SHA256 and size for the transferred zstd file and decompressed SQLite;
+- bounded decompression, SQLite `integrity_check`, and application ID; and
+- the minimum CLI version declared by the Manifest.
+
+> The public distribution contains normalized artifacts only. It does not
+> contain raw XLSX, ZIP, PDF, or source snapshots from `tmp/`.
+> `nhc-procedure-clinical` is excluded because its compiler is not implemented.
+
+### Search and Exact Lookup
+
+Search by literal Chinese text:
+
+```bash
+cn-health laboratory search 血糖 --limit 10 --json
+cn-health drug search 二甲双胍 --limit 10 --json
+cn-health diagnosis search 糖尿病 --limit 10 --json
+cn-health loinc search 葡萄糖 --limit 10 --json
+```
+
+Retrieve an exact LOINC code:
+
+```bash
+cn-health laboratory get 2339-0 --json
+```
+
+Code `2339-0` returns the curated Chinese display `血糖`, LOINC system/version,
+category, specimen, result type, and preferred UCUM unit `mg/dL`. Search text
+must contain at least two Unicode characters. The default result limit is 20;
+`--limit` accepts 1 through 200. JSON search output has stable schema, Dataset
+and Release identity, query parameters, items, and pagination metadata.
+
+### Inspect the Installation
+
+```bash
+cn-health doctor
+cn-health dataset list --json
+cn-health dataset info laboratory-cn --json
+cn-health dataset versions laboratory-cn --json
+```
+
+`doctor` checks all seven default Datasets, signed-Registry trust, and
+representative exact lookups for drug, diagnosis, LOINC, and laboratory query
+surfaces. `doctor --json` also shows the effective `dataDir` and default Registry.
+
+### Data Directory and Offline Operation
+
+Without `--data-dir`, the CLI uses the application data directory assigned by
+the operating system for `org.cn-health.cn-health`. Do not guess this path; show
+it with:
+
+```bash
+cn-health doctor --json
+```
+
+For isolated tests, CI, or multiple environments, put the global argument before
+the subcommand:
+
+```bash
+cn-health --data-dir /absolute/path/to/cn-health-data init
+cn-health --data-dir /absolute/path/to/cn-health-data laboratory search 血糖 --json
+```
+
+`init` needs network access to the public Registry. After installation, search,
+exact lookup, Dataset inspection, and `doctor` do not access the network.
+Uninstalling the npm package does not remove the application data directory.
+
+### Upgrade
+
+npm users can upgrade the CLI and repeat the idempotent initialization to adopt
+the Registry's current recommended, non-revoked Release:
+
+```bash
+npm install --global cn-health@latest
+cn-health --version
 cn-health init
-cn-health laboratory search 血糖 --json
 cn-health doctor
 ```
 
-`init` uses the Registry URL and pinned public key built into the CLI. It
-installs the 18 project-authored laboratory and vital-sign records; queries and
-`doctor` work offline after download. The starter is not the complete official
-LOINC Chinese package.
+Native users download the newer archive and replace their executable. Older
+Dataset Releases remain in the data directory; `dataset use` can switch among
+installed versions.
+
+### Troubleshooting
+
+- `No cn-health binary for ...`: the platform is unsupported or optional
+  dependencies were omitted. Use Node.js 22+ and reinstall with
+  `npm install --global cn-health@latest --include=optional`.
+- `EACCES`: npm platform packages in `0.2.0` did not preserve Unix executable
+  permissions. Upgrade to `0.2.1` or newer.
+- `DATASET_NOT_INSTALLED`: run `cn-health init` and confirm the query uses the
+  same `--data-dir`.
+- `CLI_VERSION_INCOMPATIBLE`: the Manifest requires a newer runtime. Upgrade
+  `cn-health`, then initialize again.
+- `search query must contain at least two Unicode characters`: provide at least
+  two characters, or use `get` when the code is known.
+- Registry or HTTPS download errors: initialization requires GitHub Raw access.
+  Check proxy, DNS, TLS, and organizational network policy. Do not bypass the
+  signature or hash checks.
+
+### Contributor Quick Start
 
 Contributors can clone the repository and prove the same real query with one
 command:
@@ -287,6 +466,11 @@ synthea-cn@2026-08-29.r3
 Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
 ```
 
+The verified profile is directly available under
+[`distribution/profiles/synthea-cn/2026-08-29.r3/`](distribution/profiles/synthea-cn/2026-08-29.r3/manifest.json).
+It remains pinned to the r1 dependency hashes recorded in its Manifest even
+though metadata-only r2 revisions are now recommended for the canonical Datasets.
+
 Build the profile from three Candidate Releases:
 
 ```bash
@@ -370,7 +554,7 @@ never called by CI, Bundle projection, or runtime services. See
 
 ## Curated Laboratory Concepts
 
-`laboratory-cn@2026-08-30.r1` contains 18 laboratory and vital-sign concepts
+`laboratory-cn@2026-08-30.r2` contains 18 laboratory and vital-sign concepts
 needed by the currently validated consumers. It pairs project-authored Chinese
 displays and catalog metadata with exact LOINC 2.83 codes and preferred UCUM
 units. The same Candidate Contract, deterministic SQLite/Parquet packaging,
@@ -378,13 +562,13 @@ Manifest verification, FTS, and bigram indexing used by the other compilers
 apply to this catalog.
 
 This focused catalog is not the official complete LOINC Chinese linguistic
-variant. The separate `loinc-zh-cn@2.83.r1` Candidate contains all 112,405 core
+variant. The separate `loinc-zh-cn@2.83.r2` Release contains all 112,405 core
 concepts and 96,518 official Chinese translations. Consumers that only need the
 reviewed project subset can still use `laboratory-cn` without loading the full
 terminology. See
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md).
 
-## Install and Query Locally
+## Install and Query Local Candidates
 
 Build the runtime, then install the Candidate using its local Manifest. An
 explicit data directory keeps the example isolated and reproducible:
@@ -440,10 +624,11 @@ directory for the `org.cn-health.cn-health` project identity.
 
 ## Signed Registry and Remote Installation
 
-The repository provides a public starter Registry verified by a public key
-pinned in the CLI. It currently contains only the explicitly eligible
-`laboratory-cn@2026-08-30.r1` Release. Building another Candidate locally never
-makes it publicly distributable.
+The repository provides a complete public Registry verified by a public key
+pinned in the CLI. It contains the current recommended Releases for all seven
+implemented Datasets. Public Manifests declare only hosted zstd, Parquet,
+report, and license files; clients bounded-decompress SQLite and verify it
+against the uncompressed hash and size in the Manifest.
 
 When an operator has prepared distribution metadata consistent with the terms
 applicable to the source and intended use, they can generate a raw Ed25519
@@ -482,8 +667,25 @@ policy. Plain HTTP is accepted only for loopback development hosts.
 
 ## npm Wrapper
 
-`npm/cn-health` is a thin launcher. It forwards arguments, stdio, signals, and
-exit status to the native CLI and does not contain data or query logic.
+The public [`cn-health`](https://www.npmjs.com/package/cn-health) package is a
+thin JavaScript launcher. It forwards arguments, stdio, signals, and exit status
+to the native CLI and contains no data or query logic. Platform packages are:
+
+- `@cn-health/cli-linux-x64`;
+- `@cn-health/cli-darwin-x64`;
+- `@cn-health/cli-darwin-arm64`; and
+- `@cn-health/cli-win32-x64`.
+
+The launcher resolves the binary in this order:
+
+1. an explicit `CN_HEALTH_BINARY` development override;
+2. the optional platform package matching `process.platform/process.arch`; and
+3. the source checkout's `target/release/cn-health` development build.
+
+If the resolved file does not exist, the launcher fails explicitly. It never
+downloads an unverified executable or falls back to a JavaScript query
+implementation. Unix platform packages in `0.2.0` lacked executable permissions
+and are superseded by `0.2.1` and later releases.
 
 During local development, point it at a built binary:
 
@@ -496,10 +698,11 @@ CN_HEALTH_BINARY="$PWD/target/release/cn-health" \
   --data-dir .work/runtime dataset list --json
 ```
 
-The tag release workflow builds native archives and optional
-`@cn-health/cli-<platform>-<arch>` npm packages for Linux x64, macOS x64/arm64,
-and Windows x64. npm publishing runs only when the repository explicitly enables
-it and configures a token.
+The tag release workflow builds native archives and npm platform packages for
+Linux x64, macOS x64/arm64, and Windows x64. It publishes platform packages
+before the launcher that depends on them. Publication skips versions already
+present in npm, so an interrupted run can safely resume from the GitHub Release
+`.tgz` assets.
 
 ## Development and Testing
 
@@ -557,15 +760,19 @@ publishing any dataset.
   present.
 - `laboratory-cn` is a curated project catalog, not the complete official LOINC
   Chinese linguistic variant.
-- `loinc-zh-cn@2.83.r1` is verified locally but remains
-  `releaseEligible: false`; its third-party copyright notices require an
-  artifact-specific review before public Registry distribution.
+- The public Registry distributes seven current normalized Datasets. Every
+  Manifest retains source identity, version, hashes, attribution, and applicable
+  notices; raw source files are not public artifacts.
 - `synthea-zh-cn` covers the pinned Synthea version and all 51 ambiguities have
   evidence resolutions, but 2,158 displays remain machine-checked rather than
   clinician-approved; it is not an official terminology language package.
 
 ## Documentation
 
+- [`docs/full-distribution-spec.md`](docs/full-distribution-spec.md): complete
+  public distribution and runtime contract
+- [`docs/publication-decision.md`](docs/publication-decision.md): normalized
+  artifact publication decision and attribution conditions
 - [`docs/implementation-status.md`](docs/implementation-status.md): implementation
   boundaries and current gaps
 - [`docs/implementation-handbook.md`](docs/implementation-handbook.md): normative

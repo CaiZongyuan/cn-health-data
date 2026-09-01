@@ -39,6 +39,16 @@ rights:
   evidence:
     - LICENSE
     - datasets/laboratory-cn/README.md
+    - docs/publication-decision.md
+  basis: >
+    Project-authored curated catalog published with external terminology
+    identifiers and their source identities preserved.
+  attribution: >
+    CN Health Data project-authored curated laboratory and vital-sign catalog;
+    LOINC and UCUM identifiers identify their respective external standards.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
   allowed_ucum_units:

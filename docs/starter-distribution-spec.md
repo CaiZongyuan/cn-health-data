@@ -1,6 +1,6 @@
 # Starter Distribution Specification
 
-Status: Accepted for implementation  
+Status: Superseded by [`full-distribution-spec.md`](full-distribution-spec.md) in 0.3.0
 Target: `cn-health` 0.2.0  
 Tracking: GitHub issue #2
 

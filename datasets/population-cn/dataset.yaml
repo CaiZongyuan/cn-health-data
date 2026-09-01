@@ -36,7 +36,19 @@ runtime:
 
 rights:
   redistribution: normalized-only
-  release_eligible: false
+  release_eligible: true
+  basis: >
+    Maintainer decision to publish the normalized China aggregate projection
+    with UN WPP source identity, variant, citation, and provenance preserved.
+  evidence:
+    - docs/publication-decision.md
+    - https://population.un.org/wpp/
+  attribution: >
+    Based on United Nations, Department of Economic and Social Affairs,
+    Population Division, World Population Prospects 2024, Medium variant.
+  reviewed_by: CN Health Data maintainers
+  reviewed_at: "2026-09-01"
+  allowed_artifact_types: [sqlite, sqlite-zstd, parquet]
 
 validation:
   expected_age_group_count: 21

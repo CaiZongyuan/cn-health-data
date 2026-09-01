@@ -1,0 +1,103 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "eb719241264bf390607eb8b6586c06a1c47be8c436675f9d23ac7b887726b33e",
+      "sizeBytes": 19332,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "20fc1bc0a0c38b7122635d00aecb710a0ecf1892d91d3c3c190cc9213c2bb0ae",
+      "uncompressedSizeBytes": 151552,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "27ae7ae30f7bbfc01dd87c0ce992ecdfd9a5af87a3e821911820df68c486d9f0",
+      "sizeBytes": 10721,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 530,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "4f66c18be0ab19e515927953bd741a1476584f2bdac3d8e6d67221232a31468d"
+  },
+  "compiler": {
+    "adapter": "names-cn",
+    "adapterVersion": 1,
+    "buildInputSha256": "40d5ede50672c2394a7b94d7704ab1b0779448b8b60eafdae02f5848e3b72c0e",
+    "configSha256": "e6c65986bf7d425525f33bff82f87d2004f147a85a0a55136d91b8a73778bbe9",
+    "datasetContractSha256": "886668d0ba942927602980c7326299af05200ad08146e4c4c3b2245b2b316605",
+    "datasetSchemaSha256": "f0a2d67128ae84c6b61a05923dc7ab1a8b62346615cfbe0c2d95134e853048de",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "names-cn",
+    "sourceVersion": "40.37.0",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "363059f541987e9254fa8056e13b23be44718abd4109167aefcfde0ec4e03710"
+  },
+  "release": {
+    "buildRevision": 2,
+    "createdAt": "2026-09-01T11:30:26Z",
+    "id": "names-cn@40.37.0.r2",
+    "revoked": false,
+    "sequence": 2,
+    "storageKey": "40.37.0.r2",
+    "supersedes": "names-cn@40.37.0.r1"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Derived from the Faker project zh_CN person provider at the commit and version recorded in the Release Manifest. Contains no person-level records.\n",
+    "basis": "Maintainer decision to publish normalized aggregate name components from the pinned MIT-licensed Faker provider source.\n",
+    "evidence": [
+      "docs/publication-decision.md",
+      "https://github.com/joke2k/faker/blob/master/LICENSE.txt"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "Faker project",
+      "authorityRole": "software-data-source",
+      "authorityVerified": true,
+      "dataAsOf": "40.37.0",
+      "format": "python-source",
+      "originalFilename": "faker-person-zh_CN-40.37.0.py",
+      "recordCount": 530,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "c27bc139ec31885a485d5d2e1cb1d36e4df3a4a0341f1d0fe28898edb6a4865a",
+      "sizeBytes": 16430,
+      "sourceUrl": "https://github.com/joke2k/faker/blob/c5a00935f1eff78bf0258c8a45fb431747c46b48/faker/providers/person/zh_CN/__init__.py",
+      "upstreamCommit": "c5a00935f1eff78bf0258c8a45fb431747c46b48"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "df26815fd7112eeb988e7204d42e34a4f3275d0ae54a8cc2581882d1b63fe106"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "classCount": 440,
+  "loincCount": 112405,
+  "loincWithSpecimenCount": 112405,
+  "loincWithUnitCount": 44521,
+  "panelCount": 5164,
+  "panelMemberCount": 95705,
+  "passed": true,
+  "recordCount": 365722,
+  "schemaVersion": 1,
+  "sourceMembers": [
+    {
+      "archiveRole": "core",
+      "member": "LoincTable/Loinc.csv",
+      "role": "core",
+      "rowCount": 112405,
+      "uncompressedSha256": "5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba",
+      "uncompressedSizeBytes": 84205426
+    },
+    {
+      "archiveRole": "core",
+      "member": "AccessoryFiles/LinguisticVariants/zhCN5LinguisticVariant.csv",
+      "role": "linguistic-variant",
+      "rowCount": 96518,
+      "uncompressedSha256": "94527f0d89c455c427ac75e2ae6f5f9b19a92534e2b206768375819734a186e5",
+      "uncompressedSizeBytes": 96195744
+    },
+    {
+      "archiveRole": "core",
+      "member": "AccessoryFiles/PanelsAndForms/PanelsAndForms.csv",
+      "role": "panel-members",
+      "rowCount": 98519,
+      "uncompressedSha256": "54451baebd4e6f116edfc44024fc5ea2a005e32a56ad72514c31278cff9ce7d4",
+      "uncompressedSizeBytes": 34791992
+    },
+    {
+      "archiveRole": "core",
+      "member": "AccessoryFiles/PartFile/Part.csv",
+      "role": "parts",
+      "rowCount": 74937,
+      "uncompressedSha256": "743dff07ad47bc5eeb4854864ebb2a5ed883112df8d49e21b0fad9bf60ad6c77",
+      "uncompressedSizeBytes": 8038858
+    },
+    {
+      "archiveRole": "core",
+      "member": "AccessoryFiles/PartFile/LoincPartLink_Primary.csv",
+      "role": "specimen-links",
+      "rowCount": 685901,
+      "uncompressedSha256": "31e2db4ad083c56829951464d521956fb3bbd6ab9f207b5e9f39423363617578",
+      "uncompressedSizeBytes": 118680671
+    },
+    {
+      "archiveRole": "core",
+      "member": "LoincTable/Loinc.csv",
+      "role": "unit:example",
+      "rowCount": 112405,
+      "uncompressedSha256": "5de1463f0fe65d6c97867153b43151a07ce3f8c8a86de681f98e110008032aba",
+      "uncompressedSizeBytes": 84205426
+    }
+  ],
+  "sourceVersion": "2.83",
+  "specimenLinkCount": 112405,
+  "statusCounts": {
+    "ACTIVE": 99737,
+    "DEPRECATED": 5008,
+    "DISCOURAGED": 2224,
+    "TRIAL": 5436
+  },
+  "translatedCount": 96518,
+  "translationCoverage": {
+    "denominator": 112405,
+    "numerator": 96518,
+    "ratio": "0.858663"
+  },
+  "unitCount": 45207,
+  "unitCoverage": {
+    "denominator": 112405,
+    "numerator": 44521,
+    "ratio": "0.396077"
+  },
+  "untranslatedCount": 15887
+}

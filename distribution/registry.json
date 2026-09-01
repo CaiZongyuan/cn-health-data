@@ -1,22 +1,112 @@
 {
   "datasets": {
-    "laboratory-cn": {
-      "recommendedRelease": "laboratory-cn@2026-08-30.r1",
+    "geography-cn": {
+      "recommendedRelease": "geography-cn@2026-08-29.r2",
       "releases": [
         {
-          "buildRevision": 1,
-          "id": "laboratory-cn@2026-08-30.r1",
-          "manifestSha256": "d29752eca9290082aeba00c0ba81a59a0ca96bd8bd3c0b75a96e50384788f120",
-          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/laboratory-cn/2026-08-30.r1/manifest.json",
+          "buildRevision": 2,
+          "id": "geography-cn@2026-08-29.r2",
+          "manifestSha256": "ad353faa5ab5de17261bfa27e5ebf78dfab40337779f013a8452a5216de0701f",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/geography-cn/2026-08-29.r2/manifest.json",
           "revoked": false,
-          "sequence": 1,
+          "sequence": 2,
+          "sourceVersion": "2026-08-29",
+          "storageKey": "2026-08-29.r2"
+        }
+      ]
+    },
+    "laboratory-cn": {
+      "recommendedRelease": "laboratory-cn@2026-08-30.r2",
+      "releases": [
+        {
+          "buildRevision": 2,
+          "id": "laboratory-cn@2026-08-30.r2",
+          "manifestSha256": "3b83280f0e836efb0bcc26b0edecc2765d807dcdcdf185b5b69aff96014032fc",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/laboratory-cn/2026-08-30.r2/manifest.json",
+          "revoked": false,
+          "sequence": 2,
           "sourceVersion": "2026-08-30",
-          "storageKey": "2026-08-30.r1"
+          "storageKey": "2026-08-30.r2"
+        }
+      ]
+    },
+    "loinc-zh-cn": {
+      "recommendedRelease": "loinc-zh-cn@2.83.r2",
+      "releases": [
+        {
+          "buildRevision": 2,
+          "id": "loinc-zh-cn@2.83.r2",
+          "manifestSha256": "801a5eb75f59db4d1a4cefe5d539a852d3f0c94110d2369b0c5ef6bd18753f8c",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/loinc-zh-cn/2.83.r2/manifest.json",
+          "revoked": false,
+          "sequence": 2,
+          "sourceVersion": "2.83",
+          "storageKey": "2.83.r2"
+        }
+      ]
+    },
+    "names-cn": {
+      "recommendedRelease": "names-cn@40.37.0.r2",
+      "releases": [
+        {
+          "buildRevision": 2,
+          "id": "names-cn@40.37.0.r2",
+          "manifestSha256": "5e166b6cfd6910b36fcafc8b6403fbd47805ef434a6989ab4ea52f2252546e09",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/names-cn/40.37.0.r2/manifest.json",
+          "revoked": false,
+          "sequence": 2,
+          "sourceVersion": "40.37.0",
+          "storageKey": "40.37.0.r2"
+        }
+      ]
+    },
+    "nhc-icd10-clinical": {
+      "recommendedRelease": "nhc-icd10-clinical@2022.r4",
+      "releases": [
+        {
+          "buildRevision": 4,
+          "id": "nhc-icd10-clinical@2022.r4",
+          "manifestSha256": "75702c6aec00dc5b869babe176d67d13024d10996b501f8f65bae61803b15e39",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/nhc-icd10-clinical/2022.r4/manifest.json",
+          "revoked": false,
+          "sequence": 4,
+          "sourceVersion": "2022",
+          "storageKey": "2022.r4"
+        }
+      ]
+    },
+    "nhsa-drugs": {
+      "recommendedRelease": "nhsa-drugs@2026-01-09.r4",
+      "releases": [
+        {
+          "buildRevision": 4,
+          "id": "nhsa-drugs@2026-01-09.r4",
+          "manifestSha256": "6d1220df9c86b164f61dcea74ea4d742acea6d9cd706d8f93db54e9a2fc10f49",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/nhsa-drugs/2026-01-09.r4/manifest.json",
+          "revoked": false,
+          "sequence": 4,
+          "sourceVersion": "2026-01-09",
+          "storageKey": "2026-01-09.r4"
+        }
+      ]
+    },
+    "population-cn": {
+      "recommendedRelease": "population-cn@WPP2024.r2",
+      "releases": [
+        {
+          "buildRevision": 2,
+          "id": "population-cn@WPP2024.r2",
+          "manifestSha256": "6ac77b37739dcf1df41cfe3671efb8aee767da76aca59d14397220d249cd0b90",
+          "manifestUrl": "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/releases/population-cn/WPP2024.r2/manifest.json",
+          "revoked": false,
+          "sequence": 2,
+          "sourceVersion": "WPP2024",
+          "storageKey": "WPP2024.r2"
         }
       ]
     }
   },
-  "generatedAt": "2026-09-01T08:49:12Z",
+  "generatedAt": "2026-09-01T11:47:53Z",
   "schemaVersion": 1,
   "signature": {
     "algorithm": "Ed25519",

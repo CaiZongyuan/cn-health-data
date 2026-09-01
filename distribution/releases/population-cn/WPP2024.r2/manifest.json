@@ -1,0 +1,103 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "365655c07b2caca7bdfa43f1288d7561eef058595261c2fb08706cc293f64c15",
+      "sizeBytes": 107895,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "89858f25d5e898df32f896e8f12b7daf2bc569abb55f8bf69b3f21e988a50a05",
+      "uncompressedSizeBytes": 765952,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "data.parquet",
+      "sha256": "cd8443b65210dd06901c925e637c4b74e3ea6dc6f5f9ad2acb6edec84404b729",
+      "sizeBytes": 46634,
+      "url": "data.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 3171,
+    "serialization": "canonical-ndjson-v1",
+    "sha256": "371dde5944505c426a8ad39be21f647921e754366cb410c0529176d2b6ebfb8a"
+  },
+  "compiler": {
+    "adapter": "population-cn",
+    "adapterVersion": 1,
+    "buildInputSha256": "2cd80f7c32b6de0553e236821db4ea7ec2118fda016a10f5b6d858e96e057cd1",
+    "configSha256": "e8d822575403df90d3cbf144864e87ecf021d0b7c975a5a1ba4025d5a098445f",
+    "datasetContractSha256": "1d3b01989e23d6d5352f3e5ca8460d7ff486da55be8422d52d2be2eddd8d1195",
+    "datasetSchemaSha256": "a4d802e5e8404dc3bf144cce74c3b52c0caa674e2b10d975bf1fcb0d2fa6ff90",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "population-cn",
+    "sourceVersion": "WPP2024",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "db7f86a4962a76072b30b6eed650b342eb0c71f048c48da46e234cd3b39e2be2"
+  },
+  "release": {
+    "buildRevision": 2,
+    "createdAt": "2026-09-01T11:30:26Z",
+    "id": "population-cn@WPP2024.r2",
+    "revoked": false,
+    "sequence": 2,
+    "storageKey": "WPP2024.r2",
+    "supersedes": "population-cn@WPP2024.r1"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Based on United Nations, Department of Economic and Social Affairs, Population Division, World Population Prospects 2024, Medium variant.\n",
+    "basis": "Maintainer decision to publish the normalized China aggregate projection with UN WPP source identity, variant, citation, and provenance preserved.\n",
+    "evidence": [
+      "docs/publication-decision.md",
+      "https://population.un.org/wpp/"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "official-download",
+      "authority": "United Nations, Department of Economic and Social Affairs, Population Division",
+      "authorityRole": "original-authority",
+      "authorityVerified": true,
+      "dataAsOf": "WPP2024",
+      "format": "gzip-csv",
+      "originalFilename": "WPP2024_PopulationByAge5GroupSex_Medium.csv.gz",
+      "recordCount": 3171,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "sha256": "a04d7d1486a5eb2832cc812d599448f0a71e8ac9e1e7e6fa4066673d6a2487cd",
+      "sizeBytes": 29948947,
+      "sourceUrl": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_PopulationByAge5GroupSex_Medium.csv.gz",
+      "upstreamCommit": null
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "09cf455f63cb56aea488932ff3abf83c3409bd6b6ad6c5c4ae851fda99bb32f3"
+  }
+}

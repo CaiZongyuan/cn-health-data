@@ -22,6 +22,15 @@ use crate::storage::{
 };
 
 const STARTER_DATASET_ID: &str = "laboratory-cn";
+const DEFAULT_DATASET_IDS: [&str; 7] = [
+    "geography-cn",
+    "laboratory-cn",
+    "loinc-zh-cn",
+    "names-cn",
+    "nhc-icd10-clinical",
+    "nhsa-drugs",
+    "population-cn",
+];
 const DEFAULT_REGISTRY_URL: &str =
     "https://raw.githubusercontent.com/CaiZongyuan/cn-health-data/main/distribution/registry.json";
 const DEFAULT_REGISTRY_PUBLIC_KEY: &[u8; 32] = include_bytes!("../../../distribution/registry.pub");
@@ -52,8 +61,8 @@ enum Command {
 
 #[derive(Args)]
 struct InitArgs {
-    #[arg(long, default_value = "starter")]
-    profile: String,
+    #[arg(long, value_delimiter = ',')]
+    only: Vec<String>,
     #[arg(long, requires = "public_key")]
     registry: Option<String>,
     #[arg(long, requires = "registry")]
@@ -70,7 +79,7 @@ struct DoctorArgs {
 
 #[derive(Serialize)]
 struct DoctorCheck {
-    id: &'static str,
+    id: String,
     ok: bool,
 }
 
@@ -232,10 +241,8 @@ fn default_data_dir() -> PathBuf {
 }
 
 fn run_init(data_dir: &Path, args: InitArgs) -> Result<()> {
-    if args.profile != "starter" {
-        anyhow::bail!("unsupported initialization profile {:?}", args.profile);
-    }
-    let versions_before = list_versions(data_dir, STARTER_DATASET_ID)?;
+    let dataset_ids = selected_dataset_ids(&args.only)?;
+    let selection = if args.only.is_empty() { "all" } else { "only" };
     let (registry_url, public_key) = match (args.registry, args.public_key) {
         (None, None) => (
             DEFAULT_REGISTRY_URL.to_owned(),
@@ -244,58 +251,99 @@ fn run_init(data_dir: &Path, args: InitArgs) -> Result<()> {
         (Some(registry), Some(public_key)) => (registry, fs::read(public_key)?),
         _ => anyhow::bail!("--registry and --public-key must be provided together"),
     };
-    let installed =
-        install_remote_with_key(data_dir, STARTER_DATASET_ID, &registry_url, &public_key)?;
-    let status = if versions_before
-        .iter()
-        .any(|version| version.release_id == installed.release_id)
-    {
-        "already-installed"
-    } else {
-        "installed"
-    };
+    let mut items = Vec::with_capacity(dataset_ids.len());
+    for dataset_id in dataset_ids {
+        let versions_before = list_versions(data_dir, dataset_id)?;
+        let installed = install_remote_with_key(data_dir, dataset_id, &registry_url, &public_key)?;
+        let status = if versions_before
+            .iter()
+            .any(|version| version.release_id == installed.release_id)
+        {
+            "already-installed"
+        } else {
+            "installed"
+        };
+        if !args.json {
+            println!("{}\t{}\t{}", installed.id, installed.release_id, status);
+        }
+        items.push(json!({
+            "datasetId": installed.id,
+            "releaseId": installed.release_id,
+            "status": status
+        }));
+    }
     if args.json {
         print_json(&json!({
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "command": "init",
-            "profile": args.profile,
-            "items": [{
-                "datasetId": installed.id,
-                "releaseId": installed.release_id,
-                "status": status
-            }]
+            "selection": selection,
+            "items": items
         }))?;
-    } else {
-        println!("{}\t{}\t{}", installed.id, installed.release_id, status);
     }
     Ok(())
 }
 
+fn selected_dataset_ids(only: &[String]) -> Result<Vec<&'static str>> {
+    if only.is_empty() {
+        return Ok(DEFAULT_DATASET_IDS.to_vec());
+    }
+    for requested in only {
+        if requested.is_empty() || !DEFAULT_DATASET_IDS.contains(&requested.as_str()) {
+            anyhow::bail!("unknown or unavailable Dataset ID in --only: {requested:?}");
+        }
+    }
+    Ok(DEFAULT_DATASET_IDS
+        .iter()
+        .copied()
+        .filter(|dataset_id| only.iter().any(|requested| requested == dataset_id))
+        .collect())
+}
+
 fn run_doctor(data_dir: &Path, args: DoctorArgs) -> Result<bool> {
     let installed = list_installed(data_dir)?;
-    let starter = installed
-        .iter()
-        .find(|dataset| dataset.id == STARTER_DATASET_ID);
-    let installed_ok = starter.is_some();
-    let trusted = starter.is_some_and(|dataset| dataset.trust.starts_with("signed-registry:"));
-    let query_ok = current_database(data_dir, STARTER_DATASET_ID)
+    let mut checks = Vec::new();
+    for dataset_id in DEFAULT_DATASET_IDS {
+        let dataset_ok = installed.iter().any(|dataset| {
+            dataset.id == dataset_id
+                && dataset.trust.starts_with("signed-registry:")
+                && current_database(data_dir, dataset_id).is_ok_and(|(path, _)| path.is_file())
+        });
+        checks.push(DoctorCheck {
+            id: format!("dataset:{dataset_id}"),
+            ok: dataset_ok,
+        });
+    }
+    let drug_query_ok = current_database(data_dir, "nhsa-drugs")
+        .and_then(|(database, _)| drug_get(&database, "XA10BAE021A010010201650"))
+        .is_ok_and(|item| item.is_some());
+    let diagnosis_query_ok = current_database(data_dir, "nhc-icd10-clinical")
+        .and_then(|(database, _)| diagnosis_get(&database, "E14.900x001"))
+        .is_ok_and(|item| item.is_some());
+    let loinc_query_ok = current_database(data_dir, "loinc-zh-cn")
+        .and_then(|(database, _)| loinc_get(&database, "2339-0"))
+        .is_ok_and(|item| item.is_some());
+    let laboratory_query_ok = current_database(data_dir, STARTER_DATASET_ID)
         .and_then(|(database, _)| laboratory_get(&database, "2339-0"))
         .is_ok_and(|item| item.is_some());
-    let ok = installed_ok && trusted && query_ok;
-    let checks = [
+    checks.extend([
         DoctorCheck {
-            id: "starter-installed",
-            ok: installed_ok,
+            id: "query:drug".to_owned(),
+            ok: drug_query_ok,
         },
         DoctorCheck {
-            id: "starter-trusted",
-            ok: trusted,
+            id: "query:diagnosis".to_owned(),
+            ok: diagnosis_query_ok,
         },
         DoctorCheck {
-            id: "starter-query",
-            ok: query_ok,
+            id: "query:loinc".to_owned(),
+            ok: loinc_query_ok,
         },
-    ];
+        DoctorCheck {
+            id: "query:laboratory".to_owned(),
+            ok: laboratory_query_ok,
+        },
+    ]);
+    let ok = checks.iter().all(|check| check.ok);
     if args.json {
         print_json(&json!({
             "schemaVersion": 1,

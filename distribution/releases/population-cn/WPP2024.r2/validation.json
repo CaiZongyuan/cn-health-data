@@ -1,0 +1,9 @@
+{
+  "age_group_count": 21,
+  "maximum_year": 2100,
+  "minimum_year": 1950,
+  "passed": true,
+  "record_count": 3171,
+  "schemaVersion": 1,
+  "year_count": 151
+}

@@ -1,0 +1,167 @@
+{
+  "artifacts": [
+    {
+      "compression": "zstd",
+      "mediaType": "application/zstd",
+      "name": "data.sqlite.zst",
+      "sha256": "995ed976d8970b9fedd0c27c237551291e0be1220ce981f70d4e6fc011142965",
+      "sizeBytes": 2113488,
+      "uncompressedName": "data.sqlite",
+      "uncompressedSha256": "5ca7121046d49a80b0da38e2b3413a1bc1a7b1040382903ba1d516793e5c5bc7",
+      "uncompressedSizeBytes": 9957376,
+      "url": "data.sqlite.zst"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "administrative-divisions.parquet",
+      "sha256": "453ccd82c5f4f2078fed4aca07fdc27f1a9ffbbc9a7c18682d26ee953b4b0d00",
+      "sizeBytes": 72592,
+      "url": "administrative-divisions.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "places.parquet",
+      "sha256": "44ab1d2e8d03a9b3e4141302ca80f2695ebc7bdc3e2c45c69789e576e45a61b2",
+      "sizeBytes": 660264,
+      "url": "places.parquet"
+    },
+    {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "postal-areas.parquet",
+      "sha256": "24080dd34d5030d72d80f1ee0421cfc0863f61430da9d4bc2fe77612b1983fbf",
+      "sizeBytes": 78919,
+      "url": "postal-areas.parquet"
+    }
+  ],
+  "canonical": {
+    "recordCount": 24731,
+    "serialization": "canonical-table-hashes-v1",
+    "sha256": "3c632be160c5a3d6e3196b8e95a0b33a25e9f35bcee506b25d7305345c50957a",
+    "tables": [
+      {
+        "recordCount": 3595,
+        "sha256": "2397b2e57af4dbb4ec850e76622547f333736fe8a35aa5b84eeed455c6aa565d",
+        "table": "administrative_division"
+      },
+      {
+        "recordCount": 18784,
+        "sha256": "ac750fcae6dec7ec682469a22c45f7fde0e5b3bf40a413ab690db915b1c3c03f",
+        "table": "place"
+      },
+      {
+        "recordCount": 2352,
+        "sha256": "ba893e64adf1ee15673f5375f23108a9987cb78f56c3ea6a4c05a0beccd3bd5c",
+        "table": "postal_area"
+      }
+    ]
+  },
+  "compiler": {
+    "adapter": "geography-cn",
+    "adapterVersion": 1,
+    "buildInputSha256": "55ced2c4b49114b55cc420ce7e86dd5a8291b11be18c1a700f467fe59358be22",
+    "configSha256": "38f0e41dfa4da8429473e5abc57ba48a711c4196e1a03c4e41b3d0f0859c2afa",
+    "datasetContractSha256": "6631d3e52f7ff219c28e7c7b06c0824e1e73f575090d62dd055ebfbe805a05b7",
+    "datasetSchemaSha256": "49a12bde1019a666b35820a176c32f28877d24b16d57244d08c773775300baa1",
+    "gitCommit": "2523dfc7537984ae057b38017b90f780e63749f6",
+    "lockSha256": "b5f4885d8a9a0f03c9b92e6436f7253fb2b609a06bf357309dd1458e54c1afcb",
+    "name": "cn-health-compiler",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "datasetSchemaVersion": 1,
+    "id": "geography-cn",
+    "sourceVersion": "2026-08-29",
+    "status": "experimental"
+  },
+  "diff": {
+    "report": "diff.json",
+    "sha256": "ef10c55037a097064f96aef9eada2c58acf397fbf8074cb4c85f99aea35dead3"
+  },
+  "release": {
+    "buildRevision": 2,
+    "createdAt": "2026-09-01T11:30:26Z",
+    "id": "geography-cn@2026-08-29.r2",
+    "revoked": false,
+    "sequence": 2,
+    "storageKey": "2026-08-29.r2",
+    "supersedes": "geography-cn@2026-08-29.r1"
+  },
+  "rights": {
+    "allowedArtifactTypes": [
+      "sqlite",
+      "sqlite-zstd",
+      "parquet"
+    ],
+    "attribution": "Contains normalized geographic reference data derived from the pinned AreaCity source collection and GeoNames gazetteer/postal data. Source roles, URLs, versions, and hashes are recorded in the Release Manifest.\n",
+    "basis": "Maintainer decision to publish only the normalized composite projection while preserving per-source provenance and attribution.\n",
+    "evidence": [
+      "docs/publication-decision.md",
+      "https://www.geonames.org/about.html",
+      "https://creativecommons.org/licenses/by/4.0/"
+    ],
+    "redistribution": "normalized-only",
+    "releaseEligible": true,
+    "reviewedAt": "2026-09-01",
+    "reviewedBy": "CN Health Data maintainers"
+  },
+  "runtime": {
+    "minimumCliVersion": "0.2.0",
+    "minimumSQLiteVersion": "3.34.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "acquisition": "manual-local",
+      "authority": "AreaCity-JsSpider-StatsGov",
+      "authorityRole": "community-source-aggregation",
+      "authorityVerified": true,
+      "dataAsOf": "2026-08-29",
+      "format": "csv",
+      "originalFilename": "area-city-level3-2025.251231.260403.csv",
+      "recordCount": 3595,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "role": "administrative-divisions",
+      "sha256": "dd5a1594565b65fa3fea5ce4b9935e0b28908226949ae44f07ebfd533428e8ff",
+      "sizeBytes": 240347,
+      "sourceUrl": "https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/blob/c6c6e35bea3066d674efe2cded189dc57a86e7d8/src/%E9%87%87%E9%9B%86%E5%88%B0%E7%9A%84%E6%95%B0%E6%8D%AE/ok_data_level3.csv"
+    },
+    {
+      "acquisition": "official-download",
+      "authority": "GeoNames",
+      "authorityRole": "original-open-gazetteer",
+      "authorityVerified": true,
+      "dataAsOf": "2026-08-29",
+      "format": "zip",
+      "originalFilename": "geonames-CN-2026-08-29.zip",
+      "recordCount": 18784,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "role": "gazetteer",
+      "sha256": "0097ff5009cf8ba1d4a8ddefcf8903dc15e3004b1dd3affeb26bd9444ca3bd73",
+      "sizeBytes": 32094056,
+      "sourceUrl": "https://download.geonames.org/export/dump/CN.zip"
+    },
+    {
+      "acquisition": "official-download",
+      "authority": "GeoNames",
+      "authorityRole": "original-open-postal-data",
+      "authorityVerified": true,
+      "dataAsOf": "2026-08-29",
+      "format": "zip",
+      "originalFilename": "geonames-postal-CN-2026-08-29.zip",
+      "recordCount": 2352,
+      "reproducibleFromSource": true,
+      "retention": "private-content-addressed",
+      "role": "postal-areas",
+      "sha256": "8b4202489ce26e9757b973184acf1e511153ce931f6149f938e0ef5fbb7355d8",
+      "sizeBytes": 42329,
+      "sourceUrl": "https://download.geonames.org/export/zip/CN.zip"
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "report": "validation.json",
+    "sha256": "a77c5e4ce94f313068593e8199b9010393b18606918c1b5f35e7f0054834b5cc"
+  }
+}
