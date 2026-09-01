@@ -17,16 +17,16 @@ Dataset Contract 与 Manifest、Rust 原生 CLI，以及轻量 npm 启动器组�
 
 ## 当前状态
 
-| Dataset | 当前实现 | 已验证的本地构建 | 记录数 |
-|---|---|---:|---:|
-| `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r3` | 269,110 |
-| `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r3` | 37,294 |
-| `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r1` | 24,731 |
-| `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 |
-| `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 |
-| `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 |
-| `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r1` | 365,722 |
-| `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 |
+| Dataset | 当前实现 | 已验证构建 | 记录数 | 公众可获取性 |
+|---|---|---:|---:|---|
+| `nhsa-drugs` | 药品分类与代码工作簿 `总表`的导入、校验、打包与检索 | `2026-01-09.r3` | 269,110 | 仅本地 Candidate；不在公共 Registry |
+| `nhc-icd10-clinical` | 疾病分类与代码国家临床版 2.0（2022）的导入、校验、打包与检索 | `2022.r3` | 37,294 | 仅本地 Candidate；不在公共 Registry |
+| `geography-cn` | 行政区划、居民点与邮政区域的版本化编译 | `2026-08-29.r1` | 24,731 | 仅本地 Candidate；不在公共 Registry |
+| `names-cn` | 中文姓氏与男女名字组件的安全静态解析 | `40.37.0.r1` | 530 | 仅本地 Candidate；不在公共 Registry |
+| `population-cn` | 中国年龄/性别人口边际分布 | `WPP2024.r1` | 3,171 | 仅本地 Candidate；不在公共 Registry |
+| `laboratory-cn` | 项目自有中文检验/生命体征目录及精确 LOINC、首选 UCUM 交叉引用 | `2026-08-30.r1` | 18 | 公共 starter Registry；`cn-health init` 可安装 |
+| `loinc-zh-cn` | 完整 LOINC 2.83 核心表、官方中文变体、UCUM 候选单位、SYSTEM Part 与 panel | `2.83.r1` | 365,722 | 仅本地 Candidate；等待逐产物权利审查 |
+| `nhc-procedure-clinical` | 已定义 Contract 与 Schema，编译器暂缓实现 | 暂无 | 暂无 | 未实现 |
 
 表中的构建标识来自当前开发环境中已经验证的 Candidate。本仓库分发编译器、运行时、
 合成测试 Fixture，以及允许公开分发的 `laboratory-cn` starter Release。`tmp/`、`.work/`
@@ -101,8 +101,17 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 环境要求
 
-最终用户只需要适用于当前平台的 `cn-health 0.2.1` 原生发行包，不需要 Python、Rust 或
-来源工作簿。源码开发环境需要：
+普通用户可以选择 npm 或原生发行包：
+
+| 安装方式 | 运行要求 | 支持平台 |
+|---|---|---|
+| npm `cn-health@0.2.1` | Node.js 22 或更高版本 | Linux x64、macOS x64/arm64、Windows x64 |
+| GitHub 原生归档 | 无额外语言运行时 | Linux x64、macOS x64/arm64、Windows x64 |
+
+两种方式运行的是同一个 Rust CLI。npm 包只是平台二进制解析器，不包含第二套查询逻辑。
+普通用户不需要安装 Python、Rust、`uv`、pnpm，也不需要准备任何来源工作簿。
+
+源码开发环境需要：
 
 - Git；
 - Python 3.12；
@@ -115,17 +124,161 @@ dist/              不可变的本地 Candidate，Git 忽略
 
 ## 快速开始
 
-从 GitHub Releases 安装适用于当前平台的 `cn-health 0.2.1` 后，初始化签名 starter 数据
-并执行真实查询：
+### 使用 npm 安装
+
+这是最简单的跨平台安装方式：
 
 ```bash
+npm install --global cn-health@0.2.1
+cn-health --version
+```
+
+版本命令应输出：
+
+```text
+cn-health 0.2.1
+```
+
+npm 会根据当前操作系统只安装一个可选平台包。例如 Linux x64 安装
+`@cn-health/cli-linux-x64`；其他平台包显示为未满足的 optional dependency 是正常行为。
+
+临时试用也可以使用 `npx --yes cn-health@0.2.1 --version`，但日常查询建议全局安装，避免
+每次重新解析包。
+
+### 使用原生发行包
+
+不希望安装 Node.js 时，可从
+[`v0.2.1` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.2.1)
+下载对应归档：
+
+| 系统 | Release 资产 |
+|---|---|
+| Linux x64 | `cn-health-v0.2.1-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.2.1-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.2.1-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.2.1-win32-x64.tar.gz` |
+
+Linux/macOS 解压并直接运行：
+
+```bash
+tar -xzf cn-health-v0.2.1-linux-x64.tar.gz
+./cn-health-v0.2.1-linux-x64/cn-health --version
+```
+
+Windows PowerShell 可以使用系统自带的 `tar`：
+
+```powershell
+tar -xzf cn-health-v0.2.1-win32-x64.tar.gz
+.\cn-health-v0.2.1-win32-x64\cn-health.exe --version
+```
+
+每个原生归档同时包含 `LICENSE` 和 `DATA-NOTICE.md`。macOS 产物目前未做 Apple
+notarization；运行方式受本机 Gatekeeper 和组织安全策略约束。
+
+### 初始化 starter 数据
+
+安装 CLI 后执行：
+
+```bash
+cn-health init --json
+```
+
+首次运行会从内置 HTTPS Registry 下载、验证并安装
+`laboratory-cn@2026-08-30.r1`。成功输出类似：
+
+```json
+{"command":"init","items":[{"datasetId":"laboratory-cn","releaseId":"laboratory-cn@2026-08-30.r1","status":"installed"}],"profile":"starter","schemaVersion":1}
+```
+
+`init` 是幂等命令；同一 Release 已存在时状态为 `already-installed`。安装路径会校验：
+
+- Registry Ed25519 签名和固定公钥 key ID；
+- Manifest 摘要、Dataset/Release 身份和撤回状态；
+- `releaseEligible` 分发资格与同源 HTTPS URL；
+- zstd 传输文件和解压后 SQLite 的 SHA256 与大小；
+- 解压大小上限、SQLite `integrity_check` 和 application ID；
+- Manifest 声明的最低 CLI 版本。
+
+> 当前公共 starter **只有 18 条**项目自有的精选检验/生命体征数据。安装 npm 包或执行
+> `init` 不会获得药品、国家临床诊断、完整 LOINC、地理、姓名或人口 Candidate。
+
+### 查询和精确读取
+
+按中文文本搜索：
+
+```bash
+cn-health laboratory search 血糖 --limit 10 --json
+```
+
+按 LOINC code 精确读取：
+
+```bash
+cn-health laboratory get 2339-0 --json
+```
+
+`2339-0` 返回项目整理的中文显示“血糖”、LOINC system/version、分类、标本、结果类型和
+首选 UCUM 单位 `mg/dL`。搜索词至少需要两个 Unicode 字符；默认上限为 20，`--limit`
+允许 1 到 200。`--json` 输出包含稳定的 `schemaVersion`、Dataset/Release 身份、查询参数、
+结果和分页元数据。
+
+### 检查安装状态
+
+```bash
+cn-health doctor
+cn-health dataset list --json
+cn-health dataset info laboratory-cn --json
+cn-health dataset versions laboratory-cn --json
+```
+
+`doctor` 检查 starter 是否已安装、是否来自签名 Registry，以及已安装 SQLite 是否能读取
+关键记录。`doctor --json` 还会显示实际 `dataDir` 和编译进 CLI 的默认 Registry URL。
+
+### 数据目录和离线运行
+
+未指定 `--data-dir` 时，CLI 使用操作系统为 `org.cn-health.cn-health` 分配的应用数据目录。
+不要猜测该路径；使用以下命令查看：
+
+```bash
+cn-health doctor --json
+```
+
+需要隔离测试、CI 或多个运行环境时，将全局参数放在子命令之前：
+
+```bash
+cn-health --data-dir /absolute/path/to/cn-health-data init
+cn-health --data-dir /absolute/path/to/cn-health-data laboratory search 血糖 --json
+```
+
+`init` 需要网络访问公共 Registry；安装完成后，查询、精确读取、Dataset 信息和 `doctor`
+均不访问网络。卸载 npm 包不会自动删除应用数据目录。
+
+### 升级
+
+npm 用户升级 CLI 后重新执行幂等初始化，以采用 Registry 当前推荐且未撤回的 Release：
+
+```bash
+npm install --global cn-health@latest
+cn-health --version
 cn-health init
-cn-health laboratory search 血糖 --json
 cn-health doctor
 ```
 
-`init` 使用 CLI 内置的 Registry 地址和固定公钥，安装项目自有的 18 条精选检验/生命体征
-数据；下载后查询和 `doctor` 均可离线运行。该 starter 不是官方完整 LOINC 中文包。
+原生包用户从 GitHub Releases 下载新版本并替换自己的可执行文件。旧 Dataset Release
+仍保留在数据目录中；`dataset use` 可以在已安装版本之间切换。
+
+### 常见问题
+
+- `No cn-health binary for ...`：当前平台不受支持，或安装时省略了 optional dependency。
+  使用 Node.js 22+，并以 `npm install --global cn-health@latest --include=optional` 重新安装。
+- `EACCES`：`0.2.0` 的 npm 平台包没有保留 Unix 执行位；升级到 `0.2.1` 或更高版本。
+- `DATASET_NOT_INSTALLED`：先运行 `cn-health init`，并确认查询使用了相同的 `--data-dir`。
+- `CLI_VERSION_INCOMPATIBLE`：Manifest 需要更新的运行时；先升级 `cn-health`，再重新初始化。
+- `search query must contain at least two Unicode characters`：搜索词太短；使用至少两个字符，
+  或在已知 code 时改用 `get`。
+- Registry/HTTPS 下载错误：初始化需要访问 GitHub Raw 内容；检查代理、DNS、TLS 和组织
+  网络策略。不要通过关闭签名或哈希校验绕过错误。
+
+### 贡献者快速开始
 
 贡献者 clone 仓库后使用一条命令建立开发环境并完成同一条真实查询：
 
@@ -328,7 +481,7 @@ uv run cn-health-build synthea translation project \
 消费者仍可使用 `laboratory-cn`，无需加载完整术语库。详见
 [`datasets/laboratory-cn/README.md`](datasets/laboratory-cn/README.md)。
 
-## 本地安装与查询
+## 本地 Candidate 安装与查询
 
 先构建运行时，再通过本地 Manifest 安装 Candidate。显式指定数据目录可以让示例保持
 隔离且容易清理：
@@ -416,8 +569,22 @@ target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
 
 ## npm 启动器
 
-`npm/cn-health` 是轻量启动器。它只向原生 CLI 转发参数、标准输入输出、信号和退出码，
-不包含数据或查询逻辑。
+公开包 [`cn-health`](https://www.npmjs.com/package/cn-health) 是轻量 JavaScript 启动器。
+它只向原生 CLI 转发参数、标准输入输出、信号和退出码，不包含数据或查询逻辑。平台包为：
+
+- `@cn-health/cli-linux-x64`；
+- `@cn-health/cli-darwin-x64`；
+- `@cn-health/cli-darwin-arm64`；
+- `@cn-health/cli-win32-x64`。
+
+启动器按以下顺序解析二进制：
+
+1. 开发者显式设置的 `CN_HEALTH_BINARY`；
+2. 与当前 `process.platform/process.arch` 匹配的 optional platform package；
+3. 源码仓库内的 `target/release/cn-health` 开发构建。
+
+找不到实际文件时会明确报错，不会下载未经验证的可执行文件，也不会回退到 JavaScript
+实现。`0.2.0` 的 Unix 平台包缺少执行位，已经由 `0.2.1` 替代。
 
 本地开发时，将它指向已经构建的二进制文件：
 
@@ -430,9 +597,9 @@ CN_HEALTH_BINARY="$PWD/target/release/cn-health" \
   --data-dir .work/runtime dataset list --json
 ```
 
-tag 发行工作流为 Linux x64、macOS x64/arm64 和 Windows x64 构建原生归档及可选的
-`@cn-health/cli-<platform>-<arch>` npm 平台包。npm 发布只有在仓库显式启用并配置 token
-时执行。
+tag 发行工作流为 Linux x64、macOS x64/arm64 和 Windows x64 构建原生归档及 npm
+平台包，先发布平台包，再发布依赖它们的 launcher。发布脚本会跳过 npm 中已经存在的
+相同版本，因此中断后可以从 GitHub Release 的 `.tgz` 资产安全恢复。
 
 ## 开发与测试
 
