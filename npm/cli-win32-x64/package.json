@@ -1,6 +1,6 @@
 {
   "name": "@cn-health/cli-win32-x64",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Windows x64 native binary for cn-health",
   "license": "MIT",
   "os": ["win32"],

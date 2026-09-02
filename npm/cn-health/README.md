@@ -9,7 +9,7 @@ data or reimplement queries in JavaScript.
 Node.js 22 or newer is required for the launcher:
 
 ```bash
-npm install --global cn-health@0.5.0
+npm install --global cn-health@0.5.1
 cn-health --version
 ```
 
