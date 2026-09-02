@@ -845,3 +845,100 @@ fn init_rejects_unknown_dataset_before_network_access() {
             "unknown or unavailable Dataset ID",
         ));
 }
+
+#[test]
+fn reports_download_and_install_progress_on_stderr_without_touching_stdout() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_release(&temporary.path().join("fixtures"), "laboratory-cn");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["dataset"]["datasetSchemaVersion"] = Value::from(1);
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    fs::write(&manifest_path, &manifest_bytes).unwrap();
+    let compressed_bytes =
+        fs::read(manifest_path.parent().unwrap().join("data.sqlite.zst")).unwrap();
+
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let manifest_sha256 = hex::encode(Sha256::digest(&manifest_bytes));
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@fixture.r1",
+                "releases": [{
+                    "id": "laboratory-cn@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": manifest_sha256,
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[11_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let server_thread = std::thread::spawn(move || {
+        for _ in 0..4 {
+            let request = server.recv().unwrap();
+            let body = match request.url() {
+                "/registry.json" => registry_bytes.clone(),
+                "/registry.json.sig" => signature_bytes.clone(),
+                "/manifest.json" => manifest_bytes.clone(),
+                "/data.sqlite.zst" => compressed_bytes.clone(),
+                path => panic!("unexpected request {path}"),
+            };
+            request.respond(Response::from_data(body)).unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+    let data_dir = temporary.path().join("data");
+
+    let output = command(&data_dir)
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+        ])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(temporary.path().join("materialized"))
+        .arg("--json")
+        .output()
+        .unwrap();
+    server_thread.join().unwrap();
+    assert!(
+        output.status.success(),
+        "stderr:\n{}\nstdout:\n{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout),
+    );
+
+    let receipt: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(receipt["command"], "dataset.materialize");
+    assert_eq!(receipt["cliVersion"], env!("CARGO_PKG_VERSION"));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("download"));
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("[laboratory-cn@fixture.r1] download"));
+    assert!(stderr.contains("(100%)"));
+    assert!(stderr.contains("[laboratory-cn@fixture.r1] decompress"));
+    assert!(stderr.contains("[laboratory-cn@fixture.r1] verify SQLite"));
+    assert!(stderr.contains("[laboratory-cn@fixture.r1] installed ("));
+    assert!(stderr.contains("[laboratory-cn@fixture.r1] materialized ("));
+}

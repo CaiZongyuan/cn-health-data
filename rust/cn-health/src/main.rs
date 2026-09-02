@@ -1,5 +1,6 @@
 mod manifest;
 mod materialize;
+mod progress;
 mod query;
 mod registry;
 mod storage;
