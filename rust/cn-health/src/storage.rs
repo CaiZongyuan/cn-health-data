@@ -75,7 +75,6 @@ pub(crate) fn install_manifest(
     let releases_dir = dataset_dir.join("releases");
     fs::create_dir_all(&releases_dir)?;
     let lock = dataset_lock(data_dir, &manifest.dataset.id)?;
-    FileExt::lock_exclusive(&lock)?;
 
     let final_dir = releases_dir.join(&manifest.release.storage_key);
     let compressed = manifest.compressed_sqlite()?;

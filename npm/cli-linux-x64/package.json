@@ -1,6 +1,6 @@
 {
   "name": "@cn-health/cli-linux-x64",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Linux x64 native binary for cn-health",
   "license": "MIT",
   "os": ["linux"],

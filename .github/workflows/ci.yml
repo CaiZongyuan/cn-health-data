@@ -24,7 +24,12 @@ jobs:
       - run: uv run pytest
 
   rust:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy

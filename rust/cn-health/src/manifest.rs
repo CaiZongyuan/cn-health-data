@@ -131,7 +131,7 @@ pub fn sha256_file(path: &Path) -> Result<(String, u64)> {
         File::open(path).with_context(|| format!("failed to open artifact {}", path.display()))?;
     let mut digest = Sha256::new();
     let mut size = 0_u64;
-    let mut buffer = [0_u8; 1024 * 1024];
+    let mut buffer = vec![0_u8; 1024 * 1024];
     loop {
         let read = file.read(&mut buffer)?;
         if read == 0 {

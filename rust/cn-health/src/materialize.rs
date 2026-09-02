@@ -118,6 +118,7 @@ pub fn materialize_release(
     receipt_file.write_all(b"\n")?;
     receipt_file.flush()?;
     receipt_file.sync_all()?;
+    drop(receipt_file);
     validate_output_directory(output_dir)?;
     if output_dir.exists() {
         fs::remove_dir(output_dir)?;
