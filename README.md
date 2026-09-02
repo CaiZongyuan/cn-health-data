@@ -127,7 +127,7 @@ End users can install through npm or use a native release archive:
 
 | Installation | Runtime requirement | Supported platforms |
 |---|---|---|
-| npm `cn-health@0.5.2` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
+| npm `cn-health@0.5.3` | Node.js 22 or newer | Linux x64, macOS x64/arm64, Windows x64 |
 | GitHub native archive | No language runtime | Linux x64, macOS x64/arm64, Windows x64 |
 
 Both options run the same Rust CLI. The npm package only resolves a platform
@@ -153,48 +153,48 @@ require the third-party XLSX files.
 This is the simplest cross-platform installation method:
 
 ```bash
-npm install --global cn-health@0.5.2
+npm install --global cn-health@0.5.3
 cn-health --version
 ```
 
 The version command should print:
 
 ```text
-cn-health 0.5.2
+cn-health 0.5.3
 ```
 
 npm installs only the optional package matching the current operating system.
 For example, Linux x64 installs `@cn-health/cli-linux-x64`; unmet optional
 dependencies for the other platforms are expected.
 
-For a temporary check, `npx --yes cn-health@0.5.2 --version` also works. A global
+For a temporary check, `npx --yes cn-health@0.5.3 --version` also works. A global
 installation is preferable for repeated queries because it avoids resolving the
 package every time.
 
 ### Install a Native Archive
 
 To run without Node.js, download the matching archive from the
-[`v0.5.2` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.5.2):
+[`v0.5.3` GitHub Release](https://github.com/CaiZongyuan/cn-health-data/releases/tag/v0.5.3):
 
 | System | Release asset |
 |---|---|
-| Linux x64 | `cn-health-v0.5.2-linux-x64.tar.gz` |
-| macOS Intel | `cn-health-v0.5.2-darwin-x64.tar.gz` |
-| macOS Apple Silicon | `cn-health-v0.5.2-darwin-arm64.tar.gz` |
-| Windows x64 | `cn-health-v0.5.2-win32-x64.tar.gz` |
+| Linux x64 | `cn-health-v0.5.3-linux-x64.tar.gz` |
+| macOS Intel | `cn-health-v0.5.3-darwin-x64.tar.gz` |
+| macOS Apple Silicon | `cn-health-v0.5.3-darwin-arm64.tar.gz` |
+| Windows x64 | `cn-health-v0.5.3-win32-x64.tar.gz` |
 
 Extract and run on Linux or macOS:
 
 ```bash
-tar -xzf cn-health-v0.5.2-linux-x64.tar.gz
-./cn-health-v0.5.2-linux-x64/cn-health --version
+tar -xzf cn-health-v0.5.3-linux-x64.tar.gz
+./cn-health-v0.5.3-linux-x64/cn-health --version
 ```
 
 Windows PowerShell can use the system `tar` command:
 
 ```powershell
-tar -xzf cn-health-v0.5.2-win32-x64.tar.gz
-.\cn-health-v0.5.2-win32-x64\cn-health.exe --version
+tar -xzf cn-health-v0.5.3-win32-x64.tar.gz
+.\cn-health-v0.5.3-win32-x64\cn-health.exe --version
 ```
 
 Every native archive also contains `LICENSE` and `DATA-NOTICE.md`. macOS
@@ -699,6 +699,14 @@ target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
 The runtime verifies the Registry signature and key ID, Manifest digest and
 identity, release eligibility, artifact hashes and sizes, and same-origin URL
 policy. Plain HTTP is accepted only for loopback development hosts.
+
+Remote GET requests use a 10-second connection timeout and retry transient
+transport failures or HTTP 408/429/500/502/503/504 responses up to four total
+attempts. Retries use capped exponential backoff with full jitter and honor
+`Retry-After` up to 30 seconds. Retry progress is written to stderr. Exhausted
+JSON commands return `REMOTE_UNAVAILABLE` with `retryable: true` and the attempt
+count; signature, hash, schema, revocation, permission, and local I/O failures
+are never retried.
 
 ## npm Wrapper
 

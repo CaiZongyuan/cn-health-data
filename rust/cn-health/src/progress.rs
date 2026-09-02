@@ -122,6 +122,23 @@ impl Progress {
         ));
     }
 
+    /// Reports a bounded retry without changing the current streaming phase.
+    pub fn retry(
+        &self,
+        phase: &str,
+        attempt: u32,
+        maximum_attempts: u32,
+        delay: Duration,
+        reason: &str,
+    ) {
+        self.finish_rendered_line();
+        self.emit_line(&format!(
+            "[{}] {phase} retry {attempt}/{maximum_attempts} in {} ms ({reason})",
+            self.label,
+            delay.as_millis(),
+        ));
+    }
+
     fn emit_line(&self, line: &str) {
         let mut sink = self.sink.borrow_mut();
         let _ = writeln!(sink, "{line}");

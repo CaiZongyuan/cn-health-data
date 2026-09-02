@@ -20,7 +20,7 @@ use crate::query::{
     laboratory_health_check, laboratory_panel_get, laboratory_panel_search, laboratory_search,
     loinc_get, loinc_search,
 };
-use crate::registry::{install_remote, install_remote_with_key};
+use crate::registry::{RemoteUnavailable, install_remote, install_remote_with_key};
 use crate::storage::{
     activate_release, current_database, install_local, list_installed, list_versions,
 };
@@ -196,13 +196,24 @@ fn main() {
         Ok(false) => std::process::exit(1),
         Err(error) => {
             let message = format!("{error:#}");
-            let (code, exit_code) = classify_error(&message);
+            let (code, exit_code) = classify_error(&error);
             if json_output {
+                let error_payload = if let Some(remote) = error.downcast_ref::<RemoteUnavailable>()
+                {
+                    json!({
+                        "code": code,
+                        "message": message,
+                        "retryable": true,
+                        "attempts": remote.attempts()
+                    })
+                } else {
+                    json!({"code": code, "message": message})
+                };
                 println!(
                     "{}",
                     serde_json::to_string(&json!({
                         "schemaVersion": 1,
-                        "error": {"code": code, "message": message}
+                        "error": error_payload
                     }))
                     .expect("JSON error serialization cannot fail")
                 );
@@ -243,7 +254,11 @@ impl Cli {
     }
 }
 
-fn classify_error(message: &str) -> (&'static str, i32) {
+fn classify_error(error: &anyhow::Error) -> (&'static str, i32) {
+    if error.downcast_ref::<RemoteUnavailable>().is_some() {
+        return ("REMOTE_UNAVAILABLE", 7);
+    }
+    let message = format!("{error:#}");
     if message.contains("CLI_VERSION_INCOMPATIBLE") || message.contains("runtime.minimumCliVersion")
     {
         ("CLI_VERSION_INCOMPATIBLE", 6)
