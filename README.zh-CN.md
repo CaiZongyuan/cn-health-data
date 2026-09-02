@@ -617,7 +617,7 @@ target/debug/cn-health --data-dir .work/runtime dataset install DATASET_ID \
 远程 GET 使用 10 秒连接超时；传输错误或 HTTP 408/429/500/502/503/504 最多共尝试
 四次，并采用带 Full Jitter 的有上限指数退避，`Retry-After` 最长遵守 30 秒。重试进度
 只写 stderr。JSON 命令耗尽重试后返回 `REMOTE_UNAVAILABLE`、`retryable: true` 和尝试
-次数；签名、哈希、Schema、撤销、权限和本地 I/O 错误绝不重试。
+次数，并以状态码 7 退出；签名、哈希、Schema、撤销、权限和本地 I/O 错误绝不重试。
 
 ## npm 启动器
 

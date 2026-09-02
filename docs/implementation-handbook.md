@@ -2462,7 +2462,7 @@ cn-health drug search "阿莫西林" --json
 - stdout 只输出一个 UTF-8 JSON object，不带 ANSI、进度条或日志；
 - 诊断和进度写 stderr；
 - 无结果是 exit code `0` 且 `items: []`；
-- 参数错误为 `2`，Dataset 缺失或不兼容为 `3`，Registry/artifact 校验失败为 `4`，其他 Runtime 错误为 `5`；
+- 参数错误为 `2`，Dataset 缺失或不兼容为 `3`，Registry/artifact 校验失败为 `4`，其他 Runtime 错误为 `5`，远程请求耗尽有界重试为 `7`；
 - 新增 optional field 可以保持同一 schemaVersion，删除字段或改变语义必须提升 schemaVersion；
 - TS prototype 与 Rust Runtime 必须对同一组 JSON golden tests 产生兼容输出。
 

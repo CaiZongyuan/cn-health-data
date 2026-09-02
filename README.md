@@ -705,8 +705,8 @@ transport failures or HTTP 408/429/500/502/503/504 responses up to four total
 attempts. Retries use capped exponential backoff with full jitter and honor
 `Retry-After` up to 30 seconds. Retry progress is written to stderr. Exhausted
 JSON commands return `REMOTE_UNAVAILABLE` with `retryable: true` and the attempt
-count; signature, hash, schema, revocation, permission, and local I/O failures
-are never retried.
+count and exit code 7; signature, hash, schema, revocation, permission, and local
+I/O failures are never retried.
 
 ## npm Wrapper
 
