@@ -19,14 +19,14 @@ importers:
   npm/cn-health:
     optionalDependencies:
       '@cn-health/cli-darwin-arm64':
-        specifier: workspace:0.5.0
+        specifier: workspace:0.5.1
         version: link:../cli-darwin-arm64
       '@cn-health/cli-darwin-x64':
-        specifier: workspace:0.5.0
+        specifier: workspace:0.5.1
         version: link:../cli-darwin-x64
       '@cn-health/cli-linux-x64':
-        specifier: workspace:0.5.0
+        specifier: workspace:0.5.1
         version: link:../cli-linux-x64
       '@cn-health/cli-win32-x64':
-        specifier: workspace:0.5.0
+        specifier: workspace:0.5.1
         version: link:../cli-win32-x64
