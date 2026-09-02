@@ -242,15 +242,17 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cn-health"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "anyhow",
  "assert_cmd",
  "clap",
  "directories",
  "ed25519-dalek",
+ "fastrand",
  "fs2",
  "hex",
+ "httpdate",
  "predicates",
  "reqwest",
  "rusqlite",

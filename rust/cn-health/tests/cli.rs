@@ -1,6 +1,12 @@
 use std::fs::{self, File};
 use std::io::{Read, Write};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
+use std::time::Duration;
 
 use assert_cmd::Command;
 use ed25519_dalek::{Signer, SigningKey};
@@ -832,6 +838,368 @@ fn materializes_an_exact_signed_release_atomically_and_reuses_installed_content(
         .failure()
         .stdout(predicate::str::contains("output directory must be empty"));
     assert_eq!(fs::read(nonempty.join("keep.txt")).unwrap(), b"keep");
+}
+
+fn raw_http_request_path(stream: &mut TcpStream) -> String {
+    let mut request = Vec::new();
+    let mut buffer = [0_u8; 1024];
+    while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+        let size = stream.read(&mut buffer).unwrap();
+        assert!(size > 0, "HTTP client closed before completing headers");
+        request.extend_from_slice(&buffer[..size]);
+    }
+    String::from_utf8(request)
+        .unwrap()
+        .split_whitespace()
+        .nth(1)
+        .unwrap()
+        .to_owned()
+}
+
+fn raw_http_response(stream: &mut TcpStream, body: &[u8], content_length: usize) {
+    write!(
+        stream,
+        "HTTP/1.1 200 OK\r\nContent-Length: {content_length}\r\nConnection: close\r\n\r\n"
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    stream.flush().unwrap();
+    stream.shutdown(Shutdown::Both).unwrap();
+}
+
+#[test]
+fn retries_a_transient_registry_failure_without_polluting_stdout() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_laboratory_v2(&temporary.path().join("fixtures"));
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["dataset"]["datasetSchemaVersion"] = Value::from(2);
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    fs::write(&manifest_path, &manifest_bytes).unwrap();
+    let compressed_bytes =
+        fs::read(manifest_path.parent().unwrap().join("data.sqlite.zst")).unwrap();
+
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let manifest_sha256 = hex::encode(Sha256::digest(&manifest_bytes));
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@fixture.r1",
+                "releases": [{
+                    "id": "laboratory-cn@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": manifest_sha256,
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[13_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let server_request_count = Arc::clone(&request_count);
+    let server_thread = std::thread::spawn(move || {
+        loop {
+            let request = if server_request_count.load(Ordering::SeqCst) == 0 {
+                Some(server.recv().unwrap())
+            } else {
+                server.recv_timeout(Duration::from_secs(1)).unwrap()
+            };
+            let Some(request) = request else {
+                break;
+            };
+            let request_number = server_request_count.fetch_add(1, Ordering::SeqCst) + 1;
+            if request.url() == "/registry.json" && request_number == 1 {
+                request.respond(Response::empty(503)).unwrap();
+                continue;
+            }
+            let body = match request.url() {
+                "/registry.json" => registry_bytes.clone(),
+                "/registry.json.sig" => signature_bytes.clone(),
+                "/manifest.json" => manifest_bytes.clone(),
+                "/data.sqlite.zst" => compressed_bytes.clone(),
+                path => panic!("unexpected request {path}"),
+            };
+            request.respond(Response::from_data(body)).unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+
+    let output = command(&temporary.path().join("data"))
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+        ])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(temporary.path().join("materialized"))
+        .arg("--json")
+        .output()
+        .unwrap();
+    server_thread.join().unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}\nstdout:\n{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout),
+    );
+    assert_eq!(request_count.load(Ordering::SeqCst), 5);
+    assert!(String::from_utf8_lossy(&output.stderr).contains("retry 2/4"));
+    let receipt: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(receipt["command"], "dataset.materialize");
+}
+
+#[test]
+fn reports_structured_remote_unavailable_after_bounded_retries() {
+    let temporary = TempDir::new().unwrap();
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let server_thread = std::thread::spawn(move || {
+        for _ in 0..4 {
+            let request = server.recv().unwrap();
+            assert_eq!(request.url(), "/registry.json");
+            let retry_after = tiny_http::Header::from_bytes("Retry-After", "0").unwrap();
+            request
+                .respond(Response::empty(503).with_header(retry_after))
+                .unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, [17_u8; 32]).unwrap();
+
+    let output = command(&temporary.path().join("data"))
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+        ])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(temporary.path().join("materialized"))
+        .arg("--json")
+        .output()
+        .unwrap();
+    server_thread.join().unwrap();
+
+    assert_eq!(output.status.code(), Some(7));
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(error["error"]["code"], "REMOTE_UNAVAILABLE");
+    assert_eq!(error["error"]["retryable"], true);
+    assert_eq!(error["error"]["attempts"], 4);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(stderr.matches("retry").count(), 3);
+    assert!(stderr.contains("retry 4/4 in 0 ms"));
+}
+
+#[test]
+fn retries_an_interrupted_artifact_from_an_empty_temporary_file() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_laboratory_v2(&temporary.path().join("fixtures"));
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["dataset"]["datasetSchemaVersion"] = Value::from(2);
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    fs::write(&manifest_path, &manifest_bytes).unwrap();
+    let compressed_bytes =
+        fs::read(manifest_path.parent().unwrap().join("data.sqlite.zst")).unwrap();
+    let database_bytes = fs::read(manifest_path.parent().unwrap().join("data.sqlite")).unwrap();
+
+    let server = TcpListener::bind("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.local_addr().unwrap());
+    let manifest_sha256 = hex::encode(Sha256::digest(&manifest_bytes));
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@fixture.r1",
+                "releases": [{
+                    "id": "laboratory-cn@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": manifest_sha256,
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[19_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let interrupted_bytes = compressed_bytes[..compressed_bytes.len() / 2].to_vec();
+    let expected_compressed_size = compressed_bytes.len();
+    let server_thread = std::thread::spawn(move || {
+        let mut artifact_attempts = 0;
+        for _ in 0..5 {
+            let (mut stream, _) = server.accept().unwrap();
+            match raw_http_request_path(&mut stream).as_str() {
+                "/registry.json" => {
+                    raw_http_response(&mut stream, &registry_bytes, registry_bytes.len())
+                }
+                "/registry.json.sig" => {
+                    raw_http_response(&mut stream, &signature_bytes, signature_bytes.len())
+                }
+                "/manifest.json" => {
+                    raw_http_response(&mut stream, &manifest_bytes, manifest_bytes.len())
+                }
+                "/data.sqlite.zst" => {
+                    artifact_attempts += 1;
+                    if artifact_attempts == 1 {
+                        raw_http_response(
+                            &mut stream,
+                            &interrupted_bytes,
+                            expected_compressed_size,
+                        );
+                    } else {
+                        raw_http_response(&mut stream, &compressed_bytes, expected_compressed_size);
+                    }
+                }
+                path => panic!("unexpected request {path}"),
+            }
+        }
+        artifact_attempts
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+    let output_directory = temporary.path().join("materialized");
+
+    let output = command(&temporary.path().join("data"))
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+        ])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(&output_directory)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let artifact_attempts = server_thread.join().unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}\nstdout:\n{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout),
+    );
+    assert_eq!(artifact_attempts, 2);
+    assert!(String::from_utf8_lossy(&output.stderr).contains("download retry 2/4"));
+    assert_eq!(
+        fs::read(output_directory.join("data.sqlite")).unwrap(),
+        database_bytes
+    );
+}
+
+#[test]
+fn does_not_retry_a_manifest_verification_failure() {
+    let temporary = TempDir::new().unwrap();
+    let manifest_path = fixture_laboratory_v2(&temporary.path().join("fixtures"));
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["dataset"]["datasetSchemaVersion"] = Value::from(2);
+    manifest["rights"]["releaseEligible"] = Value::Bool(true);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+
+    let server = Server::http("127.0.0.1:0").unwrap();
+    let base_url = format!("http://{}", server.server_addr());
+    let registry = json!({
+        "schemaVersion": 1,
+        "datasets": {
+            "laboratory-cn": {
+                "recommendedRelease": "laboratory-cn@fixture.r1",
+                "releases": [{
+                    "id": "laboratory-cn@fixture.r1",
+                    "manifestUrl": format!("{base_url}/manifest.json"),
+                    "manifestSha256": "0".repeat(64),
+                    "revoked": false
+                }]
+            }
+        },
+        "signature": {
+            "algorithm": "Ed25519",
+            "keyId": "placeholder",
+            "url": "registry.json.sig"
+        }
+    });
+    let signing_key = SigningKey::from_bytes(&[23_u8; 32]);
+    let public_bytes = signing_key.verifying_key().to_bytes();
+    let key_id = hex::encode(Sha256::digest(public_bytes));
+    let mut registry = registry;
+    registry["signature"]["keyId"] = Value::String(key_id[..16].to_owned());
+    let registry_bytes = serde_json::to_vec(&registry).unwrap();
+    let signature_bytes = signing_key.sign(&registry_bytes).to_bytes().to_vec();
+    let server_thread = std::thread::spawn(move || {
+        for expected_path in ["/registry.json", "/registry.json.sig", "/manifest.json"] {
+            let request = server.recv().unwrap();
+            assert_eq!(request.url(), expected_path);
+            let body = match expected_path {
+                "/registry.json" => registry_bytes.clone(),
+                "/registry.json.sig" => signature_bytes.clone(),
+                "/manifest.json" => manifest_bytes.clone(),
+                _ => unreachable!(),
+            };
+            request.respond(Response::from_data(body)).unwrap();
+        }
+    });
+    let public_key_path = temporary.path().join("registry.pub");
+    fs::write(&public_key_path, public_bytes).unwrap();
+
+    let output = command(&temporary.path().join("data"))
+        .args([
+            "dataset",
+            "materialize",
+            "laboratory-cn",
+            "laboratory-cn@fixture.r1",
+            "--registry",
+        ])
+        .arg(format!("{base_url}/registry.json"))
+        .arg("--public-key")
+        .arg(&public_key_path)
+        .arg("--output")
+        .arg(temporary.path().join("materialized"))
+        .arg("--json")
+        .output()
+        .unwrap();
+    server_thread.join().unwrap();
+
+    assert_eq!(output.status.code(), Some(4));
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("retry"));
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(error["error"]["code"], "ARTIFACT_VERIFICATION_FAILED");
 }
 
 #[test]

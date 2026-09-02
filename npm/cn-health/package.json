@@ -1,6 +1,6 @@
 {
   "name": "cn-health",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Thin npm launcher for the native cn-health runtime",
   "license": "MIT",
   "bin": {
@@ -13,10 +13,10 @@
     "node": ">=22"
   },
   "optionalDependencies": {
-    "@cn-health/cli-darwin-arm64": "workspace:0.5.2",
-    "@cn-health/cli-darwin-x64": "workspace:0.5.2",
-    "@cn-health/cli-linux-x64": "workspace:0.5.2",
-    "@cn-health/cli-win32-x64": "workspace:0.5.2"
+    "@cn-health/cli-darwin-arm64": "workspace:0.5.3",
+    "@cn-health/cli-darwin-x64": "workspace:0.5.3",
+    "@cn-health/cli-linux-x64": "workspace:0.5.3",
+    "@cn-health/cli-win32-x64": "workspace:0.5.3"
   },
   "scripts": {
     "test": "node --test"

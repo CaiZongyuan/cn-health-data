@@ -19,3 +19,5 @@ Version 0.5.1 reports download, decompression, verification, and export progress
 on stderr with TTY and piped rendering, keeping stdout output byte-identical.
 Version 0.5.2 fixes a Windows deadlock after Dataset downloads and runs the Rust
 CLI integration suite on both Linux and Windows.
+Version 0.5.3 adds bounded retries with exponential backoff and full jitter for
+transient Registry, Manifest, and artifact transport failures.
