@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 
 use crate::manifest::Manifest;
+use crate::progress::{Progress, copy_with_progress};
 use crate::storage::{InstalledDataset, install_manifest, list_versions};
 
 const MAX_METADATA_BYTES: u64 = 10 * 1024 * 1024;
@@ -140,6 +141,7 @@ fn install_remote_release_with_key(
     if release.revoked {
         bail!("Release {} is revoked", release.id);
     }
+    let progress = Progress::new(release.id.clone());
     let manifest_url = Url::parse(&release.manifest_url)?;
     require_secure_or_loopback(&manifest_url)?;
     require_same_origin(&registry_url, &manifest_url)?;
@@ -165,14 +167,26 @@ fn install_remote_release_with_key(
         let artifact_url = manifest_url.join(&artifact.url)?;
         require_same_origin(&manifest_url, &artifact_url)?;
         let artifact_path = temporary.path().join(&artifact.name);
-        download_exact(&client, artifact_url, &artifact_path, artifact.size_bytes)?;
+        download_exact(
+            &client,
+            artifact_url,
+            &artifact_path,
+            artifact.size_bytes,
+            &progress,
+        )?;
     }
     let installed = install_manifest(
         data_dir,
         &manifest_path,
         &format!("signed-registry:{}", registry.signature.key_id),
         !already_installed,
+        &progress,
     )?;
+    progress.finish(if already_installed {
+        "already installed"
+    } else {
+        "installed"
+    });
     Ok(VerifiedRemoteRelease {
         installed,
         manifest_sha256: release.manifest_sha256.clone(),
@@ -196,7 +210,13 @@ fn fetch_bytes(client: &Client, url: Url, maximum: u64) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn download_exact(client: &Client, url: Url, path: &Path, expected_size: u64) -> Result<()> {
+fn download_exact(
+    client: &Client,
+    url: Url,
+    path: &Path,
+    expected_size: u64,
+    progress: &Progress,
+) -> Result<()> {
     let response = successful_response(client, url)?;
     if response
         .content_length()
@@ -204,8 +224,10 @@ fn download_exact(client: &Client, url: Url, path: &Path, expected_size: u64) ->
     {
         bail!("remote artifact Content-Length does not match Manifest");
     }
+    progress.phase("download");
     let mut output = File::create(path)?;
-    let copied = std::io::copy(&mut response.take(expected_size + 1), &mut output)?;
+    let mut limited = response.take(expected_size + 1);
+    let copied = copy_with_progress(&mut limited, &mut output, progress, Some(expected_size))?;
     output.flush()?;
     output.sync_all()?;
     if copied != expected_size {

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use tempfile::{NamedTempFile, tempdir_in};
 
 use crate::manifest::{Manifest, artifact_path, sha256_file, validate_segment};
+use crate::progress::{Progress, copy_with_progress};
 
 const APPLICATION_ID: i64 = 0x434E4844;
 
@@ -57,7 +58,8 @@ pub struct InstalledReleaseFiles {
 }
 
 pub fn install_local(data_dir: &Path, manifest_path: &Path) -> Result<InstalledDataset> {
-    install_manifest(data_dir, manifest_path, "local-untrusted", true)
+    let progress = Progress::new("install");
+    install_manifest(data_dir, manifest_path, "local-untrusted", true, &progress)
 }
 
 pub(crate) fn install_manifest(
@@ -65,6 +67,7 @@ pub(crate) fn install_manifest(
     manifest_path: &Path,
     trust: &str,
     verify_source_artifact: bool,
+    progress: &Progress,
 ) -> Result<InstalledDataset> {
     let manifest_path = manifest_path.canonicalize()?;
     let manifest = Manifest::read(&manifest_path)?;
@@ -84,6 +87,7 @@ pub(crate) fn install_manifest(
         .uncompressed_size_bytes
         .context("Manifest has no uncompressedSizeBytes")?;
     let compressed_path = if verify_source_artifact {
+        progress.phase("verify compressed artifact");
         Some(verified_compressed_path(&manifest_path, compressed)?)
     } else {
         None
@@ -108,6 +112,7 @@ pub(crate) fn install_manifest(
         if database_hash != expected_hash || database_size != expected_size {
             bail!("installed SQLite SHA256 or size does not match Manifest");
         }
+        progress.phase("verify installed SQLite");
         verify_database(&database_path)?;
         let existing_metadata: InstallMetadata =
             serde_json::from_reader(File::open(final_dir.join("install.json"))?)?;
@@ -137,11 +142,12 @@ pub(crate) fn install_manifest(
 
     let temporary = tempdir_in(&releases_dir)?;
     let database_path = temporary.path().join("data.sqlite");
-    decompress_bounded(&compressed_path, &database_path, expected_size)?;
+    decompress_bounded(&compressed_path, &database_path, expected_size, progress)?;
     let (database_hash, database_size) = sha256_file(&database_path)?;
     if database_hash != expected_hash || database_size != expected_size {
         bail!("uncompressed SQLite SHA256 or size does not match Manifest");
     }
+    progress.phase("verify SQLite");
     verify_database(&database_path)?;
     fs::copy(&manifest_path, temporary.path().join("manifest.json"))?;
     fs::write(
@@ -304,12 +310,18 @@ fn dataset_lock(data_dir: &Path, dataset_id: &str) -> Result<File> {
     Ok(lock)
 }
 
-fn decompress_bounded(source: &Path, target: &Path, expected_size: u64) -> Result<()> {
+fn decompress_bounded(
+    source: &Path,
+    target: &Path,
+    expected_size: u64,
+    progress: &Progress,
+) -> Result<()> {
     let input = File::open(source)?;
     let decoder = zstd::stream::read::Decoder::new(input)?;
     let mut limited = decoder.take(expected_size + 1);
     let mut output = File::create(target)?;
-    let copied = std::io::copy(&mut limited, &mut output)?;
+    progress.phase("decompress");
+    let copied = copy_with_progress(&mut limited, &mut output, progress, Some(expected_size))?;
     output.flush()?;
     output.sync_all()?;
     if copied != expected_size {

@@ -7,6 +7,7 @@ use serde::Serialize;
 use tempfile::tempdir_in;
 
 use crate::manifest::{Manifest, sha256_file};
+use crate::progress::Progress;
 use crate::registry::install_remote_release;
 use crate::storage::installed_release_files;
 
@@ -62,6 +63,7 @@ pub fn materialize_release(
         registry_url,
         public_key_path,
     )?;
+    let export = Progress::new(release_id);
     let installed = installed_release_files(data_dir, dataset_id, release_id)?;
     if installed.trust != format!("signed-registry:{}", verified.registry_key_id) {
         bail!("installed Release trust does not match verified Registry");
@@ -76,6 +78,7 @@ pub fn materialize_release(
         .context("materialization output has no parent")?;
     fs::create_dir_all(parent)?;
     let temporary = tempdir_in(parent)?;
+    export.phase("export");
     let manifest_target = temporary.path().join("manifest.json");
     let database_target = temporary.path().join("data.sqlite");
     fs::copy(&installed.manifest_path, &manifest_target)?;
@@ -120,6 +123,7 @@ pub fn materialize_release(
         fs::remove_dir(output_dir)?;
     }
     fs::rename(temporary.path(), output_dir)?;
+    export.finish("materialized");
     Ok(receipt)
 }
 
