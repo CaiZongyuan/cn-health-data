@@ -176,7 +176,7 @@ def test_synthea_service_exposes_bounded_health_and_localization_contract() -> N
         thread.join(timeout=2)
 
 
-def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
+def test_synthea_service_docker_image_is_self_contained() -> None:
     repository = Path(__file__).parents[3]
     dockerfile = (repository / "Dockerfile.synthea-localizer").read_text(encoding="utf-8")
     dockerignore = (repository / ".dockerignore").read_text(encoding="utf-8")
@@ -188,13 +188,39 @@ def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
     assert "pip wheel --no-deps" in dockerfile
     assert '"pydantic>=2.11,<3"' in dockerfile
     assert '"rfc8785>=0.1.4,<1"' in dockerfile
-    assert "COPY dist" not in dockerfile
+    assert "distribution/profiles/synthea-cn/2026-08-29.r4" in dockerfile
+    assert "distribution/releases/geography-cn/2026-08-29.r2" in dockerfile
+    assert "distribution/releases/names-cn/40.37.0.r2" in dockerfile
+    assert "distribution/releases/population-cn/WPP2024.r2" in dockerfile
+    assert "translations/synthea-zh-cn/catalog.jsonl" in dockerfile
+    assert "CN_HEALTH_SYNTHEA_PROFILE_PATH=/opt/cn-health/runtime/profile" in dockerfile
+    assert "CN_HEALTH_GEOGRAPHY_RELEASE_PATH=/opt/cn-health/runtime/geography" in dockerfile
+    assert "CN_HEALTH_NAMES_RELEASE_PATH=/opt/cn-health/runtime/names" in dockerfile
+    assert "CN_HEALTH_POPULATION_RELEASE_PATH=/opt/cn-health/runtime/population" in dockerfile
+    assert "org.cn-health-data.synthea.review-mode=experimental-preview" in dockerfile
     assert "COPY tmp" not in dockerfile
     assert '"pyyaml>=6.0.2,<7"' in dockerfile
     assert "pydantic pyyaml rfc8785" in dockerfile
     assert "CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256" in dockerfile
     assert "dist/" in dockerignore
     assert "tmp/" in dockerignore
+
+
+def test_synthea_runtime_release_builds_and_publishes_verified_image() -> None:
+    repository = Path(__file__).parents[3]
+    workflow = (repository / ".github/workflows/synthea-runtime.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "ghcr.io/caizongyuan/cn-health-synthea-localizer" in workflow
+    assert "linux/amd64,linux/arm64" in workflow
+    assert "packages: write" in workflow
+    assert "docker build" in workflow
+    assert "--read-only" in workflow
+    assert "/v1/localize" in workflow
+    assert "push: true" in workflow
+    assert "sbom: true" in workflow
+    assert "attest-build-provenance" in workflow
 
 
 def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenance(

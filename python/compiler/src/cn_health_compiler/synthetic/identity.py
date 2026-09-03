@@ -44,9 +44,21 @@ class _ManifestCanonical(BaseModel):
 class _ManifestArtifact(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    compression: str | None = None
     name: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     size_bytes: int = Field(alias="sizeBytes", ge=0)
+    uncompressed_name: str | None = Field(default=None, alias="uncompressedName")
+    uncompressed_sha256: str | None = Field(
+        default=None,
+        alias="uncompressedSha256",
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    uncompressed_size_bytes: int | None = Field(
+        default=None,
+        alias="uncompressedSizeBytes",
+        ge=0,
+    )
 
 
 class _CandidateManifest(BaseModel):
@@ -121,18 +133,29 @@ def load_dataset_release_reference(
         raise CandidateReleaseError("Candidate Manifest is unreadable") from error
     if manifest.dataset.id != expected_dataset_id:
         raise CandidateReleaseError("Candidate belongs to a different Dataset")
-    sqlite_artifacts = [
-        artifact for artifact in manifest.artifacts if artifact.name == "data.sqlite"
-    ]
+    sqlite_artifacts = []
+    for artifact in manifest.artifacts:
+        if artifact.name == "data.sqlite":
+            sqlite_artifacts.append((artifact.sha256, artifact.size_bytes))
+        elif (
+            artifact.name == "data.sqlite.zst"
+            and artifact.compression == "zstd"
+            and artifact.uncompressed_name == "data.sqlite"
+            and artifact.uncompressed_sha256 is not None
+            and artifact.uncompressed_size_bytes is not None
+        ):
+            sqlite_artifacts.append(
+                (artifact.uncompressed_sha256, artifact.uncompressed_size_bytes)
+            )
     if len(sqlite_artifacts) != 1:
         raise CandidateReleaseError("Candidate must declare one SQLite artifact")
-    artifact = sqlite_artifacts[0]
+    expected_sha256, expected_size = sqlite_artifacts[0]
     database_path = release_dir / "data.sqlite"
     try:
         actual_sha256, actual_size = hash_file(database_path)
     except OSError as error:
         raise CandidateReleaseError("Candidate SQLite artifact is unreadable") from error
-    if (actual_sha256, actual_size) != (artifact.sha256, artifact.size_bytes):
+    if (actual_sha256, actual_size) != (expected_sha256, expected_size):
         raise CandidateReleaseError("Candidate SQLite SHA256 or size does not match Manifest")
     connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:

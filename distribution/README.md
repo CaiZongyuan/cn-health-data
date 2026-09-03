@@ -58,9 +58,11 @@ using the database. The Registry signature and public key are
 ## Synthea Profile
 
 The separately versioned
-[`synthea-cn@2026-08-29.r3`](profiles/synthea-cn/2026-08-29.r3/manifest.json)
+[`synthea-cn@2026-08-29.r4`](profiles/synthea-cn/2026-08-29.r4/manifest.json)
 resource tree targets Synthea commit
-`d9d07a6eef91ee5144293b42ab64224d84d124f8`.
+`d9d07a6eef91ee5144293b42ab64224d84d124f8` and the current r2 identity
+Datasets. The self-contained localizer image and its release contract are
+documented in [`../docs/synthea-runtime.md`](../docs/synthea-runtime.md).
 
 ## Source Boundary
 

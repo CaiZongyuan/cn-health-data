@@ -177,3 +177,38 @@ def test_candidate_release_loader_verifies_manifest_and_sqlite(tmp_path: Path) -
         stream.write(b"tampered")
     with pytest.raises(CandidateReleaseError, match="SHA256 or size"):
         load_dataset_release_reference(release, expected_dataset_id="names-cn")
+
+
+def test_candidate_release_loader_accepts_materialized_public_release(tmp_path: Path) -> None:
+    release = tmp_path / "names-release"
+    release.mkdir()
+    database = release / "data.sqlite"
+    _names_database(database)
+    database_bytes = database.read_bytes()
+    database_sha256 = hashlib.sha256(database_bytes).hexdigest()
+    (release / "manifest.json").write_text(
+        json.dumps(
+            {
+                "release": {"id": "names-cn@40.37.0.r2"},
+                "dataset": {"id": "names-cn"},
+                "canonical": {"sha256": "a" * 64},
+                "artifacts": [
+                    {
+                        "name": "data.sqlite.zst",
+                        "sha256": "b" * 64,
+                        "sizeBytes": 123,
+                        "compression": "zstd",
+                        "uncompressedName": "data.sqlite",
+                        "uncompressedSha256": database_sha256,
+                        "uncompressedSizeBytes": len(database_bytes),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    reference = load_dataset_release_reference(release, expected_dataset_id="names-cn")
+
+    assert reference.release_id == "names-cn@40.37.0.r2"
+    assert reference.database_path == database

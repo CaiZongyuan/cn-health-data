@@ -90,14 +90,16 @@ def test_full_registry_is_signed_complete_and_installable(tmp_path: Path) -> Non
 
 
 def test_public_synthea_profile_matches_its_manifest() -> None:
-    profile_root = REPO_ROOT / "distribution/profiles/synthea-cn/2026-08-29.r3"
+    profile_root = REPO_ROOT / "distribution/profiles/synthea-cn/2026-08-29.r4"
     manifest = json.loads((profile_root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profileId"] == "synthea-cn@2026-08-29.r3"
+    assert manifest["profileId"] == "synthea-cn@2026-08-29.r4"
     assert manifest["supportedSyntheaCommit"] == "d9d07a6eef91ee5144293b42ab64224d84d124f8"
-    assert {item["datasetId"] for item in manifest["dependencies"]} == {
-        "geography-cn",
-        "names-cn",
-        "population-cn",
+    assert {
+        item["datasetId"]: item["releaseId"] for item in manifest["dependencies"]
+    } == {
+        "geography-cn": "geography-cn@2026-08-29.r2",
+        "names-cn": "names-cn@40.37.0.r2",
+        "population-cn": "population-cn@WPP2024.r2",
     }
     for declared in manifest["files"]:
         relative = Path(declared["path"])

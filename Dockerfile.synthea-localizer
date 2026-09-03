@@ -13,12 +13,45 @@ RUN python -m pip wheel --no-deps --wheel-dir /wheels . \
     "pyyaml>=6.0.2,<7" \
     "rfc8785>=0.1.4,<1"
 
+RUN python -m pip install --no-cache-dir "zstandard==0.25.0"
+COPY distribution/profiles/synthea-cn/2026-08-29.r4 /runtime/profile
+COPY distribution/releases/geography-cn/2026-08-29.r2/manifest.json \
+  distribution/releases/geography-cn/2026-08-29.r2/data.sqlite.zst /runtime/geography/
+COPY distribution/releases/names-cn/40.37.0.r2/manifest.json \
+  distribution/releases/names-cn/40.37.0.r2/data.sqlite.zst /runtime/names/
+COPY distribution/releases/population-cn/WPP2024.r2/manifest.json \
+  distribution/releases/population-cn/WPP2024.r2/data.sqlite.zst /runtime/population/
+COPY translations/synthea-zh-cn/catalog.jsonl \
+  translations/synthea-zh-cn/translation.yaml /runtime/translation/
+RUN python - <<'PY'
+from pathlib import Path
+
+import zstandard
+
+for directory in ("geography", "names", "population"):
+    source = Path("/runtime") / directory / "data.sqlite.zst"
+    target = source.with_suffix("")
+    with source.open("rb") as compressed, target.open("wb") as database:
+        zstandard.ZstdDecompressor().copy_stream(compressed, database)
+    source.unlink()
+PY
+
 FROM python:3.12.11-slim-bookworm AS runtime
 
-LABEL org.cn-health-data.runtime.required-environment="CN_HEALTH_SYNTHEA_PROFILE_PATH,CN_HEALTH_NAMES_RELEASE_PATH,CN_HEALTH_GEOGRAPHY_RELEASE_PATH,CN_HEALTH_POPULATION_RELEASE_PATH,CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH,CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID,CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256"
+LABEL org.opencontainers.image.title="CN Health Synthea Localizer" \
+  org.opencontainers.image.description="Self-contained experimental-preview Synthea localization runtime" \
+  org.cn-health-data.synthea.profile=synthea-cn@2026-08-29.r4 \
+  org.cn-health-data.synthea.review-mode=experimental-preview
 
 ENV CN_HEALTH_LOCALIZER_HOST=0.0.0.0
 ENV CN_HEALTH_LOCALIZER_PORT=51879
+ENV CN_HEALTH_GEOGRAPHY_RELEASE_PATH=/opt/cn-health/runtime/geography
+ENV CN_HEALTH_NAMES_RELEASE_PATH=/opt/cn-health/runtime/names
+ENV CN_HEALTH_POPULATION_RELEASE_PATH=/opt/cn-health/runtime/population
+ENV CN_HEALTH_SYNTHEA_PROFILE_PATH=/opt/cn-health/runtime/profile
+ENV CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH=/opt/cn-health/runtime/translation/catalog.jsonl
+ENV CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID=synthea-zh-cn@2026-08-30.r1
+ENV CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256=d7a25fc414d4008cf59145fd8fc3448556635dd2d5ab8e1e7974bc236f825811
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /opt/cn-health
 
@@ -31,6 +64,7 @@ RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels pydanti
   && python -m pip install --no-cache-dir --no-deps --no-index \
     /wheels/cn_health_compiler-0.1.0-py3-none-any.whl \
   && rm -rf /wheels
+COPY --from=build --chown=10001:10001 /runtime /opt/cn-health/runtime
 COPY LICENSE /opt/licenses/CN-HEALTH-DATA-LICENSE
 COPY DATA-NOTICE.md /opt/licenses/CN-HEALTH-DATA-NOTICE
 

@@ -440,57 +440,31 @@ Release 的版本化投影，不是 canonical 数据模型，也不代表整个�
 当前已验证的 Synthea 组合为：
 
 ```text
-geography-cn@2026-08-29.r1
-names-cn@40.37.0.r1
-population-cn@WPP2024.r1
-synthea-cn@2026-08-29.r3
+geography-cn@2026-08-29.r2
+names-cn@40.37.0.r2
+population-cn@WPP2024.r2
+synthea-cn@2026-08-29.r4
 Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
 ```
 
 已验证 profile 可从
-[`distribution/profiles/synthea-cn/2026-08-29.r3/`](distribution/profiles/synthea-cn/2026-08-29.r3/manifest.json)
-直接获取。它仍固定使用 Manifest 中记录的 r1 依赖哈希；canonical Dataset 当前推荐的 r2
-只是分发元数据 revision，不改变这份 profile 的已验证依赖身份。
-
-从三个 Candidate 构建 profile：
+[`distribution/profiles/synthea-cn/2026-08-29.r4/`](distribution/profiles/synthea-cn/2026-08-29.r4/manifest.json)
+直接获取。普通使用者通过固定版本的自包含 preview 镜像运行 localizer，不需要源码、
+Python、Rust、`uv`、宿主 Candidate 或 profile 挂载：
 
 ```bash
-uv run cn-health-build synthea profile \
-  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
-  --names-release dist/names-cn/releases/40.37.0.r1 \
-  --population-release dist/population-cn/releases/WPP2024.r1 \
-  --output-root dist/synthea-cn-profile/releases \
-  --profile-version 2026-08-29 \
-  --build-revision 3 \
-  --reference-year 2026 \
-  --synthea-commit d9d07a6eef91ee5144293b42ab64224d84d124f8
+docker run --rm --detach \
+  --name cn-health-synthea-localizer \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --publish 127.0.0.1:51879:51879 \
+  ghcr.io/caizongyuan/cn-health-synthea-localizer:2026-08-29.r4-preview.1
+curl --fail http://127.0.0.1:51879/health
 ```
 
-本地化一个自包含 Synthea FHIR R4 collection Bundle：
-
-```bash
-uv run cn-health-build synthea localize \
-  --input /path/to/raw-bundle.json \
-  --output .work/localized-bundle.json \
-  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
-  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
-  --names-release dist/names-cn/releases/40.37.0.r1 \
-  --population-release dist/population-cn/releases/WPP2024.r1 \
-  --seed patient-1
-```
-
-长驻消费者可以构建非 root localizer 镜像，或直接启动内部服务。服务启动时一次验证
-profile 内容哈希、文件和三个 Candidate，之后每个响应返回相同 provenance：
-
-```bash
-docker build -f Dockerfile.synthea-localizer -t cn-health-synthea-localizer .
-
-CN_HEALTH_SYNTHEA_PROFILE_PATH="$PWD/dist/synthea-cn-profile/releases/2026-08-29.r3" \
-CN_HEALTH_GEOGRAPHY_RELEASE_PATH="$PWD/dist/geography-cn/releases/2026-08-29.r1" \
-CN_HEALTH_NAMES_RELEASE_PATH="$PWD/dist/names-cn/releases/40.37.0.r1" \
-CN_HEALTH_POPULATION_RELEASE_PATH="$PWD/dist/population-cn/releases/WPP2024.r1" \
-uv run cn-health-synthea-service --host 127.0.0.1
-```
+镜像内固定 profile、三个 r2 Candidate 与临床显示目录，启动时验证全部依赖和哈希。
+临床显示目录仍明确标记为 `experimental-preview`，不是正式术语发行物。维护者重建、验证
+和发布该镜像的流程见 [Synthea 运行时发布](docs/synthea-runtime.md)。
 
 本地化器只替换 Patient、Practitioner 和 Organization 的身份展示，保留临床资源 ID、
 编码、日期、数值、单位与引用闭包。完整合同与 Docker 验收见

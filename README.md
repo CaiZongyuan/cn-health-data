@@ -495,60 +495,33 @@ this repository:
 The verified Synthea combination is:
 
 ```text
-geography-cn@2026-08-29.r1
-names-cn@40.37.0.r1
-population-cn@WPP2024.r1
-synthea-cn@2026-08-29.r3
+geography-cn@2026-08-29.r2
+names-cn@40.37.0.r2
+population-cn@WPP2024.r2
+synthea-cn@2026-08-29.r4
 Synthea d9d07a6eef91ee5144293b42ab64224d84d124f8
 ```
 
 The verified profile is directly available under
-[`distribution/profiles/synthea-cn/2026-08-29.r3/`](distribution/profiles/synthea-cn/2026-08-29.r3/manifest.json).
-It remains pinned to the r1 dependency hashes recorded in its Manifest even
-though metadata-only r2 revisions are now recommended for the canonical Datasets.
-
-Build the profile from three Candidate Releases:
+[`distribution/profiles/synthea-cn/2026-08-29.r4/`](distribution/profiles/synthea-cn/2026-08-29.r4/manifest.json).
+Consumers run the pinned self-contained preview image without a source checkout,
+Python, Rust, `uv`, or host-mounted Candidate and profile directories:
 
 ```bash
-uv run cn-health-build synthea profile \
-  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
-  --names-release dist/names-cn/releases/40.37.0.r1 \
-  --population-release dist/population-cn/releases/WPP2024.r1 \
-  --output-root dist/synthea-cn-profile/releases \
-  --profile-version 2026-08-29 \
-  --build-revision 3 \
-  --reference-year 2026 \
-  --synthea-commit d9d07a6eef91ee5144293b42ab64224d84d124f8
+docker run --rm --detach \
+  --name cn-health-synthea-localizer \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --publish 127.0.0.1:51879:51879 \
+  ghcr.io/caizongyuan/cn-health-synthea-localizer:2026-08-29.r4-preview.1
+curl --fail http://127.0.0.1:51879/health
 ```
 
-Localize one self-contained Synthea FHIR R4 collection Bundle:
-
-```bash
-uv run cn-health-build synthea localize \
-  --input /path/to/raw-bundle.json \
-  --output .work/localized-bundle.json \
-  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
-  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
-  --names-release dist/names-cn/releases/40.37.0.r1 \
-  --population-release dist/population-cn/releases/WPP2024.r1 \
-  --seed patient-1
-```
-
-Long-running consumers can build `Dockerfile.synthea-localizer` or run
-`cn-health-synthea-service`. The service verifies the profile content, files,
-three Candidate dependencies, and translation catalog at startup. It requires
-an explicit catalog path and clinical display projection ID; neither is guessed:
-
-```bash
-CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH=translations/synthea-zh-cn/catalog.jsonl \
-CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID=synthea-zh-cn@2026-08-30.r1 \
-CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256=d7a25fc414d4008cf59145fd8fc3448556635dd2d5ab8e1e7974bc236f825811 \
-uv run cn-health-synthea-service \
-  --profile dist/synthea-cn-profile/releases/2026-08-29.r3 \
-  --geography-release dist/geography-cn/releases/2026-08-29.r1 \
-  --names-release dist/names-cn/releases/40.37.0.r1 \
-  --population-release dist/population-cn/releases/WPP2024.r1
-```
+The image pins the profile, three r2 Candidates, and clinical display catalog,
+then verifies every dependency and hash at startup. The display catalog remains
+explicitly marked `experimental-preview`; it is not a release-eligible terminology
+artifact. Maintainer build and publication steps are in
+[`docs/synthea-runtime.md`](docs/synthea-runtime.md).
 
 The service loads the catalog only when its canonical SHA-256 exactly matches
 the required expected hash, binding the projection ID to the deployed content

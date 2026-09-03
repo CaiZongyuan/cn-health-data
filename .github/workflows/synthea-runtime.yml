@@ -1,0 +1,125 @@
+name: Synthea runtime
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/synthea-runtime.yml"
+      - "Dockerfile.synthea-localizer"
+      - "DATA-NOTICE.md"
+      - "LICENSE"
+      - "distribution/profiles/synthea-cn/**"
+      - "distribution/releases/geography-cn/**"
+      - "distribution/releases/names-cn/**"
+      - "distribution/releases/population-cn/**"
+      - "python/compiler/**"
+      - "translations/synthea-zh-cn/**"
+  push:
+    tags:
+      - "synthea-cn-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/caizongyuan/cn-health-synthea-localizer
+
+jobs:
+  test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build self-contained image
+        run: docker build --file Dockerfile.synthea-localizer --tag cn-health-synthea-localizer:test .
+      - name: Verify image contract and localize a synthetic Bundle
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect cn-health-synthea-localizer:test --format '{{.Config.User}}')" = "10001:10001"
+          docker run --rm --detach \
+            --name cn-health-synthea-localizer-test \
+            --read-only \
+            --tmpfs /tmp:size=64m,mode=1777 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --publish 127.0.0.1:51879:51879 \
+            cn-health-synthea-localizer:test
+          trap 'docker rm --force cn-health-synthea-localizer-test >/dev/null 2>&1 || true' EXIT
+          mkdir -p .work
+          curl --fail --retry 20 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:51879/health > .work/synthea-localizer-health.json
+          cat > .work/synthea-localizer-request.json <<'JSON'
+          {"bundle":{"entry":[{"resource":{"birthDate":"1988-03-16","gender":"female","id":"synthetic-patient-1","resourceType":"Patient"}}],"resourceType":"Bundle","type":"collection"},"seed":"4242:7331:0"}
+          JSON
+          curl --fail \
+            --header 'content-type: application/json' \
+            --data-binary @.work/synthea-localizer-request.json \
+            http://127.0.0.1:51879/v1/localize > .work/synthea-localizer-response.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          health = json.loads(Path('.work/synthea-localizer-health.json').read_text())
+          response = json.loads(Path('.work/synthea-localizer-response.json').read_text())
+          assert health['status'] == 'ok'
+          assert health['localization']['profileId'] == 'synthea-cn@2026-08-29.r4'
+          assert health['localization']['clinicalDisplay']['reviewMode'] == 'experimental-preview'
+          assert {item['releaseId'] for item in health['localization']['dependencies']} == {
+              'geography-cn@2026-08-29.r2',
+              'names-cn@40.37.0.r2',
+              'population-cn@WPP2024.r2',
+          }
+          assert response['metadata'] == health['localization']
+          assert response['bundle']['entry'][0]['resource']['name'][0]['text']
+          PY
+
+  publish-image:
+    if: startsWith(github.ref, 'refs/tags/synthea-cn-')
+    needs: test-image
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: metadata
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=match,pattern=synthea-cn-(.*),group=1
+            type=sha
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.synthea-localizer
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            发布自包含的 Synthea 中国化 localizer preview 镜像。
+
+            Profile：`synthea-cn@2026-08-29.r4`
+            镜像：`${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}`
+            临床显示目录仍属于 `experimental-preview`，不得描述为正式术语发行物。

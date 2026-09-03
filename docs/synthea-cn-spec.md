@@ -239,14 +239,16 @@ Synthea 当前 demographics schema 的 race/ethnicity 列是美国兼容接口�
 ### 7.1 Runtime clinical display projection
 
 Python 库的 `SyntheaBundleLocalizer` 默认只执行身份本地化。HTTP service 在此之后必须
-执行 display 投影，且启动时必须显式提供
+执行 display 投影。从源码启动时必须显式提供
 `CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH`（或 `--translation-catalog`）与
 `CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID`（或
 `--clinical-display-projection-id`），以及
 `CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256`（或
 `--expected-catalog-sha256`）；不得从仓库布局、文件名或日期猜测。expected hash 必须为
 64 位小写十六进制，并在 service 启动时与 catalog 的 canonical SHA-256 严格相等；不匹配
-必须阻止启动，避免同一 projection ID 在重启后指向不同内容。
+必须阻止启动，避免同一 projection ID 在重启后指向不同内容。自包含 OCI 镜像把这些值、
+匹配的 profile 和 Candidate 固定在同一不可变镜像 digest 中，普通使用者不提供路径参数或
+宿主挂载。
 
 投影只接受 `approved`、`human-reviewed` 和 `machine-checked`，不接受
 `machine-draft`。allowlisted clinical display 缺失翻译时保留来源 display，HTTP service
@@ -336,6 +338,7 @@ hypertension
 - 资源引用闭合；
 - 原始临床编码集合与本地化后一致；
 - 双 seed、日期范围、时区、profile hash 和 Synthea commit 已固定；
+- 自包含运行镜像以非 root、只读文件系统且无宿主数据挂载运行；
 - 容器运行时不下载 latest 数据。
 
 ### 9.5 ClinMesh 验收
