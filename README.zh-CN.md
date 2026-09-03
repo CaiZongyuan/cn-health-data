@@ -482,8 +482,9 @@ uv run cn-health-build synthea translation project \
   --allow-machine-draft
 ```
 
-当前目录覆盖固定版本全部 242 个 module：2,149 个 module 术语和 27 个 exporter 补充
-术语均无缺口。18 条项目精选 LOINC 显示为 `approved`，其余 2,158 条已经第二个 Agent
+当前目录覆盖固定版本全部 242 个 module：2,149 个 module 术语、27 个 exporter 补充术语和
+4 个运行时补充术语均无缺口。22 条显示为 `approved`（其中 18 条为项目精选 LOINC），
+其余 2,158 条已经第二个 Agent
 复核并标记为 `machine-checked`。原有 51 条复核标志均已完成证据复核并解决，其中 18 条
 确认是 Synthea module 上下文或选码问题，中文显示继续忠实表达实际编码。实验开关必须
 显式提供，严格模式只采用 `approved` 记录。构建和运行时均不调用翻译 API。机器可读

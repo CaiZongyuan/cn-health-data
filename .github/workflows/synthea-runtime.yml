@@ -165,8 +165,8 @@ jobs:
             --directory "$(dirname "$PROFILE_PATH")" \
             --create "$(basename "$PROFILE_PATH")" \
             | gzip -n > .work/release/synthea-cn-profile.tar.gz
-          sha256sum .work/release/synthea-cn-profile.tar.gz \
-            > .work/release/synthea-cn-profile.tar.gz.sha256
+          (cd .work/release && sha256sum synthea-cn-profile.tar.gz \
+            > synthea-cn-profile.tar.gz.sha256)
           cp distribution/synthea-runtime.json .work/release/synthea-runtime.json
           python - <<'PY'
           import json
