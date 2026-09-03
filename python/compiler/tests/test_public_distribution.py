@@ -6,6 +6,7 @@ from pathlib import Path
 import zstandard
 from cn_health_compiler.core.manifest import validate_manifest
 from cn_health_compiler.core.source import hash_file
+from cn_health_compiler.synthetic.translation.catalog import load_catalog
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -90,14 +91,16 @@ def test_full_registry_is_signed_complete_and_installable(tmp_path: Path) -> Non
 
 
 def test_public_synthea_profile_matches_its_manifest() -> None:
-    profile_root = REPO_ROOT / "distribution/profiles/synthea-cn/2026-08-29.r3"
+    profile_root = REPO_ROOT / "distribution/profiles/synthea-cn/2026-08-29.r4"
     manifest = json.loads((profile_root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profileId"] == "synthea-cn@2026-08-29.r3"
+    assert manifest["profileId"] == "synthea-cn@2026-08-29.r4"
     assert manifest["supportedSyntheaCommit"] == "d9d07a6eef91ee5144293b42ab64224d84d124f8"
-    assert {item["datasetId"] for item in manifest["dependencies"]} == {
-        "geography-cn",
-        "names-cn",
-        "population-cn",
+    assert {
+        item["datasetId"]: item["releaseId"] for item in manifest["dependencies"]
+    } == {
+        "geography-cn": "geography-cn@2026-08-29.r2",
+        "names-cn": "names-cn@40.37.0.r2",
+        "population-cn": "population-cn@WPP2024.r2",
     }
     for declared in manifest["files"]:
         relative = Path(declared["path"])
@@ -107,3 +110,49 @@ def test_public_synthea_profile_matches_its_manifest() -> None:
             declared["sha256"],
             declared["sizeBytes"],
         )
+
+
+def test_synthea_runtime_manifest_matches_published_inputs() -> None:
+    runtime = json.loads(
+        (REPO_ROOT / "distribution/synthea-runtime.json").read_text(encoding="utf-8")
+    )
+    validate_manifest(runtime, REPO_ROOT / "schemas/synthea-runtime.schema.json")
+
+    profile_path = REPO_ROOT / runtime["profile"]["sourcePath"]
+    profile = json.loads((profile_path / "manifest.json").read_text(encoding="utf-8"))
+    assert runtime["profile"] == {
+        "contentHash": profile["contentHash"],
+        "profileId": profile["profileId"],
+        "sourcePath": "distribution/profiles/synthea-cn/2026-08-29.r4",
+    }
+    assert runtime["syntheaCommit"] == profile["supportedSyntheaCommit"]
+
+    profile_dependencies = {
+        item["datasetId"]: item for item in profile["dependencies"]
+    }
+    assert {item["datasetId"] for item in runtime["datasets"]} == set(
+        profile_dependencies
+    )
+    for dataset in runtime["datasets"]:
+        manifest = json.loads(
+            (REPO_ROOT / dataset["sourcePath"] / "manifest.json").read_text(encoding="utf-8")
+        )
+        compressed = next(
+            item for item in manifest["artifacts"] if item["name"] == "data.sqlite.zst"
+        )
+        dependency = profile_dependencies[dataset["datasetId"]]
+        assert dataset["releaseId"] == manifest["release"]["id"] == dependency["releaseId"]
+        assert dataset["canonicalSha256"] == manifest["canonical"]["sha256"]
+        assert dataset["canonicalSha256"] == dependency["canonicalSha256"]
+        assert dataset["sqliteSha256"] == compressed["uncompressedSha256"]
+        assert dataset["sqliteSha256"] == dependency["sqliteSha256"]
+
+    clinical_display = runtime["clinicalDisplay"]
+    catalog = load_catalog(REPO_ROOT / clinical_display["catalogSourcePath"])
+    assert clinical_display["catalogSha256"] == catalog.sha256
+    assert clinical_display["recordCount"] == len(catalog.records)
+    assert clinical_display["reviewMode"] == "experimental-preview"
+    assert runtime["image"]["repository"] == (
+        "ghcr.io/caizongyuan/cn-health-synthea-localizer"
+    )
+    assert set(runtime["image"]["platforms"]) == {"linux/amd64", "linux/arm64"}

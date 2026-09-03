@@ -176,7 +176,7 @@ def test_synthea_service_exposes_bounded_health_and_localization_contract() -> N
         thread.join(timeout=2)
 
 
-def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
+def test_synthea_service_docker_image_is_self_contained() -> None:
     repository = Path(__file__).parents[3]
     dockerfile = (repository / "Dockerfile.synthea-localizer").read_text(encoding="utf-8")
     dockerignore = (repository / ".dockerignore").read_text(encoding="utf-8")
@@ -188,13 +188,36 @@ def test_synthea_service_docker_image_keeps_candidate_data_external() -> None:
     assert "pip wheel --no-deps" in dockerfile
     assert '"pydantic>=2.11,<3"' in dockerfile
     assert '"rfc8785>=0.1.4,<1"' in dockerfile
-    assert "COPY dist" not in dockerfile
+    assert "distribution/synthea-runtime.json" in dockerfile
+    assert "cn-health-synthea-runtime" in dockerfile
+    assert "2026-08-29.r4" not in dockerfile
+    assert "CN_HEALTH_SYNTHEA_PROFILE_PATH" not in dockerfile
+    assert "CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID" not in dockerfile
     assert "COPY tmp" not in dockerfile
     assert '"pyyaml>=6.0.2,<7"' in dockerfile
     assert "pydantic pyyaml rfc8785" in dockerfile
-    assert "CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256" in dockerfile
     assert "dist/" in dockerignore
     assert "tmp/" in dockerignore
+
+
+def test_synthea_runtime_release_builds_and_publishes_verified_image() -> None:
+    repository = Path(__file__).parents[3]
+    workflow = (repository / ".github/workflows/synthea-runtime.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "distribution/synthea-runtime.json" in workflow
+    assert "steps.contract.outputs.platforms" in workflow
+    assert "packages: write" in workflow
+    assert "docker build" in workflow
+    assert "--read-only" in workflow
+    assert "/v1/localize" in workflow
+    assert "cmp .work/synthea-localizer-response" in workflow
+    assert "synthea-cn-profile.tar.gz" in workflow
+    assert "sha256sum" in workflow
+    assert "push: true" in workflow
+    assert "sbom: true" in workflow
+    assert "attest-build-provenance" in workflow
 
 
 def test_runtime_projects_reviewed_displays_removes_claims_and_reports_provenance(

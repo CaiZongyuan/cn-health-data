@@ -11,11 +11,25 @@ RUN python -m pip wheel --no-deps --wheel-dir /wheels . \
   && python -m pip download --dest /wheels \
     "pydantic>=2.11,<3" \
     "pyyaml>=6.0.2,<7" \
-    "rfc8785>=0.1.4,<1"
+    "rfc8785>=0.1.4,<1" \
+    "zstandard==0.25.0"
+
+RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels \
+    pydantic pyyaml rfc8785 zstandard \
+  && python -m pip install --no-cache-dir --no-deps --no-index \
+    /wheels/cn_health_compiler-0.1.0-py3-none-any.whl
+COPY distribution/synthea-runtime.json /source/distribution/synthea-runtime.json
+COPY distribution/profiles/synthea-cn /source/distribution/profiles/synthea-cn
+COPY distribution/releases/geography-cn /source/distribution/releases/geography-cn
+COPY distribution/releases/names-cn /source/distribution/releases/names-cn
+COPY distribution/releases/population-cn /source/distribution/releases/population-cn
+COPY translations/synthea-zh-cn /source/translations/synthea-zh-cn
+RUN python -c "from pathlib import Path; from cn_health_compiler.synthetic.synthea_runtime import stage_synthea_runtime; stage_synthea_runtime(Path('/source/distribution/synthea-runtime.json'), Path('/source'), Path('/runtime'))"
 
 FROM python:3.12.11-slim-bookworm AS runtime
 
-LABEL org.cn-health-data.runtime.required-environment="CN_HEALTH_SYNTHEA_PROFILE_PATH,CN_HEALTH_NAMES_RELEASE_PATH,CN_HEALTH_GEOGRAPHY_RELEASE_PATH,CN_HEALTH_POPULATION_RELEASE_PATH,CN_HEALTH_SYNTHEA_TRANSLATION_CATALOG_PATH,CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID,CN_HEALTH_SYNTHEA_EXPECTED_CATALOG_SHA256"
+LABEL org.opencontainers.image.title="CN Health Synthea Localizer" \
+  org.opencontainers.image.description="Self-contained experimental-preview Synthea localization runtime"
 
 ENV CN_HEALTH_LOCALIZER_HOST=0.0.0.0
 ENV CN_HEALTH_LOCALIZER_PORT=51879
@@ -31,6 +45,7 @@ RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels pydanti
   && python -m pip install --no-cache-dir --no-deps --no-index \
     /wheels/cn_health_compiler-0.1.0-py3-none-any.whl \
   && rm -rf /wheels
+COPY --from=build --chown=10001:10001 /runtime /opt/cn-health/runtime
 COPY LICENSE /opt/licenses/CN-HEALTH-DATA-LICENSE
 COPY DATA-NOTICE.md /opt/licenses/CN-HEALTH-DATA-NOTICE
 
@@ -38,4 +53,4 @@ USER 10001:10001
 EXPOSE 51879
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
   CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['CN_HEALTH_LOCALIZER_PORT']+'/health', timeout=2).read()"]
-ENTRYPOINT ["cn-health-synthea-service"]
+ENTRYPOINT ["cn-health-synthea-runtime"]

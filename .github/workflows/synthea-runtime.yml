@@ -1,0 +1,208 @@
+name: Synthea runtime
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/synthea-runtime.yml"
+      - "Dockerfile.synthea-localizer"
+      - "DATA-NOTICE.md"
+      - "LICENSE"
+      - "distribution/profiles/synthea-cn/**"
+      - "distribution/releases/geography-cn/**"
+      - "distribution/releases/names-cn/**"
+      - "distribution/releases/population-cn/**"
+      - "distribution/synthea-runtime.json"
+      - "python/compiler/**"
+      - "schemas/synthea-runtime.schema.json"
+      - "translations/synthea-zh-cn/**"
+  push:
+    tags:
+      - "synthea-cn-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build self-contained image
+        run: docker build --file Dockerfile.synthea-localizer --tag cn-health-synthea-localizer:test .
+      - name: Verify image contract and deterministic localization
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect cn-health-synthea-localizer:test --format '{{.Config.User}}')" = "10001:10001"
+          docker run --rm --detach \
+            --name cn-health-synthea-localizer-test \
+            --read-only \
+            --tmpfs /tmp:size=64m,mode=1777 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --env CN_HEALTH_SYNTHEA_PROFILE_PATH=/tmp/spoofed \
+            --env CN_HEALTH_SYNTHEA_CLINICAL_DISPLAY_PROJECTION_ID=spoofed@id \
+            --publish 127.0.0.1:51879:51879 \
+            cn-health-synthea-localizer:test
+          trap 'docker rm --force cn-health-synthea-localizer-test >/dev/null 2>&1 || true' EXIT
+          mkdir -p .work
+          curl --fail --retry 20 --retry-all-errors --retry-delay 1 \
+            http://127.0.0.1:51879/health > .work/synthea-localizer-health.json
+          cat > .work/synthea-localizer-request.json <<'JSON'
+          {"bundle":{"entry":[{"resource":{"birthDate":"1988-03-16","gender":"female","id":"synthetic-patient-1","resourceType":"Patient"}},{"resource":{"code":{"coding":[{"code":"85354-9","display":"Blood Pressure panel with all children optional","system":"http://loinc.org"}]},"id":"observation-1","resourceType":"Observation","status":"final"}}],"resourceType":"Bundle","type":"collection"},"seed":"4242:7331:0"}
+          JSON
+          curl --fail \
+            --header 'content-type: application/json' \
+            --data-binary @.work/synthea-localizer-request.json \
+            http://127.0.0.1:51879/v1/localize > .work/synthea-localizer-response.json
+          curl --fail \
+            --header 'content-type: application/json' \
+            --data-binary @.work/synthea-localizer-request.json \
+            http://127.0.0.1:51879/v1/localize > .work/synthea-localizer-response-repeat.json
+          cmp .work/synthea-localizer-response.json .work/synthea-localizer-response-repeat.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          runtime = json.loads(Path('distribution/synthea-runtime.json').read_text())
+          health = json.loads(Path('.work/synthea-localizer-health.json').read_text())
+          response = json.loads(Path('.work/synthea-localizer-response.json').read_text())
+          localization = health['localization']
+          assert health['status'] == 'ok'
+          assert localization['syntheaCommit'] == runtime['syntheaCommit']
+          assert localization['profileId'] == runtime['profile']['profileId']
+          assert localization['profileContentHash'] == runtime['profile']['contentHash']
+          assert localization['clinicalDisplay'] == {
+              'catalogSha256': runtime['clinicalDisplay']['catalogSha256'],
+              'language': 'zh-CN',
+              'projectionId': runtime['clinicalDisplay']['projectionId'],
+              'recordCount': runtime['clinicalDisplay']['recordCount'],
+              'reviewMode': runtime['clinicalDisplay']['reviewMode'],
+          }
+          assert localization['dependencies'] == [
+              {
+                  'canonicalSha256': item['canonicalSha256'],
+                  'datasetId': item['datasetId'],
+                  'releaseId': item['releaseId'],
+                  'sqliteSha256': item['sqliteSha256'],
+              }
+              for item in runtime['datasets']
+          ]
+          assert response['metadata'] == localization
+          assert response['bundle']['entry'][0]['resource']['name'][0]['text']
+          observation = response['bundle']['entry'][1]['resource']
+          assert observation['code']['coding'][0]['display'] == '血压组合'
+          assert observation['code']['text'] == '血压组合'
+          PY
+
+  publish-image:
+    if: startsWith(github.ref, 'refs/tags/synthea-cn-')
+    needs: test-image
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - id: contract
+        name: Read release contract
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          runtime = json.loads(Path('distribution/synthea-runtime.json').read_text())
+          if os.environ['GITHUB_REF_NAME'] != runtime['releaseTag']:
+              raise SystemExit('Git tag does not match the Synthea runtime release contract')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              print(f"image={runtime['image']['repository']}", file=output)
+              print(f"image_tag={runtime['image']['tag']}", file=output)
+              print(f"platforms={','.join(runtime['image']['platforms'])}", file=output)
+              print(f"profile_path={runtime['profile']['sourcePath']}", file=output)
+          PY
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: metadata
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.contract.outputs.image }}
+          tags: |
+            type=raw,value=${{ steps.contract.outputs.image_tag }}
+            type=sha
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.synthea-localizer
+          platforms: ${{ steps.contract.outputs.platforms }}
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ steps.contract.outputs.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+      - name: Package profile and release metadata
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_NAME: ${{ steps.contract.outputs.image }}
+          PROFILE_PATH: ${{ steps.contract.outputs.profile_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/release
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+            --directory "$(dirname "$PROFILE_PATH")" \
+            --create "$(basename "$PROFILE_PATH")" \
+            | gzip -n > .work/release/synthea-cn-profile.tar.gz
+          (cd .work/release && sha256sum synthea-cn-profile.tar.gz \
+            > synthea-cn-profile.tar.gz.sha256)
+          cp distribution/synthea-runtime.json .work/release/synthea-runtime.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          release_root = Path('.work/release')
+          runtime = json.loads((release_root / 'synthea-runtime.json').read_text())
+          archive_sha256 = (release_root / 'synthea-cn-profile.tar.gz.sha256').read_text().split()[0]
+          dependencies = '\n'.join(
+              f"- `{item['releaseId']}`：canonical `{item['canonicalSha256']}`，SQLite `{item['sqliteSha256']}`"
+              for item in runtime['datasets']
+          )
+          body = f"""发布自包含的 Synthea 中国化 localizer preview 镜像与可独立校验的 profile 归档。
+
+          - Profile：`{runtime['profile']['profileId']}`
+          - Profile content hash：`{runtime['profile']['contentHash']}`
+          - Profile archive SHA-256：`{archive_sha256}`
+          - Clinical display：`{runtime['clinicalDisplay']['projectionId']}`，catalog `{runtime['clinicalDisplay']['catalogSha256']}`
+          - Clinical display records：`{runtime['clinicalDisplay']['recordCount']}`
+          - 镜像：`{os.environ['IMAGE_NAME']}@{os.environ['IMAGE_DIGEST']}`
+
+          依赖：
+
+          {dependencies}
+
+          临床显示目录仍属于 `experimental-preview`，不得描述为正式术语发行物。
+          """
+          (release_root / 'release-notes.md').write_text(body, encoding='utf-8')
+          PY
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Synthea 中国化运行时 ${{ steps.contract.outputs.image_tag }}
+          prerelease: true
+          body_path: .work/release/release-notes.md
+          files: |
+            .work/release/synthea-cn-profile.tar.gz
+            .work/release/synthea-cn-profile.tar.gz.sha256
+            .work/release/synthea-runtime.json

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CN Health Synthea Runtime Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runtimeId",
+    "releaseTag",
+    "syntheaCommit",
+    "profile",
+    "datasets",
+    "clinicalDisplay",
+    "image"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runtimeId": { "type": "string", "minLength": 1 },
+    "releaseTag": { "type": "string", "pattern": "^synthea-cn-[A-Za-z0-9._-]+$" },
+    "syntheaCommit": { "$ref": "#/$defs/gitCommit" },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId", "contentHash", "sourcePath"],
+      "properties": {
+        "profileId": { "type": "string", "minLength": 1 },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "sourcePath": { "$ref": "#/$defs/sourcePath" }
+      }
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "datasetId",
+          "releaseId",
+          "canonicalSha256",
+          "sqliteSha256",
+          "sourcePath"
+        ],
+        "properties": {
+          "datasetId": { "enum": ["geography-cn", "names-cn", "population-cn"] },
+          "releaseId": { "type": "string", "minLength": 1 },
+          "canonicalSha256": { "$ref": "#/$defs/sha256" },
+          "sqliteSha256": { "$ref": "#/$defs/sha256" },
+          "sourcePath": { "$ref": "#/$defs/sourcePath" }
+        }
+      }
+    },
+    "clinicalDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectionId",
+        "catalogSha256",
+        "catalogSourcePath",
+        "policySourcePath",
+        "recordCount",
+        "reviewMode"
+      ],
+      "properties": {
+        "projectionId": { "type": "string", "minLength": 1 },
+        "catalogSha256": { "$ref": "#/$defs/sha256" },
+        "catalogSourcePath": { "$ref": "#/$defs/sourcePath" },
+        "policySourcePath": { "$ref": "#/$defs/sourcePath" },
+        "recordCount": { "type": "integer", "minimum": 1 },
+        "reviewMode": { "const": "experimental-preview" }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "tag", "platforms"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^ghcr\\.io/[a-z0-9._/-]+$" },
+        "tag": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["linux/amd64", "linux/arm64"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gitCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sourcePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    }
+  }
+}
