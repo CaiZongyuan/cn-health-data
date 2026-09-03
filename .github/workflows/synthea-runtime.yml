@@ -46,7 +46,7 @@ jobs:
             cn-health-synthea-localizer:test
           trap 'docker rm --force cn-health-synthea-localizer-test >/dev/null 2>&1 || true' EXIT
           mkdir -p .work
-          curl --fail --retry 20 --retry-connrefused --retry-delay 1 \
+          curl --fail --retry 20 --retry-all-errors --retry-delay 1 \
             http://127.0.0.1:51879/health > .work/synthea-localizer-health.json
           cat > .work/synthea-localizer-request.json <<'JSON'
           {"bundle":{"entry":[{"resource":{"birthDate":"1988-03-16","gender":"female","id":"synthetic-patient-1","resourceType":"Patient"}},{"resource":{"code":{"coding":[{"code":"85354-9","display":"Blood Pressure panel with all children optional","system":"http://loinc.org"}]},"id":"observation-1","resourceType":"Observation","status":"final"}}],"resourceType":"Bundle","type":"collection"},"seed":"4242:7331:0"}
