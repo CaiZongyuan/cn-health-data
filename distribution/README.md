@@ -62,7 +62,8 @@ The separately versioned
 resource tree targets Synthea commit
 `d9d07a6eef91ee5144293b42ab64224d84d124f8` and the current r2 identity
 Datasets. The self-contained localizer image and its release contract are
-documented in [`../docs/synthea-runtime.md`](../docs/synthea-runtime.md).
+declared by [`synthea-runtime.json`](synthea-runtime.json) and documented in
+[`../docs/synthea-runtime.md`](../docs/synthea-runtime.md).
 
 ## Source Boundary
 

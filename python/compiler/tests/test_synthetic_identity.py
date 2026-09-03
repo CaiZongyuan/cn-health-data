@@ -161,7 +161,16 @@ def test_candidate_release_loader_verifies_manifest_and_sqlite(tmp_path: Path) -
                         "name": "data.sqlite",
                         "sha256": database_sha256,
                         "sizeBytes": len(database_bytes),
-                    }
+                    },
+                    {
+                        "name": "data.sqlite.zst",
+                        "sha256": "b" * 64,
+                        "sizeBytes": 123,
+                        "compression": "zstd",
+                        "uncompressedName": "data.sqlite",
+                        "uncompressedSha256": database_sha256,
+                        "uncompressedSizeBytes": len(database_bytes),
+                    },
                 ],
             }
         ),

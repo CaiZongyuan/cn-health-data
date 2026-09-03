@@ -13,7 +13,7 @@
 | `nhc-lab-tests` | Complete 399-row WS/T 886—2026 authority projection with appendix-validated code segments, SQLite/FTS/bigram, Parquet, provenance, and reproducibility evidence |
 | `laboratory-cn` | Schema v2 adult projection with 84 WS/T 886 tests, 96 references, 15 hospital panels, 88 stable members, units, precision, and explicit healthy simulation metadata |
 | Synthetic identity | Deterministic Chinese name/address, `100` phone, `.test` email, project MRN, and `990000` simulated resident ID |
-| Synthea support | Fixed-commit r2-backed profile `2026-08-29.r4`, self-contained experimental-preview localizer image, bounded non-root HTTP service, and three-module Docker corpus validation |
+| Synthea support | Fixed-commit r2-backed profile `2026-08-29.r4`, single runtime Manifest, independently checksummed profile archive, self-contained experimental-preview localizer image, bounded non-root HTTP service, and three-module Docker corpus validation |
 | Synthea Chinese displays | Pinned 242-module inventory, 2,176 Chinese displays, bounded translation/review workflow, FHIR projector, static zero-gap coverage, and 30-Bundle invariant validation; 18 records are approved and all 51 review flags have evidence resolutions, including 18 recorded upstream module issues |
 | ClinMesh consumer | Candidate Manifest/SQLite import contract, exact Hospital Reference Selection, Profile provenance, Package install, offline restart/reset evidence |
 | Native runtime | Rust full/default and selective remote install, exact-release atomic materialization, minimum CLI compatibility, complete doctor, schema v1/v2 laboratory get/search, and panel get/search |

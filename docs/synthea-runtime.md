@@ -10,6 +10,11 @@ The current runtime is
 `ghcr.io/caizongyuan/cn-health-synthea-localizer:2026-08-29.r4-preview.1`.
 Its GitHub Release records the immutable image digest. Consumers that require a
 reproducible deployment must use that digest rather than the mutable tag.
+[`distribution/synthea-runtime.json`](../distribution/synthea-runtime.json) is
+the single owner for the release tag, image coordinates and platforms, profile,
+Dataset dependencies, and clinical display catalog. The Release also attaches
+that Manifest, a `synthea-cn-profile.tar.gz` archive, and its SHA-256 file for
+non-container consumers.
 
 The image contains and verifies:
 
@@ -69,8 +74,9 @@ declared files pass `test_public_synthea_profile_matches_its_manifest`.
 
 ## Image release
 
-`Dockerfile.synthea-localizer` builds the Python runtime and materializes the
-three compressed public SQLite artifacts into the image. The tag format is
+`Dockerfile.synthea-localizer` reads the runtime Manifest, builds the Python
+runtime, and materializes the three declared compressed public SQLite artifacts
+into the image. The tag format is
 `synthea-cn-<profile-storage-key>-preview.<revision>`.
 
 Pushing a matching tag runs `.github/workflows/synthea-runtime.yml`. The workflow

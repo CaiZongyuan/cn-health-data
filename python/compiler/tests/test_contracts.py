@@ -16,6 +16,7 @@ def test_json_schemas_are_valid_draft_2020_12() -> None:
         "manifest.schema.json",
         "mapping.schema.json",
         "registry.schema.json",
+        "synthea-runtime.schema.json",
         "translation-record.schema.json",
         "translation-release.schema.json",
         "translation-review-resolution.schema.json",

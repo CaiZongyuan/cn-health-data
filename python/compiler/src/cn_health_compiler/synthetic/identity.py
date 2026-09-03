@@ -133,20 +133,23 @@ def load_dataset_release_reference(
         raise CandidateReleaseError("Candidate Manifest is unreadable") from error
     if manifest.dataset.id != expected_dataset_id:
         raise CandidateReleaseError("Candidate belongs to a different Dataset")
-    sqlite_artifacts = []
-    for artifact in manifest.artifacts:
-        if artifact.name == "data.sqlite":
-            sqlite_artifacts.append((artifact.sha256, artifact.size_bytes))
-        elif (
+    sqlite_artifacts = [
+        (artifact.sha256, artifact.size_bytes)
+        for artifact in manifest.artifacts
+        if artifact.name == "data.sqlite"
+    ]
+    if not sqlite_artifacts:
+        sqlite_artifacts = [
+            (artifact.uncompressed_sha256, artifact.uncompressed_size_bytes)
+            for artifact in manifest.artifacts
+            if (
             artifact.name == "data.sqlite.zst"
             and artifact.compression == "zstd"
             and artifact.uncompressed_name == "data.sqlite"
             and artifact.uncompressed_sha256 is not None
             and artifact.uncompressed_size_bytes is not None
-        ):
-            sqlite_artifacts.append(
-                (artifact.uncompressed_sha256, artifact.uncompressed_size_bytes)
             )
+        ]
     if len(sqlite_artifacts) != 1:
         raise CandidateReleaseError("Candidate must declare one SQLite artifact")
     expected_sha256, expected_size = sqlite_artifacts[0]

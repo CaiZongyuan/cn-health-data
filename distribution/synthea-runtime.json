@@ -1,0 +1,49 @@
+{
+  "clinicalDisplay": {
+    "catalogSha256": "d7a25fc414d4008cf59145fd8fc3448556635dd2d5ab8e1e7974bc236f825811",
+    "catalogSourcePath": "translations/synthea-zh-cn/catalog.jsonl",
+    "policySourcePath": "translations/synthea-zh-cn/translation.yaml",
+    "projectionId": "synthea-zh-cn@2026-08-30.r1",
+    "reviewMode": "experimental-preview"
+  },
+  "datasets": [
+    {
+      "canonicalSha256": "3c632be160c5a3d6e3196b8e95a0b33a25e9f35bcee506b25d7305345c50957a",
+      "datasetId": "geography-cn",
+      "releaseId": "geography-cn@2026-08-29.r2",
+      "sourcePath": "distribution/releases/geography-cn/2026-08-29.r2",
+      "sqliteSha256": "5ca7121046d49a80b0da38e2b3413a1bc1a7b1040382903ba1d516793e5c5bc7"
+    },
+    {
+      "canonicalSha256": "4f66c18be0ab19e515927953bd741a1476584f2bdac3d8e6d67221232a31468d",
+      "datasetId": "names-cn",
+      "releaseId": "names-cn@40.37.0.r2",
+      "sourcePath": "distribution/releases/names-cn/40.37.0.r2",
+      "sqliteSha256": "20fc1bc0a0c38b7122635d00aecb710a0ecf1892d91d3c3c190cc9213c2bb0ae"
+    },
+    {
+      "canonicalSha256": "371dde5944505c426a8ad39be21f647921e754366cb410c0529176d2b6ebfb8a",
+      "datasetId": "population-cn",
+      "releaseId": "population-cn@WPP2024.r2",
+      "sourcePath": "distribution/releases/population-cn/WPP2024.r2",
+      "sqliteSha256": "89858f25d5e898df32f896e8f12b7daf2bc569abb55f8bf69b3f21e988a50a05"
+    }
+  ],
+  "image": {
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "repository": "ghcr.io/caizongyuan/cn-health-synthea-localizer",
+    "tag": "2026-08-29.r4-preview.1"
+  },
+  "profile": {
+    "contentHash": "2253cd4ca9e08bcd16d8896edef2146736063ebe079aa18575d551e4a0680254",
+    "profileId": "synthea-cn@2026-08-29.r4",
+    "sourcePath": "distribution/profiles/synthea-cn/2026-08-29.r4"
+  },
+  "releaseTag": "synthea-cn-2026-08-29.r4-preview.1",
+  "runtimeId": "synthea-cn-runtime@2026-08-29.r4-preview.1",
+  "schemaVersion": 1,
+  "syntheaCommit": "d9d07a6eef91ee5144293b42ab64224d84d124f8"
+}
