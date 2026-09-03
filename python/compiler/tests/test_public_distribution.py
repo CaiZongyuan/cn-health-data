@@ -150,6 +150,7 @@ def test_synthea_runtime_manifest_matches_published_inputs() -> None:
     clinical_display = runtime["clinicalDisplay"]
     catalog = load_catalog(REPO_ROOT / clinical_display["catalogSourcePath"])
     assert clinical_display["catalogSha256"] == catalog.sha256
+    assert clinical_display["recordCount"] == len(catalog.records)
     assert clinical_display["reviewMode"] == "experimental-preview"
     assert runtime["image"]["repository"] == (
         "ghcr.io/caizongyuan/cn-health-synthea-localizer"

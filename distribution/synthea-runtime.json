@@ -4,6 +4,7 @@
     "catalogSourcePath": "translations/synthea-zh-cn/catalog.jsonl",
     "policySourcePath": "translations/synthea-zh-cn/translation.yaml",
     "projectionId": "synthea-zh-cn@2026-08-30.r1",
+    "recordCount": 2180,
     "reviewMode": "experimental-preview"
   },
   "datasets": [

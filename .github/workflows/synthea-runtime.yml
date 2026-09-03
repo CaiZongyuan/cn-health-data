@@ -49,7 +49,7 @@ jobs:
           curl --fail --retry 20 --retry-connrefused --retry-delay 1 \
             http://127.0.0.1:51879/health > .work/synthea-localizer-health.json
           cat > .work/synthea-localizer-request.json <<'JSON'
-          {"bundle":{"entry":[{"resource":{"birthDate":"1988-03-16","gender":"female","id":"synthetic-patient-1","resourceType":"Patient"}}],"resourceType":"Bundle","type":"collection"},"seed":"4242:7331:0"}
+          {"bundle":{"entry":[{"resource":{"birthDate":"1988-03-16","gender":"female","id":"synthetic-patient-1","resourceType":"Patient"}},{"resource":{"code":{"coding":[{"code":"85354-9","display":"Blood Pressure panel with all children optional","system":"http://loinc.org"}]},"id":"observation-1","resourceType":"Observation","status":"final"}}],"resourceType":"Bundle","type":"collection"},"seed":"4242:7331:0"}
           JSON
           curl --fail \
             --header 'content-type: application/json' \
@@ -76,7 +76,7 @@ jobs:
               'catalogSha256': runtime['clinicalDisplay']['catalogSha256'],
               'language': 'zh-CN',
               'projectionId': runtime['clinicalDisplay']['projectionId'],
-              'recordCount': 2176,
+              'recordCount': runtime['clinicalDisplay']['recordCount'],
               'reviewMode': runtime['clinicalDisplay']['reviewMode'],
           }
           assert localization['dependencies'] == [
@@ -90,6 +90,9 @@ jobs:
           ]
           assert response['metadata'] == localization
           assert response['bundle']['entry'][0]['resource']['name'][0]['text']
+          observation = response['bundle']['entry'][1]['resource']
+          assert observation['code']['coding'][0]['display'] == '血压组合'
+          assert observation['code']['text'] == '血压组合'
           PY
 
   publish-image:
@@ -183,6 +186,7 @@ jobs:
           - Profile content hash：`{runtime['profile']['contentHash']}`
           - Profile archive SHA-256：`{archive_sha256}`
           - Clinical display：`{runtime['clinicalDisplay']['projectionId']}`，catalog `{runtime['clinicalDisplay']['catalogSha256']}`
+          - Clinical display records：`{runtime['clinicalDisplay']['recordCount']}`
           - 镜像：`{os.environ['IMAGE_NAME']}@{os.environ['IMAGE_DIGEST']}`
 
           依赖：

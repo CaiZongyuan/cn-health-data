@@ -59,6 +59,7 @@
         "catalogSha256",
         "catalogSourcePath",
         "policySourcePath",
+        "recordCount",
         "reviewMode"
       ],
       "properties": {
@@ -66,6 +67,7 @@
         "catalogSha256": { "$ref": "#/$defs/sha256" },
         "catalogSourcePath": { "$ref": "#/$defs/sourcePath" },
         "policySourcePath": { "$ref": "#/$defs/sourcePath" },
+        "recordCount": { "type": "integer", "minimum": 1 },
         "reviewMode": { "const": "experimental-preview" }
       }
     },

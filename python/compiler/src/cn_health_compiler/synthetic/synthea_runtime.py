@@ -54,6 +54,7 @@ class _ClinicalDisplay(BaseModel):
     catalog_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     catalog_source_path: str = Field(min_length=1)
     policy_source_path: str = Field(min_length=1)
+    record_count: int = Field(ge=1)
     review_mode: Literal["experimental-preview"]
 
 
@@ -170,7 +171,11 @@ def stage_synthea_runtime(manifest_path: Path, repository_root: Path, output_roo
     catalog_source = _source_path(
         repository_root, manifest.clinical_display.catalog_source_path
     )
-    if load_catalog(catalog_source).sha256 != manifest.clinical_display.catalog_sha256:
+    catalog = load_catalog(catalog_source)
+    if (
+        catalog.sha256 != manifest.clinical_display.catalog_sha256
+        or len(catalog.records) != manifest.clinical_display.record_count
+    ):
         raise SyntheaRuntimeError("Synthea translation catalog mismatch")
     translation_root = output_root / "translation"
     translation_root.mkdir()
